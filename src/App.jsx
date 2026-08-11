@@ -8,8 +8,38 @@ import Pedidos from './pages/Pedidos'
 import Loja from './pages/Loja'
 
 function App() {
+  /*
+   * =====================================================
+   * ROTAS
+   *
+   * /       = Loja pública
+   * /admin  = Painel administrativo
+   * =====================================================
+   */
 
-  const [pagina, setPagina] = useState('dashboard')
+  const caminhoAtual = window.location.pathname
+
+  /*
+   * Se o cliente acessar diretamente o endereço principal
+   * da Vercel, mostramos SOMENTE a loja.
+   *
+   * Não existe sidebar, Dashboard ou menu administrativo.
+   */
+
+  const lojaPublica =
+    caminhoAtual === '/' ||
+    caminhoAtual === ''
+
+  if (lojaPublica) {
+    return <Loja />
+  }
+
+  return <PainelAdministrativo />
+}
+
+function PainelAdministrativo() {
+  const [pagina, setPagina] =
+    useState('dashboard')
 
   const menuPrincipal = [
     {
@@ -47,7 +77,6 @@ function App() {
   ]
 
   const mudarPagina = (item) => {
-
     if (item.bloqueado) {
       return
     }
@@ -55,8 +84,16 @@ function App() {
     setPagina(item.id)
   }
 
+  /*
+   * Abre a loja pública de verdade.
+   *
+   * Assim, quando o administrador clicar em
+   * "Ver Loja Cliente", ele também verá a loja
+   * sem a barra lateral.
+   */
+
   const abrirLoja = () => {
-    setPagina('loja')
+    window.location.href = '/'
   }
 
   const voltarDashboard = () => {
@@ -64,7 +101,6 @@ function App() {
   }
 
   return (
-
     <div className="app">
 
       {/* =====================================================
@@ -108,10 +144,20 @@ function App() {
               type="button"
               className={
                 'menu-item' +
-                (pagina === item.id ? ' active' : '') +
-                (item.bloqueado ? ' disabled' : '')
+                (
+                  pagina === item.id
+                    ? ' active'
+                    : ''
+                ) +
+                (
+                  item.bloqueado
+                    ? ' disabled'
+                    : ''
+                )
               }
-              onClick={() => mudarPagina(item)}
+              onClick={() =>
+                mudarPagina(item)
+              }
             >
 
               <span className="menu-icon">
@@ -143,46 +189,24 @@ function App() {
           <div className="sidebar-divider" />
 
           {/* =================================================
-              VER LOJA / VOLTAR AO DASHBOARD
+              VER LOJA
           ================================================= */}
 
-          {pagina !== 'loja' ? (
+          <button
+            className="menu-item"
+            type="button"
+            onClick={abrirLoja}
+          >
 
-            <button
-              className="menu-item"
-              type="button"
-              onClick={abrirLoja}
-            >
+            <span className="menu-icon">
+              🛍
+            </span>
 
-              <span className="menu-icon">
-                🛍
-              </span>
+            <span className="menu-name">
+              Ver Loja Cliente
+            </span>
 
-              <span className="menu-name">
-                Ver Loja Cliente
-              </span>
-
-            </button>
-
-          ) : (
-
-            <button
-              className="menu-item"
-              type="button"
-              onClick={voltarDashboard}
-            >
-
-              <span className="menu-icon">
-                ←
-              </span>
-
-              <span className="menu-name">
-                Voltar ao Dashboard
-              </span>
-
-            </button>
-
-          )}
+          </button>
 
           {/* =================================================
               CONFIGURAÇÕES
@@ -249,7 +273,9 @@ function App() {
 
         <div className="main-content">
 
-          {/* DASHBOARD */}
+          {/* =================================================
+              DASHBOARD
+          ================================================= */}
 
           {pagina === 'dashboard' && (
             <Dashboard
@@ -257,27 +283,36 @@ function App() {
             />
           )}
 
-          {/* PRODUTOS */}
+          {/* =================================================
+              PRODUTOS
+          ================================================= */}
 
           {pagina === 'produtos' && (
             <Produtos />
           )}
 
-          {/* ESTOQUE */}
+          {/* =================================================
+              ESTOQUE
+          ================================================= */}
 
           {pagina === 'estoque' && (
             <Estoque />
           )}
 
-          {/* PEDIDOS */}
+          {/* =================================================
+              PEDIDOS
+          ================================================= */}
 
           {pagina === 'pedidos' && (
             <Pedidos />
           )}
 
-          {/* CLIENTES */}
+          {/* =================================================
+              CLIENTES
+          ================================================= */}
 
           {pagina === 'clientes' && (
+
             <div className="coming-page">
 
               <div className="coming-icon">
@@ -293,11 +328,15 @@ function App() {
               </p>
 
             </div>
+
           )}
 
-          {/* RELATÓRIOS */}
+          {/* =================================================
+              RELATÓRIOS
+          ================================================= */}
 
           {pagina === 'relatorios' && (
+
             <div className="coming-page">
 
               <div className="coming-icon">
@@ -313,14 +352,7 @@ function App() {
               </p>
 
             </div>
-          )}
 
-          {/* =================================================
-              LOJA DO CLIENTE
-          ================================================= */}
-
-          {pagina === 'loja' && (
-            <Loja />
           )}
 
         </div>
