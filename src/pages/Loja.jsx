@@ -18,15 +18,12 @@ function formatarPreco(valor) {
 
 function Loja() {
   const [produtos, setProdutos] = useState([])
-  const [categoriaAtiva, setCategoriaAtiva] =
-    useState('Todos')
+  const [categoriaAtiva, setCategoriaAtiva] = useState('Todos')
 
   const [carrinho, setCarrinho] = useState([])
-  const [nomeCliente, setNomeCliente] =
-    useState('')
+  const [nomeCliente, setNomeCliente] = useState('')
 
-  const [carrinhoAberto, setCarrinhoAberto] =
-    useState(false)
+  const [carrinhoAberto, setCarrinhoAberto] = useState(false)
 
   // =====================================================
   // CARREGAR PRODUTOS
@@ -37,8 +34,7 @@ function Loja() {
 
     async function carregar() {
       try {
-        const produtosSalvos =
-          await carregarProdutos()
+        const produtosSalvos = await carregarProdutos()
 
         if (
           ativo &&
@@ -84,8 +80,8 @@ function Loja() {
   // PRODUTOS DISPONÍVEIS
   // =====================================================
 
-  const produtosDisponiveis =
-    produtos.filter((produto) => {
+  const produtosDisponiveis = produtos.filter(
+    (produto) => {
       const estoque = Number(
         produto.quantidade || 0
       )
@@ -101,12 +97,15 @@ function Loja() {
       return (
         String(
           produto.categoria || ''
-        ).trim().toLowerCase() ===
-        String(
-          categoriaAtiva
-        ).trim().toLowerCase()
+        )
+          .trim()
+          .toLowerCase() ===
+        String(categoriaAtiva)
+          .trim()
+          .toLowerCase()
       )
-    })
+    }
+  )
 
   // =====================================================
   // ADICIONAR AO CARRINHO
@@ -124,19 +123,17 @@ function Loja() {
       return
     }
 
-    const itemExistente =
-      carrinho.find(
-        (item) =>
-          String(item.id) ===
-          String(produto.id)
-      )
+    const itemExistente = carrinho.find(
+      (item) =>
+        String(item.id) ===
+        String(produto.id)
+    )
 
-    const quantidadeAtual =
-      itemExistente
-        ? Number(
-            itemExistente.quantidade || 0
-          )
-        : 0
+    const quantidadeAtual = itemExistente
+      ? Number(
+          itemExistente.quantidade || 0
+        )
+      : 0
 
     if (quantidadeAtual >= estoque) {
       alert(
@@ -150,17 +147,18 @@ function Loja() {
     if (itemExistente) {
       setCarrinho(
         (carrinhoAtual) =>
-          carrinhoAtual.map((item) =>
-            String(item.id) ===
-            String(produto.id)
-              ? {
-                  ...item,
-                  quantidade:
-                    Number(
-                      item.quantidade || 0
-                    ) + 1
-                }
-              : item
+          carrinhoAtual.map(
+            (item) =>
+              String(item.id) ===
+              String(produto.id)
+                ? {
+                    ...item,
+                    quantidade:
+                      Number(
+                        item.quantidade || 0
+                      ) + 1
+                  }
+                : item
           )
       )
     } else {
@@ -222,17 +220,18 @@ function Loja() {
 
     setCarrinho(
       (carrinhoAtual) =>
-        carrinhoAtual.map((item) =>
-          String(item.id) ===
-          String(id)
-            ? {
-                ...item,
-                quantidade:
-                  Number(
-                    item.quantidade || 0
-                  ) + 1
-              }
-            : item
+        carrinhoAtual.map(
+          (item) =>
+            String(item.id) ===
+            String(id)
+              ? {
+                  ...item,
+                  quantidade:
+                    Number(
+                      item.quantidade || 0
+                    ) + 1
+                }
+              : item
         )
     )
   }
@@ -245,17 +244,18 @@ function Loja() {
     setCarrinho(
       (carrinhoAtual) =>
         carrinhoAtual
-          .map((item) =>
-            String(item.id) ===
-            String(id)
-              ? {
-                  ...item,
-                  quantidade:
-                    Number(
-                      item.quantidade || 0
-                    ) - 1
-                }
-              : item
+          .map(
+            (item) =>
+              String(item.id) ===
+              String(id)
+                ? {
+                    ...item,
+                    quantidade:
+                      Number(
+                        item.quantidade || 0
+                      ) - 1
+                  }
+                : item
           )
           .filter(
             (item) =>
@@ -405,7 +405,8 @@ function Loja() {
 
             mensagem +=
               '\n• ' +
-              (item.nome || 'Produto') +
+              (item.nome ||
+                'Produto') +
               '\n'
 
             if (item.marca) {
@@ -515,7 +516,7 @@ function Loja() {
   // =====================================================
 
   return (
-    <div className="loja-page">
+    <div className="loja">
 
       {/* =================================================
           HEADER
@@ -1016,6 +1017,18 @@ function Loja() {
                       Enviar pedido
                     </strong>
 
+                  </button>
+
+                  <button
+                    className="loja-continue-shopping"
+                    type="button"
+                    onClick={() =>
+                      setCarrinhoAberto(
+                        false
+                      )
+                    }
+                  >
+                    Continuar comprando
                   </button>
 
                   <p className="loja-cart-note">
