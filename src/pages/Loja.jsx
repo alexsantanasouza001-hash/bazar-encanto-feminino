@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react'
 import './Loja.css'
 
@@ -19,12 +18,15 @@ function formatarPreco(valor) {
 
 function Loja() {
   const [produtos, setProdutos] = useState([])
-  const [categoriaAtiva, setCategoriaAtiva] = useState('Todos')
+  const [categoriaAtiva, setCategoriaAtiva] =
+    useState('Todos')
 
   const [carrinho, setCarrinho] = useState([])
-  const [nomeCliente, setNomeCliente] = useState('')
+  const [nomeCliente, setNomeCliente] =
+    useState('')
 
-  const [carrinhoAberto, setCarrinhoAberto] = useState(false)
+  const [carrinhoAberto, setCarrinhoAberto] =
+    useState(false)
 
   // =====================================================
   // CARREGAR PRODUTOS
@@ -35,7 +37,8 @@ function Loja() {
 
     async function carregar() {
       try {
-        const produtosSalvos = await carregarProdutos()
+        const produtosSalvos =
+          await carregarProdutos()
 
         if (
           ativo &&
@@ -81,11 +84,10 @@ function Loja() {
   // PRODUTOS DISPONÍVEIS
   // =====================================================
 
-  const produtosDisponiveis = produtos.filter(
-    (produto) => {
-      const estoque = Number(
-        produto.quantidade || 0
-      )
+  const produtosDisponiveis =
+    produtos.filter((produto) => {
+      const estoque =
+        Number(produto.quantidade || 0)
 
       if (estoque <= 0) {
         return false
@@ -105,17 +107,15 @@ function Loja() {
           .trim()
           .toLowerCase()
       )
-    }
-  )
+    })
 
   // =====================================================
   // ADICIONAR AO CARRINHO
   // =====================================================
 
   const adicionarCarrinho = (produto) => {
-    const estoque = Number(
-      produto.quantidade || 0
-    )
+    const estoque =
+      Number(produto.quantidade || 0)
 
     if (estoque <= 0) {
       alert(
@@ -124,17 +124,19 @@ function Loja() {
       return
     }
 
-    const itemExistente = carrinho.find(
-      (item) =>
-        String(item.id) ===
-        String(produto.id)
-    )
+    const itemExistente =
+      carrinho.find(
+        (item) =>
+          String(item.id) ===
+          String(produto.id)
+      )
 
-    const quantidadeAtual = itemExistente
-      ? Number(
-          itemExistente.quantidade || 0
-        )
-      : 0
+    const quantidadeAtual =
+      itemExistente
+        ? Number(
+            itemExistente.quantidade || 0
+          )
+        : 0
 
     if (quantidadeAtual >= estoque) {
       alert(
@@ -193,9 +195,10 @@ function Loja() {
       return
     }
 
-    const estoque = Number(
-      produtoOriginal.quantidade || 0
-    )
+    const estoque =
+      Number(
+        produtoOriginal.quantidade || 0
+      )
 
     const itemCarrinho =
       carrinho.find(
@@ -300,9 +303,7 @@ function Loja() {
     carrinho.reduce(
       (total, item) =>
         total +
-        Number(
-          item.venda || 0
-        ) *
+        Number(item.venda || 0) *
           Number(
             item.quantidade || 0
           ),
@@ -517,7 +518,7 @@ function Loja() {
   // =====================================================
 
   return (
-    <div className="loja">
+    <div className="loja-page">
 
       {/* =================================================
           HEADER
@@ -606,30 +607,34 @@ function Loja() {
 
       <section className="loja-categorias">
 
-        {categorias.map(
-          (categoria) => (
-            <button
-              key={categoria}
-              type="button"
-              className={
-                'categoria-button ' +
-                (
-                  categoriaAtiva ===
-                  categoria
-                    ? 'active'
-                    : ''
-                )
-              }
-              onClick={() =>
-                setCategoriaAtiva(
-                  categoria
-                )
-              }
-            >
-              {categoria}
-            </button>
-          )
-        )}
+        <div className="loja-categorias-inner">
+
+          {categorias.map(
+            (categoria) => (
+              <button
+                key={categoria}
+                type="button"
+                className={
+                  'categoria-button ' +
+                  (
+                    categoriaAtiva ===
+                    categoria
+                      ? 'active'
+                      : ''
+                  )
+                }
+                onClick={() =>
+                  setCategoriaAtiva(
+                    categoria
+                  )
+                }
+              >
+                {categoria}
+              </button>
+            )
+          )}
+
+        </div>
 
       </section>
 
@@ -803,6 +808,10 @@ function Loja() {
 
           <aside className="loja-cart-sidebar">
 
+            {/* =================================================
+                CABEÇALHO DO CARRINHO
+            ================================================= */}
+
             <div className="loja-cart-header">
 
               <div>
@@ -817,6 +826,10 @@ function Loja() {
 
               </div>
 
+              {/* =================================================
+                  CONTINUAR COMPRANDO
+              ================================================= */}
+
               <button
                 type="button"
                 className="loja-continue-shopping-top"
@@ -824,7 +837,11 @@ function Loja() {
                   setCarrinhoAberto(false)
                 }
               >
-                ← Continuar comprando
+                <span>
+                  ←
+                </span>
+
+                Continuar comprando
               </button>
 
             </div>
@@ -860,6 +877,10 @@ function Loja() {
             ) : (
 
               <>
+
+                {/* =================================================
+                    ITENS
+                ================================================= */}
 
                 <div className="loja-cart-items">
 
@@ -952,15 +973,24 @@ function Loja() {
                               item.id
                             )
                           }
+                          aria-label={
+                            'Remover ' +
+                            item.nome
+                          }
                         >
                           ×
                         </button>
 
                       </div>
+
                     )
                   )}
 
                 </div>
+
+                {/* =================================================
+                    RODAPÉ DO CARRINHO
+                ================================================= */}
 
                 <div className="loja-cart-footer">
 

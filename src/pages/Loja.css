@@ -1652,3 +1652,69 @@
   }
 
 }
+/* =====================================================
+   CONTINUAR COMPRANDO - CARRINHO
+===================================================== */
+
+.loja-continue-shopping-top {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  min-height: 34px;
+
+  padding: 8px 12px;
+
+  border: 1px solid #D7E0D6;
+  border-radius: 8px;
+
+  background: #EEF4EE;
+
+  color: #3F6044;
+
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+
+  white-space: nowrap;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.loja-continue-shopping-top:hover {
+  background: #E2ECE2;
+  border-color: #B8CBB9;
+  color: #234B36;
+
+  transform: translateX(-2px);
+}
+
+.loja-continue-shopping-top span {
+  font-size: 15px;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+
+  .loja-cart-header {
+    padding: 22px 18px 18px;
+  }
+
+  .loja-continue-shopping-top {
+    min-height: 32px;
+    padding: 7px 9px;
+    font-size: 9px;
+  }
+
+  .loja-continue-shopping-top span {
+    font-size: 14px;
+  }
+
+}
