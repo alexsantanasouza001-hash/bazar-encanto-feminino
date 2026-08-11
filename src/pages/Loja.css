@@ -537,7 +537,11 @@
   width: 100%;
   height: 100%;
 
-  object-fit: cover;
+  display: block;
+
+  object-fit: contain;
+
+  object-position: center;
 
   transition: transform 0.35s ease;
 }
@@ -548,6 +552,13 @@
 }
 
 .loja-foto-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  height: 100%;
+
   color: #234B36;
 
   opacity: 0.13;
@@ -761,34 +772,27 @@
   align-items: center;
   justify-content: center;
 
-  padding: 35px;
+  padding: 40px;
 
-  text-align: center;
-
-  background: #FFFDF8;
-
-  border: 1px solid #E5DDCF;
-
-  border-radius: 14px;
-}
-
-.loja-sem-produtos > div {
-  width: 55px;
-  height: 55px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  margin-bottom: 13px;
+  border: 1px dashed #E5DDCF;
 
   border-radius: 15px;
 
-  background: #E8E2D4;
+  background: #FFFDF8;
+
+  text-align: center;
+}
+
+.loja-sem-produtos > div {
+  margin-bottom: 12px;
 
   color: #234B36;
 
-  font-size: 24px;
+  opacity: 0.3;
+
+  font-family: Georgia, serif;
+
+  font-size: 45px;
 }
 
 .loja-sem-produtos strong {
@@ -798,15 +802,11 @@
 }
 
 .loja-sem-produtos span {
-  max-width: 300px;
-
   margin-top: 7px;
 
   color: #8B897D;
 
-  font-size: 10px;
-
-  line-height: 1.6;
+  font-size: 11px;
 }
 
 .loja-sem-produtos button {
@@ -823,6 +823,7 @@
   color: #234B36;
 
   font-size: 10px;
+
   font-weight: 600;
 
   cursor: pointer;
@@ -879,9 +880,15 @@
   align-items: flex-start;
   justify-content: space-between;
 
+  gap: 15px;
+
   padding: 27px 25px 22px;
 
   border-bottom: 1px solid #E5DDCF;
+}
+
+.loja-cart-header > div {
+  min-width: 0;
 }
 
 .loja-cart-header span {
@@ -892,6 +899,7 @@
   color: #71805A;
 
   font-size: 9px;
+
   font-weight: 700;
 
   letter-spacing: 1.4px;
@@ -909,28 +917,86 @@
   font-weight: 500;
 }
 
-.loja-cart-close {
-  width: 32px;
-  height: 32px;
+/* =========================================================
+   BOTÃO CONTINUAR COMPRANDO
+========================================================= */
 
-  border: 1px solid #E5DDCF;
+.loja-continue-shopping {
+  flex-shrink: 0;
 
-  border-radius: 8px;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 
-  background: #F7F3EB;
+  gap: 7px !important;
 
-  color: #6E746B;
+  height: 36px !important;
 
-  font-size: 20px;
+  padding: 0 13px !important;
 
-  cursor: pointer;
+  border: 1px solid #B8CCBC !important;
 
-  transition: all 0.2s ease;
+  border-radius: 9px !important;
+
+  background: #EAF2EB !important;
+
+  background-color: #EAF2EB !important;
+
+  color: #234B36 !important;
+
+  font-family: inherit !important;
+
+  font-size: 10px !important;
+
+  font-weight: 700 !important;
+
+  line-height: 1 !important;
+
+  white-space: nowrap !important;
+
+  cursor: pointer !important;
+
+  box-shadow: none !important;
+
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease !important;
 }
 
-.loja-cart-close:hover {
-  background: #E8E2D4;
-  color: #234B36;
+.loja-continue-shopping:hover {
+  background: #DCE9DE !important;
+
+  background-color: #DCE9DE !important;
+
+  border-color: #91AE97 !important;
+
+  color: #173626 !important;
+
+  transform: translateX(-2px);
+}
+
+.loja-continue-shopping:active {
+  background: #D1E1D4 !important;
+
+  background-color: #D1E1D4 !important;
+
+  transform: translateX(-3px);
+}
+
+.loja-continue-shopping span {
+  display: inline-block;
+
+  margin: 0 !important;
+
+  color: #234B36 !important;
+
+  font-size: 16px !important;
+
+  font-weight: 500 !important;
+
+  line-height: 1 !important;
 }
 
 /* =========================================================
@@ -1001,6 +1067,7 @@
   color: white;
 
   font-size: 10px;
+
   font-weight: 600;
 
   cursor: pointer;
@@ -1031,8 +1098,8 @@
 }
 
 .loja-cart-item-image {
-  width: 62px;
-  height: 74px;
+  width: 60px;
+  height: 70px;
 
   flex-shrink: 0;
 
@@ -1040,18 +1107,26 @@
   align-items: center;
   justify-content: center;
 
+  overflow: hidden;
+
   border-radius: 9px;
 
-  background:
-    linear-gradient(
-      145deg,
-      #E8E2D4,
-      #F3EBDD
-    );
+  background: #E8E2D4;
 
   color: #234B36;
 
   font-size: 23px;
+}
+
+.loja-cart-item-image img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: contain;
+
+  object-position: center;
 }
 
 .loja-cart-item-info {
@@ -1085,6 +1160,7 @@
   color: #234B36;
 
   font-size: 10px;
+
   font-weight: 600;
 }
 
@@ -1134,6 +1210,7 @@
   color: #25352A;
 
   font-size: 10px;
+
   font-weight: 600;
 }
 
@@ -1261,6 +1338,7 @@
   color: white;
 
   font-size: 11px;
+
   font-weight: 700;
 
   cursor: pointer;
@@ -1291,6 +1369,121 @@
   line-height: 1.5;
 
   text-align: center;
+}
+
+/* =========================================================
+   MARCA / COR
+========================================================= */
+
+.loja-produto-marca {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #71805A;
+
+  font-size: 10px;
+
+  font-weight: 600;
+}
+
+.loja-produto-cor {
+  display: block;
+
+  margin-bottom: 10px;
+
+  color: #8B897D;
+
+  font-size: 10px;
+}
+
+/* =========================================================
+   PRODUTOS VAZIOS
+========================================================= */
+
+.loja-sem-produtos {
+  min-height: 280px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 40px;
+
+  border: 1px dashed #E5DDCF;
+
+  border-radius: 15px;
+
+  background: #FFFDF8;
+
+  text-align: center;
+}
+
+.loja-sem-produtos > div {
+  margin-bottom: 12px;
+
+  color: #234B36;
+
+  opacity: 0.3;
+
+  font-family: Georgia, serif;
+
+  font-size: 45px;
+}
+
+.loja-sem-produtos strong {
+  color: #25352A;
+
+  font-size: 14px;
+}
+
+.loja-sem-produtos span {
+  margin-top: 7px;
+
+  color: #8B897D;
+
+  font-size: 11px;
+}
+
+/* =========================================================
+   FOTO NO MODAL
+========================================================= */
+
+.photo-preview {
+  position: relative;
+
+  width: 65px;
+  height: 65px;
+
+  flex: 0 0 65px;
+
+  overflow: hidden;
+
+  border-radius: 9px;
+
+  background: #e8e2d4;
+
+  cursor: pointer;
+}
+
+.photo-preview img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  max-width: 100%;
+  max-height: 100%;
+
+  object-fit: contain;
+
+  object-position: center;
+}
+
+.photo-preview .photo-placeholder {
+  width: 100%;
+  height: 100%;
 }
 
 /* =========================================================
@@ -1411,155 +1604,42 @@
     max-width: 100%;
   }
 
-}
-/* =====================================================
-   IMAGENS DOS PRODUTOS
-===================================================== */
+  /* =======================================================
+     CABEÇALHO DO CARRINHO NO CELULAR
+  ======================================================= */
 
-.loja-produto-foto {
-  position: relative;
-  height: 320px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: linear-gradient(
-    145deg,
-    #EEE9DE,
-    #F8F4EC
-  );
-}
+  .loja-cart-header {
+    padding: 22px 18px 18px;
 
-.loja-produto-foto img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: contain;
-  object-position: center;
-}
+    gap: 10px;
+  }
 
-.loja-foto-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: #234B36;
-  opacity: 0.13;
-  font-family: Georgia, serif;
-  font-size: 90px;
-}
+  .loja-cart-header h2 {
+    font-size: 22px;
+  }
 
-/* =====================================================
-   MARCA / COR
-===================================================== */
+  .loja-continue-shopping {
+    height: 34px !important;
 
-.loja-produto-marca {
-  display: block;
-  margin-bottom: 5px;
-  color: #71805A;
-  font-size: 10px;
-  font-weight: 600;
-}
+    padding: 0 10px !important;
 
-.loja-produto-cor {
-  display: block;
-  margin-bottom: 10px;
-  color: #8B897D;
-  font-size: 10px;
-}
+    gap: 5px !important;
 
-/* =====================================================
-   CARRINHO - IMAGEM
-===================================================== */
+    font-size: 9px !important;
+  }
 
-.loja-cart-item-image {
-  width: 60px;
-  height: 70px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 9px;
-  background: #E8E2D4;
-}
+  .loja-continue-shopping span {
+    font-size: 15px !important;
+  }
 
-.loja-cart-item-image img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: contain;
-  object-position: center;
-}
+  .loja-cart-items {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
 
-/* =====================================================
-   PRODUTOS VAZIOS
-===================================================== */
-
-.loja-sem-produtos {
-  min-height: 280px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  border: 1px dashed #E5DDCF;
-  border-radius: 15px;
-  background: #FFFDF8;
-  text-align: center;
-}
-
-.loja-sem-produtos > div {
-  margin-bottom: 12px;
-  color: #234B36;
-  opacity: 0.3;
-  font-family: Georgia, serif;
-  font-size: 45px;
-}
-
-.loja-sem-produtos strong {
-  color: #25352A;
-  font-size: 14px;
-}
-
-.loja-sem-produtos span {
-  margin-top: 7px;
-  color: #8B897D;
-  font-size: 11px;
-}
-
-/* =====================================================
-   FOTO NO MODAL
-===================================================== */
-
-.photo-preview {
-  position: relative;
-  width: 105px;
-  height: 125px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: 1px solid #E5DDCF;
-  border-radius: 10px;
-  background: #F1EBDD;
-  cursor: pointer;
-}
-
-.photo-preview img {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: contain;
-  object-position: center;
-}
-
-@media (max-width: 600px) {
-
-  .loja-produto-foto {
-    height: 360px;
+  .loja-cart-footer {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
   .photo-area {
@@ -1571,84 +1651,4 @@
     height: 110px;
   }
 
-}/* =====================================================
-   PREVIEW DA FOTO DO PRODUTO
-===================================================== */
-
-.photo-preview {
-  position: relative;
-  width: 65px;
-  height: 65px;
-  flex: 0 0 65px;
-  overflow: hidden;
-  border-radius: 9px;
-  background: #e8e2d4;
-  cursor: pointer;
-}
-
-.photo-preview img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-  object-position: center;
-}
-
-.photo-preview .photo-placeholder {
-  width: 100%;
-  height: 100%;
-}
-/* =========================================================
-   CONTINUAR COMPRANDO
-========================================================= */
-
-.loja-continue-shopping {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-
-  min-height: 32px;
-
-  padding: 7px 11px;
-
-  border: 1px solid #D5E0D5;
-  border-radius: 8px;
-
-  background: #F1F6F1;
-
-  color: #234B36;
-
-  font-family: inherit;
-  font-size: 10px;
-  font-weight: 600;
-
-  white-space: nowrap;
-
-  cursor: pointer;
-
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease;
-}
-
-.loja-continue-shopping:hover {
-  background: #E3EEE4;
-  border-color: #AFC4B1;
-  color: #173626;
-
-  transform: translateX(-2px);
-}
-
-.loja-continue-shopping:active {
-  transform: translateX(-3px);
-}
-
-.loja-continue-shopping span {
-  font-size: 15px;
-  line-height: 1;
 }
