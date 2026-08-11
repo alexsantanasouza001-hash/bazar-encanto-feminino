@@ -1,0 +1,1604 @@
+```css
+/* =========================================================
+   LOJA / CLIENTE
+   BAZAR ENCANTO FEMININO
+========================================================= */
+
+.loja-page {
+  min-height: 100vh;
+  background: #F7F3EB;
+  color: #25352A;
+}
+
+/* =========================================================
+   CABEÇALHO
+========================================================= */
+
+.loja-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  height: 74px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 6%;
+
+  background: rgba(255, 253, 248, 0.96);
+
+  border-bottom: 1px solid #E5DDCF;
+
+  backdrop-filter: blur(14px);
+}
+
+.loja-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.loja-brand-symbol {
+  width: 40px;
+  height: 40px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: linear-gradient(
+    135deg,
+    #E8E2D4,
+    #F3EBDD
+  );
+
+  border: 1px solid rgba(201, 163, 90, 0.35);
+
+  color: #234B36;
+
+  font-size: 22px;
+}
+
+.loja-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.loja-brand-text span {
+  color: #6E746B;
+  font-size: 10px;
+  letter-spacing: 1.4px;
+}
+
+.loja-brand-text strong {
+  color: #234B36;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.loja-cart-button {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  padding: 10px 14px;
+
+  border: 1px solid #E5DDCF;
+  border-radius: 10px;
+
+  background: #FFFDF8;
+
+  color: #234B36;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.loja-cart-button:hover {
+  background: #E8E2D4;
+  border-color: #C9A35A;
+}
+
+.loja-cart-icon {
+  font-size: 16px;
+}
+
+.loja-cart-count {
+  min-width: 21px;
+  height: 21px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: #234B36;
+
+  color: white;
+
+  font-size: 9px;
+}
+
+/* =========================================================
+   HERO
+========================================================= */
+
+.loja-hero {
+  position: relative;
+
+  min-height: 355px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 45px 10%;
+
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      115deg,
+      #E8E2D4 0%,
+      #F1EBDD 55%,
+      #F7F3EB 100%
+    );
+}
+
+.loja-hero-content {
+  position: relative;
+  z-index: 3;
+
+  max-width: 560px;
+}
+
+.loja-hero-eyebrow {
+  display: block;
+
+  margin-bottom: 12px;
+
+  color: #71805A;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: 2px;
+}
+
+.loja-hero h1 {
+  margin: 0 0 15px;
+
+  color: #234B36;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size: clamp(40px, 5vw, 62px);
+
+  line-height: 0.98;
+
+  font-weight: 500;
+
+  letter-spacing: -1.5px;
+}
+
+.loja-hero p {
+  max-width: 390px;
+
+  margin: 0 0 23px;
+
+  color: #6E746B;
+
+  font-size: 14px;
+
+  line-height: 1.7;
+}
+
+.loja-hero-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 12px 18px;
+
+  border: none;
+  border-radius: 9px;
+
+  background: #234B36;
+
+  color: white;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 6px 18px rgba(35, 75, 54, 0.18);
+
+  transition: all 0.2s ease;
+}
+
+.loja-hero-button:hover {
+  background: #173626;
+  transform: translateY(-1px);
+}
+
+.loja-hero-button span {
+  font-size: 16px;
+}
+
+.loja-hero-decoration {
+  position: absolute;
+
+  right: 8%;
+  top: 50%;
+
+  transform:
+    translateY(-50%)
+    rotate(12deg);
+
+  color: #234B36;
+
+  opacity: 0.08;
+
+  font-family: Georgia, serif;
+
+  font-size: 240px;
+
+  pointer-events: none;
+}
+
+.loja-hero-circle {
+  position: absolute;
+
+  border-radius: 50%;
+
+  border: 1px solid rgba(201, 163, 90, 0.35);
+
+  pointer-events: none;
+}
+
+.loja-hero-circle-one {
+  width: 270px;
+  height: 270px;
+
+  right: 12%;
+  top: 50%;
+
+  transform: translateY(-50%);
+}
+
+.loja-hero-circle-two {
+  width: 340px;
+  height: 340px;
+
+  right: 8%;
+  top: 50%;
+
+  transform: translateY(-50%);
+}
+
+/* =========================================================
+   CATEGORIAS
+========================================================= */
+
+.loja-categorias {
+  background: #FFFDF8;
+
+  border-bottom: 1px solid #E5DDCF;
+
+  overflow-x: auto;
+}
+
+.loja-categorias-inner {
+  max-width: 1250px;
+
+  margin: 0 auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding: 20px;
+}
+
+.categoria-button {
+  padding: 9px 17px;
+
+  border: 1px solid #E5DDCF;
+  border-radius: 30px;
+
+  background: transparent;
+
+  color: #6E746B;
+
+  font-size: 11px;
+
+  cursor: pointer;
+
+  white-space: nowrap;
+
+  transition: all 0.2s ease;
+}
+
+.categoria-button:hover {
+  color: #234B36;
+  border-color: #C9A35A;
+}
+
+.categoria-button.active {
+  background: #234B36;
+
+  border-color: #234B36;
+
+  color: white;
+
+  font-weight: 600;
+}
+
+/* =========================================================
+   CONTEÚDO
+========================================================= */
+
+.loja-conteudo {
+  max-width: 1250px;
+
+  margin: 0 auto;
+
+  padding: 45px 35px 70px;
+}
+
+.loja-section-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 18px;
+}
+
+.loja-section-header > div span {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #71805A;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 1.5px;
+}
+
+.loja-section-header h2 {
+  max-width: 600px;
+
+  margin: 0;
+
+  color: #234B36;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size: 27px;
+
+  font-weight: 500;
+}
+
+.loja-section-header > p {
+  margin: 0;
+
+  color: #8B897D;
+
+  font-size: 10px;
+}
+
+/* =========================================================
+   BUSCA
+========================================================= */
+
+.loja-filtros {
+  display: flex;
+
+  justify-content: flex-end;
+
+  margin-bottom: 20px;
+}
+
+.loja-busca {
+  width: 260px;
+
+  height: 39px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 0 12px;
+
+  background: #FFFDF8;
+
+  border: 1px solid #E5DDCF;
+
+  border-radius: 9px;
+}
+
+.loja-busca span {
+  color: #71805A;
+
+  font-size: 18px;
+}
+
+.loja-busca input {
+  width: 100%;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: #25352A;
+
+  font-family: inherit;
+
+  font-size: 11px;
+}
+
+.loja-busca input::placeholder {
+  color: #9A9689;
+}
+
+/* =========================================================
+   PRODUTOS
+========================================================= */
+
+.loja-produtos {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 22px;
+}
+
+.loja-produto-card {
+  overflow: hidden;
+
+  background: #FFFDF8;
+
+  border: 1px solid #E5DDCF;
+
+  border-radius: 15px;
+
+  box-shadow:
+    0 3px 12px rgba(37, 53, 42, 0.045);
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.loja-produto-card:hover {
+  transform: translateY(-4px);
+
+  box-shadow:
+    0 14px 32px rgba(37, 53, 42, 0.10);
+}
+
+/* =========================================================
+   FOTO
+========================================================= */
+
+.loja-produto-foto {
+  position: relative;
+
+  height: 320px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  overflow: hidden;
+
+  background:
+    linear-gradient(
+      145deg,
+      #EEE9DE,
+      #F8F4EC
+    );
+}
+
+.loja-produto-foto img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  transition: transform 0.35s ease;
+}
+
+.loja-produto-card:hover
+.loja-produto-foto img {
+  transform: scale(1.03);
+}
+
+.loja-foto-placeholder {
+  color: #234B36;
+
+  opacity: 0.13;
+
+  font-family: Georgia, serif;
+
+  font-size: 90px;
+}
+
+.loja-produto-categoria {
+  position: absolute;
+
+  top: 13px;
+  left: 13px;
+
+  padding: 6px 9px;
+
+  border-radius: 6px;
+
+  background: rgba(255, 253, 248, 0.92);
+
+  color: #234B36;
+
+  font-size: 8px;
+  font-weight: 700;
+
+  letter-spacing: 0.5px;
+
+  text-transform: uppercase;
+}
+
+.loja-favorito {
+  position: absolute;
+
+  top: 12px;
+  right: 12px;
+
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(229, 221, 207, 0.8);
+
+  border-radius: 50%;
+
+  background: rgba(255, 253, 248, 0.92);
+
+  color: #234B36;
+
+  font-size: 17px;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.loja-favorito:hover {
+  background: #234B36;
+  color: white;
+}
+
+/* =========================================================
+   INFORMAÇÕES
+========================================================= */
+
+.loja-produto-info {
+  padding: 17px 18px 18px;
+}
+
+.loja-produto-label {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #71805A;
+
+  font-size: 8px;
+  font-weight: 700;
+
+  letter-spacing: 1px;
+
+  text-transform: uppercase;
+}
+
+.loja-produto-info h3 {
+  margin: 0 0 12px;
+
+  color: #25352A;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size: 18px;
+
+  font-weight: 500;
+}
+
+.loja-produto-detalhes {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  margin-bottom: 17px;
+}
+
+.loja-produto-detalhes span {
+  color: #8B897D;
+
+  font-size: 9px;
+}
+
+.loja-produto-detalhes strong {
+  min-width: 25px;
+  height: 25px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #E5DDCF;
+
+  border-radius: 6px;
+
+  background: #F7F3EB;
+
+  color: #234B36;
+
+  font-size: 9px;
+}
+
+.loja-produto-bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  gap: 10px;
+}
+
+.loja-produto-bottom > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.loja-produto-bottom small {
+  color: #9A9689;
+
+  font-size: 8px;
+}
+
+.loja-produto-bottom strong {
+  color: #234B36;
+
+  font-size: 17px;
+
+  font-weight: 700;
+}
+
+.loja-produto-bottom button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 5px;
+
+  min-height: 35px;
+
+  padding: 0 11px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: #234B36;
+
+  color: white;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.loja-produto-bottom button:hover {
+  background: #173626;
+
+  transform: translateY(-1px);
+}
+
+.loja-produto-bottom button span {
+  font-size: 16px;
+}
+
+/* =========================================================
+   SEM PRODUTOS
+========================================================= */
+
+.loja-sem-produtos {
+  min-height: 280px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 35px;
+
+  text-align: center;
+
+  background: #FFFDF8;
+
+  border: 1px solid #E5DDCF;
+
+  border-radius: 14px;
+}
+
+.loja-sem-produtos > div {
+  width: 55px;
+  height: 55px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 13px;
+
+  border-radius: 15px;
+
+  background: #E8E2D4;
+
+  color: #234B36;
+
+  font-size: 24px;
+}
+
+.loja-sem-produtos strong {
+  color: #25352A;
+
+  font-size: 14px;
+}
+
+.loja-sem-produtos span {
+  max-width: 300px;
+
+  margin-top: 7px;
+
+  color: #8B897D;
+
+  font-size: 10px;
+
+  line-height: 1.6;
+}
+
+.loja-sem-produtos button {
+  margin-top: 17px;
+
+  padding: 9px 14px;
+
+  border: 1px solid #E5DDCF;
+
+  border-radius: 8px;
+
+  background: #F7F3EB;
+
+  color: #234B36;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+/* =========================================================
+   OVERLAY DO CARRINHO
+========================================================= */
+
+.loja-cart-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  z-index: 998;
+
+  background: rgba(37, 53, 42, 0.40);
+
+  backdrop-filter: blur(4px);
+}
+
+/* =========================================================
+   CARRINHO
+========================================================= */
+
+.loja-cart-sidebar {
+  position: fixed;
+
+  top: 0;
+  right: 0;
+  bottom: 0;
+
+  z-index: 999;
+
+  width: 410px;
+
+  max-width: 94vw;
+
+  display: flex;
+  flex-direction: column;
+
+  background: #FFFDF8;
+
+  box-shadow:
+    -15px 0 45px rgba(37, 53, 42, 0.14);
+}
+
+/* =========================================================
+   CABEÇALHO CARRINHO
+========================================================= */
+
+.loja-cart-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  padding: 27px 25px 22px;
+
+  border-bottom: 1px solid #E5DDCF;
+}
+
+.loja-cart-header span {
+  display: block;
+
+  margin-bottom: 5px;
+
+  color: #71805A;
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 1.4px;
+}
+
+.loja-cart-header h2 {
+  margin: 0;
+
+  color: #234B36;
+
+  font-family: Georgia, serif;
+
+  font-size: 25px;
+
+  font-weight: 500;
+}
+
+.loja-cart-close {
+  width: 32px;
+  height: 32px;
+
+  border: 1px solid #E5DDCF;
+
+  border-radius: 8px;
+
+  background: #F7F3EB;
+
+  color: #6E746B;
+
+  font-size: 20px;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.loja-cart-close:hover {
+  background: #E8E2D4;
+  color: #234B36;
+}
+
+/* =========================================================
+   CARRINHO VAZIO
+========================================================= */
+
+.loja-cart-empty {
+  flex: 1;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  text-align: center;
+}
+
+.loja-cart-empty > div {
+  width: 60px;
+  height: 60px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 15px;
+
+  border-radius: 16px;
+
+  background: #E8E2D4;
+
+  color: #234B36;
+
+  font-size: 25px;
+}
+
+.loja-cart-empty strong {
+  color: #25352A;
+
+  font-size: 14px;
+}
+
+.loja-cart-empty p {
+  max-width: 230px;
+
+  margin: 8px 0 0;
+
+  color: #8B897D;
+
+  font-size: 11px;
+
+  line-height: 1.6;
+}
+
+.loja-cart-empty button {
+  margin-top: 18px;
+
+  padding: 10px 16px;
+
+  border: none;
+
+  border-radius: 9px;
+
+  background: #234B36;
+
+  color: white;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+/* =========================================================
+   ITENS
+========================================================= */
+
+.loja-cart-items {
+  flex: 1;
+
+  overflow-y: auto;
+
+  padding: 8px 23px 15px;
+}
+
+.loja-cart-item {
+  position: relative;
+
+  display: flex;
+
+  gap: 11px;
+
+  padding: 15px 0;
+
+  border-bottom: 1px solid #E5DDCF;
+}
+
+.loja-cart-item-image {
+  width: 62px;
+  height: 74px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #E8E2D4,
+      #F3EBDD
+    );
+
+  color: #234B36;
+
+  font-size: 23px;
+}
+
+.loja-cart-item-info {
+  min-width: 0;
+
+  padding-right: 25px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+.loja-cart-item-info strong {
+  max-width: 210px;
+
+  overflow: hidden;
+
+  color: #25352A;
+
+  font-family: Georgia, serif;
+
+  font-size: 13px;
+
+  white-space: nowrap;
+
+  text-overflow: ellipsis;
+}
+
+.loja-cart-item-info > span {
+  color: #234B36;
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.loja-cart-item-info small {
+  color: #8B897D;
+
+  font-size: 10px;
+}
+
+.loja-quantity {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+
+  margin-top: 4px;
+}
+
+.loja-quantity button {
+  width: 23px;
+  height: 23px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #E5DDCF;
+
+  border-radius: 6px;
+
+  background: #F7F3EB;
+
+  color: #234B36;
+
+  cursor: pointer;
+}
+
+.loja-quantity button:hover {
+  background: #E8E2D4;
+}
+
+.loja-quantity span {
+  min-width: 15px;
+
+  text-align: center;
+
+  color: #25352A;
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.loja-remove {
+  position: absolute;
+
+  right: 0;
+  top: 15px;
+
+  width: 25px;
+  height: 25px;
+
+  border: none;
+
+  background: transparent;
+
+  color: #B85F4A;
+
+  font-size: 18px;
+
+  cursor: pointer;
+}
+
+/* =========================================================
+   RODAPÉ DO CARRINHO
+========================================================= */
+
+.loja-cart-footer {
+  padding: 18px 23px 23px;
+
+  border-top: 1px solid #E5DDCF;
+
+  background: #FBF8F0;
+}
+
+.loja-client-data {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+
+  margin-bottom: 17px;
+}
+
+.loja-client-data label {
+  color: #25352A;
+
+  font-size: 10px;
+
+  font-weight: 600;
+}
+
+.loja-client-data input {
+  width: 100%;
+
+  height: 40px;
+
+  padding: 0 12px;
+
+  border: 1px solid #E5DDCF;
+
+  border-radius: 9px;
+
+  outline: none;
+
+  background: #FFFDF8;
+
+  color: #25352A;
+
+  font-family: inherit;
+
+  font-size: 11px;
+
+  transition: all 0.2s ease;
+}
+
+.loja-client-data input:focus {
+  border-color: #C9A35A;
+
+  box-shadow:
+    0 0 0 3px rgba(201, 163, 90, 0.14);
+}
+
+.loja-client-data input::placeholder {
+  color: #9A9689;
+}
+
+.loja-cart-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-bottom: 17px;
+}
+
+.loja-cart-total span {
+  color: #6E746B;
+
+  font-size: 11px;
+}
+
+.loja-cart-total strong {
+  color: #234B36;
+
+  font-size: 22px;
+}
+
+.loja-whatsapp-button {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding: 13px 15px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  background: #56745A;
+
+  color: white;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 5px 15px rgba(86, 116, 90, 0.20);
+
+  transition: all 0.2s ease;
+}
+
+.loja-whatsapp-button:hover {
+  background: #3F6044;
+
+  transform: translateY(-1px);
+}
+
+.loja-whatsapp-button span {
+  font-size: 14px;
+}
+
+.loja-cart-note {
+  margin: 10px 0 0;
+
+  color: #9A9689;
+
+  font-size: 9px;
+
+  line-height: 1.5;
+
+  text-align: center;
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1000px) {
+
+  .loja-produtos {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+  .loja-produto-foto {
+    height: 290px;
+  }
+
+}
+
+/* =========================================================
+   CELULAR
+========================================================= */
+
+@media (max-width: 600px) {
+
+  .loja-header {
+    height: 65px;
+
+    padding: 0 18px;
+  }
+
+  .loja-brand-symbol {
+    width: 35px;
+    height: 35px;
+
+    font-size: 19px;
+  }
+
+  .loja-brand-text strong {
+    font-size: 14px;
+  }
+
+  .loja-cart-button {
+    padding: 8px 10px;
+  }
+
+  .loja-cart-label {
+    display: none;
+  }
+
+  .loja-hero {
+    min-height: 310px;
+
+    padding: 40px 25px;
+  }
+
+  .loja-hero h1 {
+    font-size: 42px;
+  }
+
+  .loja-hero-decoration {
+    right: -30px;
+
+    font-size: 180px;
+  }
+
+  .loja-hero-circle-one {
+    right: -75px;
+  }
+
+  .loja-hero-circle-two {
+    right: -110px;
+  }
+
+  .loja-categorias-inner {
+    justify-content: flex-start;
+
+    padding: 17px;
+  }
+
+  .loja-conteudo {
+    padding: 32px 18px 50px;
+  }
+
+  .loja-section-header {
+    align-items: flex-start;
+
+    flex-direction: column;
+
+    gap: 7px;
+  }
+
+  .loja-section-header h2 {
+    font-size: 24px;
+  }
+
+  .loja-filtros {
+    justify-content: stretch;
+  }
+
+  .loja-busca {
+    width: 100%;
+  }
+
+  .loja-produtos {
+    grid-template-columns: 1fr;
+
+    gap: 17px;
+  }
+
+  .loja-produto-foto {
+    height: 360px;
+  }
+
+  .loja-cart-sidebar {
+    width: 100%;
+
+    max-width: 100%;
+  }
+
+}
+```
+/* =====================================================
+   IMAGENS DOS PRODUTOS
+===================================================== */
+
+.loja-produto-foto {
+  position: relative;
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(
+    145deg,
+    #EEE9DE,
+    #F8F4EC
+  );
+}
+
+.loja-produto-foto img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+}
+
+.loja-foto-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: #234B36;
+  opacity: 0.13;
+  font-family: Georgia, serif;
+  font-size: 90px;
+}
+
+/* =====================================================
+   MARCA / COR
+===================================================== */
+
+.loja-produto-marca {
+  display: block;
+  margin-bottom: 5px;
+  color: #71805A;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.loja-produto-cor {
+  display: block;
+  margin-bottom: 10px;
+  color: #8B897D;
+  font-size: 10px;
+}
+
+/* =====================================================
+   CARRINHO - IMAGEM
+===================================================== */
+
+.loja-cart-item-image {
+  width: 60px;
+  height: 70px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #E8E2D4;
+}
+
+.loja-cart-item-image img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* =====================================================
+   PRODUTOS VAZIOS
+===================================================== */
+
+.loja-sem-produtos {
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  border: 1px dashed #E5DDCF;
+  border-radius: 15px;
+  background: #FFFDF8;
+  text-align: center;
+}
+
+.loja-sem-produtos > div {
+  margin-bottom: 12px;
+  color: #234B36;
+  opacity: 0.3;
+  font-family: Georgia, serif;
+  font-size: 45px;
+}
+
+.loja-sem-produtos strong {
+  color: #25352A;
+  font-size: 14px;
+}
+
+.loja-sem-produtos span {
+  margin-top: 7px;
+  color: #8B897D;
+  font-size: 11px;
+}
+
+/* =====================================================
+   FOTO NO MODAL
+===================================================== */
+
+.photo-preview {
+  position: relative;
+  width: 105px;
+  height: 125px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid #E5DDCF;
+  border-radius: 10px;
+  background: #F1EBDD;
+  cursor: pointer;
+}
+
+.photo-preview img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  object-position: center;
+}
+
+@media (max-width: 600px) {
+
+  .loja-produto-foto {
+    height: 360px;
+  }
+
+  .photo-area {
+    align-items: flex-start;
+  }
+
+  .photo-preview {
+    width: 90px;
+    height: 110px;
+  }
+
+}/* =====================================================
+   PREVIEW DA FOTO DO PRODUTO
+===================================================== */
+
+.photo-preview {
+  position: relative;
+  width: 65px;
+  height: 65px;
+  flex: 0 0 65px;
+  overflow: hidden;
+  border-radius: 9px;
+  background: #e8e2d4;
+  cursor: pointer;
+}
+
+.photo-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  object-position: center;
+}
+
+.photo-preview .photo-placeholder {
+  width: 100%;
+  height: 100%;
+}
