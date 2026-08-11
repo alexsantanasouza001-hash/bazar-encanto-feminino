@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react'
 import './Loja.css'
 
@@ -818,14 +819,12 @@ function Loja() {
 
               <button
                 type="button"
-                className="loja-cart-close"
+                className="loja-continue-shopping-top"
                 onClick={() =>
-                  setCarrinhoAberto(
-                    false
-                  )
+                  setCarrinhoAberto(false)
                 }
               >
-                ×
+                ← Continuar comprando
               </button>
 
             </div>
@@ -850,9 +849,7 @@ function Loja() {
                 <button
                   type="button"
                   onClick={() =>
-                    setCarrinhoAberto(
-                      false
-                    )
+                    setCarrinhoAberto(false)
                   }
                 >
                   Ver produtos
@@ -960,7 +957,6 @@ function Loja() {
                         </button>
 
                       </div>
-
                     )
                   )}
 
@@ -1017,18 +1013,6 @@ function Loja() {
                       Enviar pedido
                     </strong>
 
-                  </button>
-
-                  <button
-                    className="loja-continue-shopping"
-                    type="button"
-                    onClick={() =>
-                      setCarrinhoAberto(
-                        false
-                      )
-                    }
-                  >
-                    Continuar comprando
                   </button>
 
                   <p className="loja-cart-note">
