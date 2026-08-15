@@ -1,645 +1,457 @@
+import { useEffect, useState } from 'react'
+import { carregarPedidos, carregarProdutos } from '../storage'
+import { obterStatusPagamento, obterStatusPedido } from './statusHelpers'
+
+function formatarPreco(valor) {
+  return Number(valor || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  })
+}
+
+function formatarData(data) {
+  if (!data) return '--'
+  const dataObj = new Date(data)
+  if (Number.isNaN(dataObj.getTime())) return '--'
+  return dataObj.toLocaleDateString('pt-BR')
+}
+
+function extrairTotalEstoque(produto) {
+  if (Array.isArray(produto.tamanhos) && produto.tamanhos.length > 0) {
+    return produto.tamanhos.reduce(
+      (total, item) => total + Number(item.quantidade || 0),
+      0
+    )
+  }
+  return Number(produto.quantidade ?? produto.estoque ?? 0)
+}
+
+function extrairItensPedido(pedido) {
+  const itens = pedido.itens || pedido.produtos || pedido.carrinho || []
+  if (Array.isArray(itens) && itens.length > 0) {
+    return itens
+      .map((item) => `${item.nome || item.produtoNome || 'Produto'}${item.quantidade > 1 ? ` (${item.quantidade}x)` : ''}`)
+      .join(', ')
+  }
+  return 'Itens não informados'
+}
+
+function calcularUltimosMeses(pedidos) {
+  const agora = new Date()
+  const mesesAbreviados = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+  const resultado = []
+
+  for (let i = 5; i >= 0; i--) {
+    const dataRef = new Date(agora.getFullYear(), agora.getMonth() - i, 1)
+    const mesIndex = dataRef.getMonth()
+    const ano = dataRef.getFullYear()
+    const label = mesesAbreviados[mesIndex]
+
+    const totalMes = pedidos.reduce((soma, pedido) => {
+      const dataPedido = new Date(pedido.data || pedido.dataPedido || pedido.createdAt || '')
+      if (
+        !Number.isNaN(dataPedido.getTime()) &&
+        dataPedido.getMonth() === mesIndex &&
+        dataPedido.getFullYear() === ano &&
+        pedido.status !== 'Cancelado'
+      ) {
+        return soma + Number(pedido.total || pedido.valorTotal || 0)
+      }
+      return soma
+    }, 0)
+
+    resultado.push({ label, mesIndex, ano, total: totalMes })
+  }
+
+  const maxTotal = Math.max(...resultado.map((m) => m.total), 1)
+  return resultado.map((m) => ({
+    ...m,
+    percentual: m.total > 0 ? Math.max(12, Math.round((m.total / maxTotal) * 100)) : 6
+  }))
+}
+
 function Dashboard({ setPagina }) {
+  const [pedidos, setPedidos] = useState([])
+  const [produtos, setProdutos] = useState([])
+  const [carregando, setCarregando] = useState(true)
+  const [erro, setErro] = useState(null)
+
+  const navegarPara = (pagina) => {
+    if (typeof setPagina === 'function') {
+      setPagina(pagina)
+    }
+  }
+
+  async function carregarDados() {
+    try {
+      setCarregando(true)
+      setErro(null)
+
+      const [pedidosCarregados, produtosCarregados] = await Promise.all([
+        carregarPedidos(),
+        carregarProdutos(true)
+      ])
+
+      setPedidos(Array.isArray(pedidosCarregados) ? pedidosCarregados : [])
+      setProdutos(Array.isArray(produtosCarregados) ? produtosCarregados : [])
+    } catch (err) {
+      console.error('Erro ao carregar dados do Dashboard:', err)
+      setErro('Não foi possível carregar as métricas do painel.')
+    } finally {
+      setCarregando(false)
+    }
+  }
+
+  useEffect(() => {
+    carregarDados()
+  }, [])
+
+  // Métricas de Produtos e Estoque
+  const totalProdutos = produtos.length
+  const produtosAtivos = produtos.filter((p) => p.ativo !== false).length
+  const totalPecasEstoque = produtos.reduce((soma, p) => soma + extrairTotalEstoque(p), 0)
+  const produtosPoucoEstoque = produtos.filter((p) => {
+    const estoque = extrairTotalEstoque(p)
+    return estoque > 0 && estoque <= 3
+  }).length
+
+  // Categorias de estoque
+  const categoriasPrincipais = ['Vestidos', 'Blusas', 'Calças', 'Shorts']
+  const estoquePorCategoria = categoriasPrincipais.map((cat) => {
+    const totalCat = produtos
+      .filter((p) => (p.categoria || '').toLowerCase() === cat.toLowerCase())
+      .reduce((soma, p) => soma + extrairTotalEstoque(p), 0)
+    return { categoria: cat, total: totalCat }
+  })
+
+  // Métricas de Pedidos e Vendas
+  const hoje = new Date()
+  const mesAtual = hoje.getMonth()
+  const anoAtual = hoje.getFullYear()
+
+  const pedidosMes = pedidos.filter((pedido) => {
+    const data = new Date(pedido.data || pedido.dataPedido || pedido.createdAt || '')
+    return (
+      !Number.isNaN(data.getTime()) &&
+      data.getMonth() === mesAtual &&
+      data.getFullYear() === anoAtual
+    )
+  })
+
+  const vendasMesTotal = pedidosMes.reduce((soma, pedido) => {
+    if (pedido.status === 'Cancelado') return soma
+    return soma + Number(pedido.total || pedido.valorTotal || 0)
+  }, 0)
+
+  const totalVendidoGeral = pedidos.reduce((soma, pedido) => {
+    if (pedido.status === 'Cancelado') return soma
+    return soma + Number(pedido.total || pedido.valorTotal || 0)
+  }, 0)
+
+  const pedidosConfirmados = pedidos.filter(
+    (p) => obterStatusPedido(p.status) === 'Confirmado' || p.status_pagamento === 'aprovado'
+  ).length
+
+  // Últimas vendas ordenadas por data
+  const ultimasVendas = [...pedidos]
+    .sort((a, b) => {
+      const dataA = new Date(a.data || a.dataPedido || a.createdAt || 0).getTime()
+      const dataB = new Date(b.data || b.dataPedido || b.createdAt || 0).getTime()
+      return dataB - dataA
+    })
+    .slice(0, 5)
+
+  // Gráfico de 6 meses
+  const dadosGrafico = calcularUltimosMeses(pedidos)
+
+  if (carregando) {
+    return (
+      <div className="dashboard-page">
+        <header className="dashboard-header">
+          <div>
+            <span className="dashboard-eyebrow">VISÃO GERAL</span>
+            <h1>Painel Administrativo ✨</h1>
+            <p>Carregando métricas reais da loja...</p>
+          </div>
+        </header>
+        <div style={{ padding: '60px 20px', textAlign: 'center', color: '#6A584C' }}>
+          <strong>Carregando dados do painel...</strong>
+        </div>
+      </div>
+    )
+  }
+
+  if (erro) {
+    return (
+      <div className="dashboard-page">
+        <header className="dashboard-header">
+          <div>
+            <span className="dashboard-eyebrow">VISÃO GERAL</span>
+            <h1>Painel Administrativo ✨</h1>
+            <p style={{ color: '#A03030' }}>{erro}</p>
+          </div>
+        </header>
+        <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <button
+            type="button"
+            className="period-button"
+            onClick={carregarDados}
+            style={{ cursor: 'pointer', padding: '10px 20px' }}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
-
     <div className="dashboard-page">
-
       {/* ==========================================
           CABEÇALHO
       ========================================== */}
-
       <header className="dashboard-header">
-
         <div>
-
-          <span className="dashboard-eyebrow">
-            VISÃO GERAL
-          </span>
-
-         <h1>
-  Olá, Administrador ✨
-</h1>
-
-          <p>
-            Acompanhe o desempenho do seu Bazar Encanto Feminino.
-          </p>
-
+          <span className="dashboard-eyebrow">VISÃO GERAL</span>
+          <h1>Olá, Administrador ✨</h1>
+          <p>Acompanhe o desempenho do seu Bazar Encanto Feminino com dados em tempo real.</p>
         </div>
-
 
         <div className="dashboard-user-area">
-
-          <button className="notification-button">
+          <button
+            type="button"
+            className="notification-button"
+            title={`${pedidosMes.length} pedidos este mês`}
+          >
             ♧
-            <span className="notification-dot"></span>
+            {pedidosMes.length > 0 && <span className="notification-dot"></span>}
           </button>
 
-
           <div className="dashboard-user">
-
-            <div className="dashboard-avatar">
-              A
-            </div>
-
+            <div className="dashboard-avatar">A</div>
             <div className="dashboard-user-info">
-
-              <strong>
-                Administrador
-              </strong>
-
-              <span>
-                Painel administrativo
-              </span>
-
+              <strong>Administrador</strong>
+              <span>Painel administrativo</span>
             </div>
-
           </div>
-
         </div>
-
       </header>
 
-
       {/* ==========================================
-          CARDS
+          CARDS COM DADOS REAIS
       ========================================== */}
-
       <section className="dashboard-cards">
-
-
-        <div className="dashboard-card">
-
+        {/* VENDAS DO MÊS */}
+        <div className="dashboard-card" style={{ cursor: 'pointer' }} onClick={() => navegarPara('pedidos')}>
           <div className="dashboard-card-top">
-
-            <div className="dashboard-card-icon purple">
-              R$
-            </div>
-
-            <span className="dashboard-card-label">
-              Vendas do mês
-            </span>
-
+            <div className="dashboard-card-icon purple">R$</div>
+            <span className="dashboard-card-label">Vendas do mês</span>
           </div>
-
-
           <div className="dashboard-card-value">
-            R$ 5.280,00
+            {formatarPreco(vendasMesTotal)}
           </div>
-
-
           <div className="dashboard-card-footer positive">
-            ↑ 12,5% este mês
+            {pedidosMes.length} {pedidosMes.length === 1 ? 'pedido este mês' : 'pedidos este mês'}
           </div>
-
         </div>
 
-
-        <div className="dashboard-card">
-
+        {/* PRODUTOS CADASTRADOS */}
+        <div className="dashboard-card" style={{ cursor: 'pointer' }} onClick={() => navegarPara('produtos')}>
           <div className="dashboard-card-top">
-
-            <div className="dashboard-card-icon green">
-              ♢
-            </div>
-
-            <span className="dashboard-card-label">
-              Produtos
-            </span>
-
+            <div className="dashboard-card-icon green">♢</div>
+            <span className="dashboard-card-label">Produtos</span>
           </div>
-
-
-          <div className="dashboard-card-value">
-            127
-          </div>
-
-
+          <div className="dashboard-card-value">{totalProdutos}</div>
           <div className="dashboard-card-footer">
-            Produtos cadastrados
+            {produtosAtivos} ativos no catálogo
           </div>
-
         </div>
 
-
-        <div className="dashboard-card">
-
+        {/* ESTOQUE TOTAL */}
+        <div className="dashboard-card" style={{ cursor: 'pointer' }} onClick={() => navegarPara('estoque')}>
           <div className="dashboard-card-top">
-
-            <div className="dashboard-card-icon rose">
-              ♧
-            </div>
-
-            <span className="dashboard-card-label">
-              Clientes
-            </span>
-
+            <div className="dashboard-card-icon rose">▣</div>
+            <span className="dashboard-card-label">Peças em Estoque</span>
           </div>
-
-
-          <div className="dashboard-card-value">
-            84
-          </div>
-
-
+          <div className="dashboard-card-value">{totalPecasEstoque}</div>
           <div className="dashboard-card-footer">
-            Clientes cadastrados
+            {produtosPoucoEstoque > 0
+              ? `${produtosPoucoEstoque} com estoque baixo`
+              : 'Estoque regular'}
           </div>
-
         </div>
 
-
-        <div className="dashboard-card">
-
+        {/* TOTAL DE PEDIDOS */}
+        <div className="dashboard-card" style={{ cursor: 'pointer' }} onClick={() => navegarPara('pedidos')}>
           <div className="dashboard-card-top">
-
-            <div className="dashboard-card-icon gold">
-              ◇
-            </div>
-
-            <span className="dashboard-card-label">
-              Pedidos
-            </span>
-
+            <div className="dashboard-card-icon gold">◇</div>
+            <span className="dashboard-card-label">Total de Pedidos</span>
           </div>
-
-
-          <div className="dashboard-card-value">
-            32
-          </div>
-
-
+          <div className="dashboard-card-value">{pedidos.length}</div>
           <div className="dashboard-card-footer">
-            Pedidos este mês
+            {pedidosConfirmados} confirmados / pagos
           </div>
-
         </div>
-
-
       </section>
-
 
       {/* ==========================================
           GRÁFICOS / ESTOQUE
       ========================================== */}
-
       <section className="dashboard-grid">
-
-
-        {/* VENDAS */}
-
+        {/* PAINEL DE VENDAS */}
         <div className="dashboard-panel sales-panel">
-
-
           <div className="dashboard-panel-header">
-
             <div>
-
-              <h2>
-                Vendas
-              </h2>
-
-              <p>
-                Desempenho dos últimos meses
-              </p>
-
+              <h2>Vendas</h2>
+              <p>Desempenho dos últimos 6 meses</p>
             </div>
-
-
-            <button className="period-button">
-              Este mês ▾
+            <button
+              type="button"
+              className="period-button"
+              onClick={() => navegarPara('pedidos')}
+            >
+              Ver pedidos ▾
             </button>
-
           </div>
-
 
           <div className="sales-summary">
-
             <div>
-
-              <span>
-                Total vendido
-              </span>
-
-              <strong>
-                R$ 5.280
-              </strong>
-
+              <span>Total faturado geral</span>
+              <strong>{formatarPreco(totalVendidoGeral)}</strong>
             </div>
-
           </div>
 
-
           <div className="sales-chart">
-
-
             <div className="chart-grid-line line-one"></div>
             <div className="chart-grid-line line-two"></div>
             <div className="chart-grid-line line-three"></div>
 
-
             <div className="bars">
-
-
-              <div className="bar-container">
-
-                <div className="bar bar-1"></div>
-
-                <span>
-                  Mar
-                </span>
-
-              </div>
-
-
-              <div className="bar-container">
-
-                <div className="bar bar-2"></div>
-
-                <span>
-                  Abr
-                </span>
-
-              </div>
-
-
-              <div className="bar-container">
-
-                <div className="bar bar-3"></div>
-
-                <span>
-                  Mai
-                </span>
-
-              </div>
-
-
-              <div className="bar-container">
-
-                <div className="bar bar-4"></div>
-
-                <span>
-                  Jun
-                </span>
-
-              </div>
-
-
-              <div className="bar-container">
-
-                <div className="bar bar-5"></div>
-
-                <span>
-                  Jul
-                </span>
-
-              </div>
-
-
-              <div className="bar-container">
-
-                <div className="bar bar-6"></div>
-
-                <span>
-                  Ago
-                </span>
-
-              </div>
-
-
+              {dadosGrafico.map((mes, idx) => (
+                <div className="bar-container" key={`${mes.label}-${mes.ano}`}>
+                  <div
+                    className={`bar bar-${idx + 1}`}
+                    style={{ height: `${mes.percentual}%` }}
+                    title={`${mes.label}/${mes.ano}: ${formatarPreco(mes.total)}`}
+                  ></div>
+                  <span>{mes.label}</span>
+                </div>
+              ))}
             </div>
-
           </div>
-
         </div>
 
-
-        {/* ESTOQUE */}
-
+        {/* PAINEL DE ESTOQUE */}
         <div className="dashboard-panel">
-
-
           <div className="dashboard-panel-header">
-
             <div>
-
-              <h2>
-                Estoque
-              </h2>
-
-              <p>
-                Situação atual
-              </p>
-
+              <h2>Estoque</h2>
+              <p>Situação por categoria</p>
             </div>
-
-
             <button
+              type="button"
               className="panel-link"
-              onClick={() => setPagina('estoque')}
+              onClick={() => navegarPara('estoque')}
             >
               Ver estoque →
             </button>
-
           </div>
-
 
           <div className="stock-list">
-
-
-            <div className="stock-item">
-
-              <div className="stock-item-info">
-
-                <span className="stock-icon">
-                  ♡
-                </span>
-
-                <span>
-                  Vestidos
-                </span>
-
+            {estoquePorCategoria.map((item) => (
+              <div className="stock-item" key={item.categoria}>
+                <div className="stock-item-info">
+                  <span className="stock-icon">✿</span>
+                  <span>{item.categoria}</span>
+                </div>
+                <strong>{item.total}</strong>
               </div>
+            ))}
 
-              <strong>
-                42
-              </strong>
-
-            </div>
-
-
-            <div className="stock-item">
-
-              <div className="stock-item-info">
-
-                <span className="stock-icon">
-                  ♢
-                </span>
-
-                <span>
-                  Blusas
-                </span>
-
+            {produtosPoucoEstoque > 0 && (
+              <div className="stock-item low-stock">
+                <div className="stock-item-info">
+                  <span className="stock-warning">!</span>
+                  <span>Pouco estoque (≤ 3 un.)</span>
+                </div>
+                <strong>{produtosPoucoEstoque}</strong>
               </div>
-
-              <strong>
-                36
-              </strong>
-
-            </div>
-
-
-            <div className="stock-item">
-
-              <div className="stock-item-info">
-
-                <span className="stock-icon">
-                  ◇
-                </span>
-
-                <span>
-                  Calças
-                </span>
-
-              </div>
-
-              <strong>
-                24
-              </strong>
-
-            </div>
-
-
-            <div className="stock-item">
-
-              <div className="stock-item-info">
-
-                <span className="stock-icon">
-                  ♧
-                </span>
-
-                <span>
-                  Shorts
-                </span>
-
-              </div>
-
-              <strong>
-                18
-              </strong>
-
-            </div>
-
-
-            <div className="stock-item low-stock">
-
-              <div className="stock-item-info">
-
-                <span className="stock-warning">
-                  !
-                </span>
-
-                <span>
-                  Pouco estoque
-                </span>
-
-              </div>
-
-              <strong>
-                7
-              </strong>
-
-            </div>
-
-
+            )}
           </div>
-
         </div>
-
-
       </section>
-
 
       {/* ==========================================
-          ÚLTIMAS VENDAS
+          ÚLTIMAS VENDAS REAIS
       ========================================== */}
-
       <section className="dashboard-panel recent-sales-panel">
-
-
         <div className="dashboard-panel-header">
-
           <div>
-
-            <h2>
-              Últimas vendas
-            </h2>
-
-            <p>
-              Confira as vendas mais recentes
-            </p>
-
+            <h2>Últimas vendas</h2>
+            <p>Vendas recentes registradas na loja</p>
           </div>
-
-
-          <button className="panel-link">
+          <button
+            type="button"
+            className="panel-link"
+            onClick={() => navegarPara('pedidos')}
+          >
             Ver todas →
           </button>
-
         </div>
-
 
         <div className="dashboard-table-wrapper">
+          {ultimasVendas.length === 0 ? (
+            <div style={{ padding: '30px', textAlign: 'center', color: '#6A584C' }}>
+              Nenhum pedido realizado até o momento.
+            </div>
+          ) : (
+            <table className="dashboard-table">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Produto(s)</th>
+                  <th>Data</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ultimasVendas.map((pedido, idx) => {
+                  const statusPag = obterStatusPagamento(pedido.status_pagamento)
+                  const statusPed = obterStatusPedido(pedido.status)
+                  const statusClass = statusPag.aprovado
+                    ? 'paid'
+                    : pedido.status === 'Cancelado'
+                      ? 'cancelled'
+                      : 'pending'
 
-
-          <table className="dashboard-table">
-
-            <thead>
-
-              <tr>
-
-                <th>
-                  Cliente
-                </th>
-
-                <th>
-                  Produto
-                </th>
-
-                <th>
-                  Data
-                </th>
-
-                <th>
-                  Valor
-                </th>
-
-                <th>
-                  Status
-                </th>
-
-              </tr>
-
-            </thead>
-
-
-            <tbody>
-
-
-              <tr>
-
-                <td>
-                  <strong>
-                    Mariana Silva
-                  </strong>
-                </td>
-
-                <td>
-                  Vestido Farm
-                </td>
-
-                <td>
-                  08/08/2026
-                </td>
-
-                <td>
-                  <strong>
-                    R$ 189,90
-                  </strong>
-                </td>
-
-                <td>
-
-                  <span className="status paid">
-                    Pago
-                  </span>
-
-                </td>
-
-              </tr>
-
-
-              <tr>
-
-                <td>
-                  <strong>
-                    Camila Souza
-                  </strong>
-                </td>
-
-                <td>
-                  Blusa Farm
-                </td>
-
-                <td>
-                  08/08/2026
-                </td>
-
-                <td>
-                  <strong>
-                    R$ 129,90
-                  </strong>
-                </td>
-
-                <td>
-
-                  <span className="status paid">
-                    Pago
-                  </span>
-
-                </td>
-
-              </tr>
-
-
-              <tr>
-
-                <td>
-                  <strong>
-                    Juliana Costa
-                  </strong>
-                </td>
-
-                <td>
-                  Short Farm
-                </td>
-
-                <td>
-                  07/08/2026
-                </td>
-
-                <td>
-                  <strong>
-                    R$ 99,90
-                  </strong>
-                </td>
-
-                <td>
-
-                  <span className="status pending">
-                    Pendente
-                  </span>
-
-                </td>
-
-              </tr>
-
-
-            </tbody>
-
-          </table>
-
-
+                  return (
+                    <tr key={pedido.id || pedido.numero || idx}>
+                      <td>
+                        <strong>{pedido.cliente || pedido.nomeCliente || 'Cliente'}</strong>
+                      </td>
+                      <td style={{ maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {extrairItensPedido(pedido)}
+                      </td>
+                      <td>{formatarData(pedido.data || pedido.dataPedido || pedido.createdAt)}</td>
+                      <td>
+                        <strong>{formatarPreco(pedido.total || pedido.valorTotal)}</strong>
+                      </td>
+                      <td>
+                        <span className={`status ${statusClass}`}>
+                          {statusPag.aprovado ? 'Pago' : statusPed}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
-
-
       </section>
-
-
     </div>
-
   )
-
 }
-
 
 export default Dashboard

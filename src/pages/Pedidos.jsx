@@ -1,46 +1,24 @@
 import { useEffect, useState } from 'react'
 import './Pedidos.css'
 
-const CHAVE_PEDIDOS = 'meu_bazar_pedidos'
+import {
+  carregarPedidos as carregarPedidosSupabase,
+  atualizarStatusPedido
+} from '../storage'
+import {
+  obterStatusPedido as obterStatus,
+  obterTransicoesPedido
+} from './statusHelpers'
 
 const STATUS = [
+  'Aguardando pagamento',
   'Confirmado',
   'Em preparação',
   'Enviado',
-  'Concluído'
+  'Entregue',
+  'Concluído',
+  'Cancelado'
 ]
-
-function carregarPedidos() {
-  const dados = localStorage.getItem(CHAVE_PEDIDOS)
-
-  if (!dados) {
-    return []
-  }
-
-  try {
-    const pedidos = JSON.parse(dados)
-
-    if (!Array.isArray(pedidos)) {
-      return []
-    }
-
-    return pedidos
-  } catch (erro) {
-    console.error('Erro ao carregar pedidos:', erro)
-    return []
-  }
-}
-
-function salvarPedidos(pedidos) {
-  localStorage.setItem(
-    CHAVE_PEDIDOS,
-    JSON.stringify(pedidos)
-  )
-
-  window.dispatchEvent(
-    new Event('pedidos-atualizados')
-  )
-}
 
 function formatarPreco(valor) {
   return Number(valor || 0).toLocaleString(
@@ -133,47 +111,6 @@ function obterNumeroPedido(pedido, indice) {
   return String(indice + 1).padStart(4, '0')
 }
 
-function obterStatus(pedido) {
-  if (!pedido.status) {
-    return 'Confirmado'
-  }
-
-  const status = String(
-    pedido.status
-  ).toLowerCase().trim()
-
-  if (status === 'novo') {
-    return 'Confirmado'
-  }
-
-  if (
-    status === 'confirmado' ||
-    status === 'confirmada'
-  ) {
-    return 'Confirmado'
-  }
-
-  if (
-    status === 'em preparação' ||
-    status === 'em preparacao'
-  ) {
-    return 'Em preparação'
-  }
-
-  if (status === 'enviado') {
-    return 'Enviado'
-  }
-
-  if (
-    status === 'concluído' ||
-    status === 'concluido'
-  ) {
-    return 'Concluído'
-  }
-
-  return 'Confirmado'
-}
-
 function obterTotal(pedido, produtos) {
   if (
     pedido.total !== undefined &&
@@ -217,7 +154,7 @@ function obterIndiceStatus(status) {
   const indice = STATUS.indexOf(status)
 
   if (indice < 0) {
-    return 0
+    return -1
   }
 
   return indice
@@ -225,84 +162,100 @@ function obterIndiceStatus(status) {
 
 function Pedidos() {
   const [pedidos, setPedidos] = useState([])
+  const [envioPorPedido, setEnvioPorPedido] = useState({})
+  const [atualizandoPedido, setAtualizandoPedido] = useState(null)
 
   useEffect(() => {
-    const atualizarPedidos = () => {
-      setPedidos(
-        carregarPedidos()
-      )
+    let ativo = true
+
+    async function atualizarPedidos() {
+      try {
+        const pedidosSupabase =
+          await carregarPedidosSupabase()
+
+        if (!ativo) {
+          return
+        }
+
+        setPedidos(
+          Array.isArray(
+            pedidosSupabase
+          )
+            ? pedidosSupabase
+            : []
+        )
+      } catch (erro) {
+        console.error(
+          'Erro ao carregar pedidos do Supabase:',
+          erro
+        )
+
+        if (ativo) {
+          setPedidos([])
+        }
+      }
     }
 
     atualizarPedidos()
 
-    window.addEventListener(
-      'pedidos-atualizados',
-      atualizarPedidos
-    )
-
-    window.addEventListener(
-      'storage',
-      atualizarPedidos
-    )
-
     return () => {
-      window.removeEventListener(
-        'pedidos-atualizados',
-        atualizarPedidos
-      )
-
-      window.removeEventListener(
-        'storage',
-        atualizarPedidos
-      )
+      ativo = false
     }
   }, [])
 
   const alterarStatus = (
     pedido,
-    novoStatus
+    novoStatus,
+    dadosEnvio = {}
   ) => {
-    const pedidosAtuais =
-      carregarPedidos()
+    if (
+      !pedido?.id ||
+        obterStatus(pedido?.status) === novoStatus
+    ) {
+      return
+    }
 
-    const pedidosAtualizados =
-      pedidosAtuais.map(
-        (item) => {
-          const mesmoId =
-            pedido.id &&
-            item.id &&
-            String(item.id) ===
-              String(pedido.id)
-
-          const mesmoNumero =
-            pedido.numero &&
-            item.numero &&
-            String(item.numero) ===
-              String(pedido.numero)
-
-          if (
-            mesmoId ||
-            mesmoNumero
-          ) {
-            return {
-              ...item,
-              status: novoStatus,
-              atualizadoEm:
-                new Date().toISOString()
-            }
-          }
-
-          return item
+    async function atualizarStatus() {
+      try {
+        if (
+          novoStatus === 'Cancelado' &&
+          !window.confirm('Confirma o cancelamento deste pedido? Pagamentos aprovados não serão reembolsados automaticamente.')
+        ) {
+          return
         }
-      )
 
-    salvarPedidos(
-      pedidosAtualizados
-    )
+        setAtualizandoPedido(pedido.id)
 
-    setPedidos(
-      pedidosAtualizados
-    )
+        const pedidosAtualizados =
+          await atualizarStatusPedido(
+            pedido.id,
+            novoStatus,
+            dadosEnvio
+          )
+
+        if (!Array.isArray(pedidosAtualizados)) {
+          throw new Error(
+            'A atualização não retornou os pedidos.'
+          )
+        }
+
+        setPedidos(pedidosAtualizados)
+        setEnvioPorPedido((atual) => ({ ...atual, [pedido.id]: undefined }))
+      } catch (erro) {
+        console.error(
+          'Erro ao atualizar status do pedido:',
+          erro
+        )
+
+        window.alert(
+          'Não foi possível atualizar o status do pedido.'
+        )
+      } finally {
+        setAtualizandoPedido(null)
+      }
+    }
+
+    atualizarStatus()
   }
 
   const pedidosHoje = pedidos.filter(
@@ -334,7 +287,7 @@ function Pedidos() {
   const pedidosConfirmados =
     pedidos.filter(
       (pedido) =>
-        obterStatus(pedido) ===
+        obterStatus(pedido.status) ===
         'Confirmado'
     ).length
 
@@ -526,13 +479,49 @@ function Pedidos() {
 
                   const status =
                     obterStatus(
-                      pedido
+                      pedido.status
                     )
 
                   const indiceStatus =
                     obterIndiceStatus(
                       status
                     )
+
+                  const possuiEntrega =
+                    Boolean(
+                      pedido.cep_entrega
+                    )
+
+                  const formaPagamento =
+                    pedido.forma_pagamento ||
+                    'Não informado'
+
+                  const statusPagamento =
+                    pedido.status_pagamento === 'aprovado'
+                      ? 'Pago'
+                      : pedido.status_pagamento === 'recusado'
+                        ? 'Recusado'
+                        : pedido.status_pagamento === 'cancelado'
+                          ? 'Cancelado'
+                          : pedido.status_pagamento === 'expirado'
+                            ? 'Expirado'
+                            : pedido.status_pagamento === 'reembolsado'
+                              ? 'Reembolsado'
+                              : pedido.status_pagamento === 'pendente'
+                                ? 'Aguardando'
+                                : 'Legado / não informado'
+
+                  const enderecoEntrega = [
+                    pedido.endereco_entrega,
+                    pedido.numero_entrega,
+                    pedido.complemento_entrega,
+                    pedido.bairro_entrega,
+                    pedido.cidade_entrega &&
+                      pedido.estado_entrega
+                      ? `${pedido.cidade_entrega} - ${pedido.estado_entrega}`
+                      : pedido.cidade_entrega ||
+                        pedido.estado_entrega
+                  ].filter(Boolean).join(', ')
 
                   return (
                     <article
@@ -610,6 +599,20 @@ function Pedidos() {
 
                       </div>
 
+                      {possuiEntrega && (
+                        <div className="ticket-delivery">
+                          <span>ENTREGA</span>
+                          <strong>{enderecoEntrega}</strong>
+                          <small>CEP {pedido.cep_entrega}</small>
+                        </div>
+                      )}
+
+                      <div className="ticket-payment">
+                        <span>PAGAMENTO</span>
+                        <strong>{formaPagamento}</strong>
+                        <small>{statusPagamento}</small>
+                      </div>
+
                       <div className="ticket-divider" />
 
                       <div className="ticket-progress-area">
@@ -628,19 +631,15 @@ function Pedidos() {
 
                         <div className="ticket-progress">
 
-                          {STATUS.map(
+                          {STATUS.filter((item) => item !== 'Cancelado').map(
                             (
                               itemStatus,
                               statusIndex
                             ) => {
 
                               const ativo =
-                                statusIndex <=
-                                indiceStatus
-
-                              const atual =
-                                statusIndex ===
-                                indiceStatus
+                                status !== 'Cancelado' &&
+                                statusIndex <= indiceStatus
 
                               return (
                                 <div
@@ -781,6 +780,21 @@ function Pedidos() {
 
                       <div className="ticket-divider" />
 
+                      {possuiEntrega && (
+                        <div className="ticket-financials">
+                          <span>Subtotal</span>
+                          <strong>{formatarPreco(pedido.subtotal)}</strong>
+                          <span>Desconto</span>
+                          <strong>−{formatarPreco(pedido.desconto)}</strong>
+                          <span>Envio</span>
+                          <strong>
+                            {Number(pedido.valor_frete || 0) === 0
+                              ? 'GRÁTIS'
+                              : formatarPreco(pedido.valor_frete)}
+                          </strong>
+                        </div>
+                      )}
+
                       <div className="ticket-bottom">
 
                         <span>
@@ -795,39 +809,96 @@ function Pedidos() {
 
                       </div>
 
+                      {(pedido.transportadora || pedido.codigo_rastreio || pedido.url_rastreio) && (
+                        <div className="ticket-tracking">
+                          <span>RASTREAMENTO</span>
+                          {pedido.transportadora && <strong>{pedido.transportadora}</strong>}
+                          {pedido.codigo_rastreio && <code>{pedido.codigo_rastreio}</code>}
+                          {pedido.url_rastreio && (
+                            <a href={pedido.url_rastreio} target="_blank" rel="noreferrer">
+                              Acompanhar entrega
+                            </a>
+                          )}
+                        </div>
+                      )}
+
+                      {obterTransicoesPedido(status).includes('Enviado') && (
+                        <div className="ticket-shipping-form">
+                          <label>
+                            Transportadora
+                            <input
+                              type="text"
+                              maxLength="120"
+                              value={envioPorPedido[pedido.id]?.transportadora || ''}
+                              onChange={(evento) => setEnvioPorPedido((atual) => ({
+                                ...atual,
+                                [pedido.id]: {
+                                  ...atual[pedido.id],
+                                  transportadora: evento.target.value
+                                }
+                              }))}
+                            />
+                          </label>
+                          <label>
+                            Código de rastreio
+                            <input
+                              type="text"
+                              maxLength="120"
+                              value={envioPorPedido[pedido.id]?.codigoRastreio || ''}
+                              onChange={(evento) => setEnvioPorPedido((atual) => ({
+                                ...atual,
+                                [pedido.id]: {
+                                  ...atual[pedido.id],
+                                  codigoRastreio: evento.target.value
+                                }
+                              }))}
+                            />
+                          </label>
+                          <label className="ticket-shipping-url">
+                            URL de rastreio (opcional)
+                            <input
+                              type="url"
+                              placeholder="https://"
+                              maxLength="500"
+                              value={envioPorPedido[pedido.id]?.urlRastreio || ''}
+                              onChange={(evento) => setEnvioPorPedido((atual) => ({
+                                ...atual,
+                                [pedido.id]: {
+                                  ...atual[pedido.id],
+                                  urlRastreio: evento.target.value
+                                }
+                              }))}
+                            />
+                          </label>
+                        </div>
+                      )}
+
                       <div className="ticket-status-actions">
+                        {obterTransicoesPedido(status).map((itemStatus) => (
+                          <button
+                            type="button"
+                            key={itemStatus}
+                            className="status-action"
+                            disabled={atualizandoPedido === pedido.id}
+                            onClick={() => alterarStatus(
+                              pedido,
+                              itemStatus,
+                              itemStatus === 'Enviado' ? envioPorPedido[pedido.id] : undefined
+                            )}
+                          >
+                            {atualizandoPedido === pedido.id
+                              ? 'Atualizando...'
+                              : itemStatus === 'Cancelado'
+                                ? 'Cancelar pedido'
+                                : `Marcar como ${itemStatus}`}
+                          </button>
+                        ))}
 
-                        {STATUS.map(
-                          (itemStatus) => {
-
-                            const ativo =
-                              status ===
-                              itemStatus
-
-                            return (
-                              <button
-                                type="button"
-                                key={
-                                  itemStatus
-                                }
-                                className={
-                                  ativo
-                                    ? 'status-action active'
-                                    : 'status-action'
-                                }
-                                onClick={() =>
-                                  alterarStatus(
-                                    pedido,
-                                    itemStatus
-                                  )
-                                }
-                              >
-                                {itemStatus}
-                              </button>
-                            )
-                          }
+                        {obterTransicoesPedido(status).length === 0 && (
+                          <span className="ticket-terminal-status">
+                            Nenhuma transição disponível.
+                          </span>
                         )}
-
                       </div>
 
                       <div className="ticket-footer">

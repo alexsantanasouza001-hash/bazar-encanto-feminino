@@ -24,7 +24,7 @@ function SaidaEstoque({
     useState('')
 
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
 
     e.preventDefault()
 
@@ -55,7 +55,7 @@ function SaidaEstoque({
 
 
     const resultado =
-      registrarSaidaEstoque({
+      await registrarSaidaEstoque({
         produtoId,
         quantidade: Number(quantidade),
         observacao

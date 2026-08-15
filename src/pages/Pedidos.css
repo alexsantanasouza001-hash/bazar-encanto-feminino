@@ -321,6 +321,60 @@
   font-size: 8px;
 }
 
+.ticket-delivery {
+  display: grid;
+  gap: 4px;
+  padding: 12px 22px;
+  background: #faf7f0;
+}
+
+.ticket-delivery span {
+  color: #aaa497;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+}
+
+.ticket-delivery strong {
+  color: #29382e;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.ticket-delivery small {
+  color: #77776e;
+  font-size: 8px;
+}
+
+.ticket-payment {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 22px;
+  border-top: 1px solid #eee7da;
+  background: #fffdf8;
+}
+
+.ticket-payment span {
+  color: #aaa497;
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+}
+
+.ticket-payment strong,
+.ticket-payment small {
+  color: #29382e;
+  font-size: 9px;
+}
+
+.ticket-payment small {
+  color: #71805a;
+  font-weight: 700;
+}
+
 /* =========================================================
    ANDAMENTO
 ========================================================= */
@@ -504,6 +558,22 @@
   background: #f8f4eb;
 }
 
+.ticket-financials {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 7px 16px;
+  padding: 14px 22px 0;
+  background: #f8f4eb;
+  color: #77776e;
+  font-size: 8px;
+}
+
+.ticket-financials strong {
+  color: #31563f;
+  font-size: 9px;
+  text-align: right;
+}
+
 .ticket-bottom span {
   color: #77776e;
   font-size: 8px;
@@ -631,6 +701,18 @@
 ========================================================= */
 
 @media (max-width: 650px) {
+  .ticket-shipping-form {
+    grid-template-columns: 1fr;
+  }
+
+  .ticket-shipping-url {
+    grid-column: auto;
+  }
+
+  .ticket-shipping-form input,
+  .status-action {
+    min-height: 44px;
+  }
   .pedidos-page {
     padding: 25px 14px 40px;
   }
@@ -694,4 +776,78 @@
     grid-template-columns: repeat(2, 1fr);
     padding: 11px 15px;
   }
+}
+
+.ticket-tracking,
+.ticket-shipping-form {
+  margin: 0 18px 12px;
+  padding: 12px;
+  border: 1px solid #ded8cc;
+  border-radius: 8px;
+  background: #faf7f0;
+}
+
+.ticket-tracking {
+  display: grid;
+  gap: 5px;
+}
+
+.ticket-tracking span,
+.ticket-shipping-form label {
+  color: #77776e;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.ticket-tracking code {
+  overflow-wrap: anywhere;
+  color: #465d49;
+  font-size: 12px;
+  user-select: all;
+}
+
+.ticket-tracking a {
+  color: #55725a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ticket-shipping-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ticket-shipping-form label {
+  display: grid;
+  gap: 5px;
+}
+
+.ticket-shipping-form input {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid #d2ccbf;
+  border-radius: 6px;
+  background: #fffefa;
+  color: #3f4e42;
+  font: inherit;
+  font-size: 12px;
+}
+
+.ticket-shipping-url {
+  grid-column: 1 / -1;
+}
+
+.ticket-terminal-status {
+  grid-column: 1 / -1;
+  color: #77776e;
+  font-size: 10px;
+  text-align: center;
+}
+
+.status-action:disabled {
+  cursor: wait;
+  opacity: 0.65;
 }

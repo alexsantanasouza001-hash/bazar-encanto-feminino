@@ -1,0 +1,350 @@
+.cliente-auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(37, 53, 42, 0.46);
+  backdrop-filter: blur(5px);
+}
+
+.cliente-auth-modal {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border: 1px solid #E5DDCF;
+  border-radius: 18px;
+  background: #FFFDF8;
+  color: #25352A;
+  box-shadow: 0 24px 70px rgba(37, 53, 42, 0.22);
+  text-align: left;
+}
+
+.cliente-auth-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 26px 20px;
+  border-bottom: 1px solid #E5DDCF;
+  background: #FBF8F0;
+}
+
+.cliente-auth-header span,
+.cliente-account-panel > span {
+  display: block;
+  margin-bottom: 5px;
+  color: #71805A;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.3px;
+}
+
+.cliente-auth-header h2 {
+  margin: 0;
+  color: #234B36;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 25px;
+  font-weight: 500;
+}
+
+.cliente-auth-header > button {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 1px solid #E5DDCF;
+  border-radius: 50%;
+  background: #FFFDF8;
+  color: #6E746B;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.cliente-auth-form,
+.cliente-account,
+.cliente-auth-loading {
+  padding: 24px 26px 27px;
+}
+
+.cliente-auth-form > p {
+  margin: 0 0 18px;
+  color: #6E746B;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.cliente-auth-form > label,
+.cliente-auth-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 14px;
+  color: #25352A;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.cliente-auth-form input:not([type="checkbox"]),
+.cliente-auth-grid input {
+  width: 100%;
+  height: 43px;
+  padding: 0 12px;
+  border: 1px solid #E5DDCF;
+  border-radius: 9px;
+  outline: 0;
+  background: #FFFDFA;
+  color: #25352A;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.cliente-auth-form input:focus,
+.cliente-auth-grid input:focus {
+  border-color: #71805A;
+  box-shadow: 0 0 0 3px rgba(113, 128, 90, 0.12);
+}
+
+.cliente-auth-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+}
+
+.cliente-auth-wide {
+  grid-column: 1 / -1;
+}
+
+.cliente-auth-primary,
+.cliente-auth-secondary {
+  width: 100%;
+  min-height: 44px;
+  padding: 11px 15px;
+  border-radius: 9px;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cliente-auth-primary {
+  border: 0;
+  background: #234B36;
+  color: #FFFFFF;
+}
+
+.cliente-auth-secondary {
+  margin-top: 9px;
+  border: 1px solid #D7E0D6;
+  background: #EEF4EE;
+  color: #234B36;
+}
+
+.cliente-auth-primary:disabled,
+.cliente-auth-secondary:disabled,
+.cliente-auth-logout:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.cliente-auth-link {
+  display: block;
+  margin: 13px auto 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #3F6044;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cliente-auth-forgot {
+  margin: -4px 0 15px auto;
+}
+
+.cliente-auth-terms {
+  flex-direction: row !important;
+  align-items: flex-start;
+  gap: 9px !important;
+  margin: 2px 0 17px !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+}
+
+.cliente-auth-terms input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  margin: 0;
+  accent-color: #234B36;
+}
+
+.cliente-auth-message {
+  margin-bottom: 15px;
+  padding: 10px 12px;
+  border: 1px solid #E5DDCF;
+  border-radius: 8px;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.cliente-auth-message.erro {
+  border-color: #E8C8BF;
+  background: #F5E3DE;
+  color: #8F4939;
+}
+
+.cliente-auth-message.sucesso {
+  border-color: #D7E0D6;
+  background: #E8EEE2;
+  color: #3F6044;
+}
+
+.cliente-auth-loading {
+  color: #6E746B;
+  font-size: 11px;
+  text-align: center;
+}
+
+.cliente-account nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin-bottom: 20px;
+}
+
+.cliente-account nav button {
+  min-height: 38px;
+  padding: 7px;
+  border: 1px solid #E5DDCF;
+  border-radius: 8px;
+  background: #F7F3EB;
+  color: #6E746B;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cliente-account nav button.active {
+  border-color: #234B36;
+  background: #234B36;
+  color: #FFFFFF;
+}
+
+.cliente-account-panel,
+.cliente-account-empty {
+  padding: 18px;
+  border: 1px solid #E5DDCF;
+  border-radius: 11px;
+  background: #FFFDFA;
+}
+
+.cliente-account-panel dl {
+  display: grid;
+  gap: 13px;
+  margin: 14px 0 0;
+}
+
+.cliente-account-panel dl > div {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 12px;
+}
+
+.cliente-account-panel dt {
+  color: #8B897D;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.cliente-account-panel dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #25352A;
+  font-size: 10px;
+}
+
+.cliente-account-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.cliente-account-empty > span {
+  margin-bottom: 9px;
+  color: #71805A;
+  font-size: 28px;
+}
+
+.cliente-account-empty strong {
+  color: #234B36;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+}
+
+.cliente-account-empty p {
+  max-width: 360px;
+  margin: 7px 0 0;
+  color: #8B897D;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.cliente-auth-logout {
+  display: block;
+  margin: 18px 0 0 auto;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: #B85F4A;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .cliente-auth-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .cliente-auth-modal {
+    width: 100%;
+    max-height: 92vh;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .cliente-auth-header,
+  .cliente-auth-form,
+  .cliente-account,
+  .cliente-auth-loading {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .cliente-auth-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cliente-auth-wide {
+    grid-column: auto;
+  }
+
+  .cliente-account nav {
+    grid-template-columns: 1fr;
+  }
+
+  .cliente-account nav button {
+    min-height: 43px;
+  }
+}

@@ -24,7 +24,7 @@ function EntradaEstoque({
     useState('')
 
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
 
     e.preventDefault()
 
@@ -55,7 +55,7 @@ function EntradaEstoque({
 
 
     const resultado =
-      registrarEntradaEstoque({
+      await registrarEntradaEstoque({
         produtoId,
         quantidade: Number(quantidade),
         observacao

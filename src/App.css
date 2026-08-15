@@ -503,6 +503,33 @@ textarea {
 }
 
 
+.admin-logout-button {
+
+  margin-top: 6px;
+
+  color: var(--danger);
+
+}
+
+
+.admin-logout-button:hover {
+
+  background: var(--danger-light);
+
+  color: var(--danger);
+
+}
+
+
+.admin-logout-button:disabled {
+
+  opacity: 0.6;
+
+  cursor: wait;
+
+}
+
+
 /* =========================================================
    MAIN
 ========================================================= */
@@ -2041,6 +2068,19 @@ textarea {
   transition: all 0.2s ease;
 }
 
+.action-toggle {
+  min-height: 31px;
+  padding: 5px 9px;
+  border: 1px solid #aeb9a8;
+  border-radius: 8px;
+  background: #f0f4ed;
+  color: #55725a;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .novo-produto:hover {
   background: #173626;
   transform: translateY(-1px);
@@ -2225,8 +2265,29 @@ textarea {
 
 /* LUCRO */
 
-.produtos-tabela td:nth-child(7) strong {
+.produtos-tabela td:nth-child(8) strong {
   color: #56745A;
+}
+
+.produto-ativo,
+.produto-inativo {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.produto-ativo {
+  background: #e8efe6;
+  color: #56745A;
+}
+
+.produto-inativo {
+  background: #eee9df;
+  color: #766f64;
 }
 
 /* AÇÕES */
@@ -2862,7 +2923,12 @@ textarea {
 
   .produtos-tabela th:nth-child(8),
   .produtos-tabela td:nth-child(8) {
-    width: 12%;
+    width: 10%;
+  }
+
+  .produtos-tabela th:nth-child(9),
+  .produtos-tabela td:nth-child(9) {
+    width: 14%;
   }
 
 }

@@ -196,12 +196,6 @@ function Estoque() {
                 .map(normalizarMovimentacao)
                 .filter(Boolean)
             : []
-
-        console.log(
-          'Produtos carregados no Estoque:',
-          produtosNormalizados
-        )
-
         setProdutos(
           produtosNormalizados
         )

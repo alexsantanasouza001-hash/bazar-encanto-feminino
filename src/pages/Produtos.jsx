@@ -6,30 +6,47 @@ import {
   carregarProdutos,
   adicionarProduto,
   atualizarProduto,
-  removerProduto
+  removerProduto,
+  alterarAtivoProduto
 } from '../storage'
 
 function Produtos() {
-  const [mostrarFormulario, setMostrarFormulario] =
-    useState(false)
+  const [
+    mostrarFormulario,
+    setMostrarFormulario
+  ] = useState(false)
 
-  const [produtoEditando, setProdutoEditando] =
-    useState(null)
+  const [
+    produtoEditando,
+    setProdutoEditando
+  ] = useState(null)
 
-  const [produtos, setProdutos] =
-    useState([])
+  const [
+    produtos,
+    setProdutos
+  ] = useState([])
 
-  const [busca, setBusca] =
-    useState('')
+  const [
+    busca,
+    setBusca
+  ] = useState('')
 
-  const [categoriaFiltro, setCategoriaFiltro] =
-    useState('Todas')
+  const [
+    categoriaFiltro,
+    setCategoriaFiltro
+  ] = useState('Todas')
 
-  const [tamanhoFiltro, setTamanhoFiltro] =
-    useState('Todos')
+  const [
+    tamanhoFiltro,
+    setTamanhoFiltro
+  ] = useState('Todos')
 
-  const [carregando, setCarregando] =
-    useState(true)
+  const [statusFiltro, setStatusFiltro] = useState('Todos')
+
+  const [
+    carregando,
+    setCarregando
+  ] = useState(true)
 
   // =====================================================
   // CARREGAR PRODUTOS
@@ -43,14 +60,16 @@ function Produtos() {
         setCarregando(true)
 
         const produtosSalvos =
-          await carregarProdutos()
+          await carregarProdutos(true)
 
         if (!ativo) {
           return
         }
 
         setProdutos(
-          Array.isArray(produtosSalvos)
+          Array.isArray(
+            produtosSalvos
+          )
             ? produtosSalvos
             : []
         )
@@ -78,7 +97,7 @@ function Produtos() {
   }, [])
 
   // =====================================================
-  // ADICIONAR PRODUTO
+  // ADICIONAR
   // =====================================================
 
   const handleAdicionarProduto =
@@ -93,14 +112,21 @@ function Produtos() {
           return
         }
 
+        const produtosAtualizados =
+          await carregarProdutos(true)
+
         setProdutos(
-          produtosAtuais => [
-            ...produtosAtuais,
-            produto
-          ]
+          Array.isArray(
+            produtosAtualizados
+          )
+            ? produtosAtualizados
+            : []
         )
 
-        setMostrarFormulario(false)
+        setMostrarFormulario(
+          false
+        )
+
         setProdutoEditando(null)
       } catch (erro) {
         console.error(
@@ -115,34 +141,52 @@ function Produtos() {
     }
 
   // =====================================================
-  // EDITAR PRODUTO
+  // EDITAR
   // =====================================================
 
-  const handleEditar = (produto) => {
-    setProdutoEditando(produto)
-    setMostrarFormulario(true)
+  const handleEditar = (
+    produto
+  ) => {
+    setProdutoEditando(
+      produto
+    )
+
+    setMostrarFormulario(
+      true
+    )
   }
 
   // =====================================================
-  // ATUALIZAR PRODUTO
+  // ATUALIZAR
   // =====================================================
 
   const handleAtualizarProduto =
-    async (produtoAtualizado) => {
+    async (
+      produtoAtualizado
+    ) => {
       try {
-        const novosProdutos =
-          await atualizarProduto(
-            produtoAtualizado
-          )
+        await atualizarProduto(
+          produtoAtualizado
+        )
+
+        const produtosAtualizados =
+          await carregarProdutos(true)
 
         setProdutos(
-          Array.isArray(novosProdutos)
-            ? novosProdutos
+          Array.isArray(
+            produtosAtualizados
+          )
+            ? produtosAtualizados
             : []
         )
 
-        setProdutoEditando(null)
-        setMostrarFormulario(false)
+        setProdutoEditando(
+          null
+        )
+
+        setMostrarFormulario(
+          false
+        )
       } catch (erro) {
         console.error(
           'Erro ao atualizar produto:',
@@ -156,58 +200,80 @@ function Produtos() {
     }
 
   // =====================================================
-  // EXCLUIR PRODUTO
+  // EXCLUIR
   // =====================================================
 
-  const handleExcluir = async (id) => {
-    const produto =
-      produtos.find(
-        item =>
-          String(item.id) ===
-          String(id)
-      )
+  const handleExcluir =
+    async (id) => {
+      const produto =
+        produtos.find(
+          (item) =>
+            String(
+              item.id
+            ) ===
+            String(id)
+        )
 
-    if (!produto) {
-      return
+      if (!produto) {
+        return
+      }
+
+      const confirmou =
+        window.confirm(
+          `Deseja realmente excluir "${produto.nome}"?`
+        )
+
+      if (!confirmou) {
+        return
+      }
+
+      try {
+        const novosProdutos =
+          await removerProduto(
+            id
+          )
+
+        setProdutos(
+          Array.isArray(
+            novosProdutos
+          )
+            ? novosProdutos
+            : []
+        )
+      } catch (erro) {
+        console.error(
+          'Erro ao excluir produto:',
+          erro
+        )
+
+        window.alert(
+          'Não foi possível excluir o produto.'
+        )
+      }
     }
 
-    const confirmou =
-      window.confirm(
-        `Deseja realmente excluir "${produto.nome}"?`
+  // =====================================================
+  // NOVO
+  // =====================================================
+
+  const abrirNovoProduto =
+    () => {
+      setProdutoEditando(
+        null
       )
 
-    if (!confirmou) {
-      return
+      setMostrarFormulario(
+        true
+      )
     }
 
+  const alternarAtivo = async (produto) => {
     try {
-      const novosProdutos =
-        await removerProduto(id)
-
-      setProdutos(
-        Array.isArray(novosProdutos)
-          ? novosProdutos
-          : []
-      )
+      setProdutos(await alterarAtivoProduto(produto.id, produto.ativo === false))
     } catch (erro) {
-      console.error(
-        'Erro ao excluir produto:',
-        erro
-      )
-
-      window.alert(
-        'Não foi possível excluir o produto.'
-      )
+      console.error('Erro ao alterar visibilidade do produto:', erro)
+      window.alert('Não foi possível alterar a visibilidade do produto.')
     }
-  }
-
-  // =====================================================
-  // NOVO PRODUTO
-  // =====================================================
-
-  const abrirNovoProduto = () => {
-    setProdutoEditando(null)
-    setMostrarFormulario(true)
   }
 
   // =====================================================
@@ -217,7 +283,7 @@ function Produtos() {
   const produtosFiltrados =
     Array.isArray(produtos)
       ? produtos.filter(
-          produto => {
+          (produto) => {
             const textoBusca =
               busca
                 .trim()
@@ -225,21 +291,25 @@ function Produtos() {
 
             const nome =
               String(
-                produto?.nome || ''
+                produto?.nome ||
+                  ''
               ).toLowerCase()
 
             const marca =
               String(
-                produto?.marca || ''
+                produto?.marca ||
+                  ''
               ).toLowerCase()
 
             const sku =
               String(
-                produto?.sku || ''
+                produto?.sku ||
+                  ''
               ).toLowerCase()
 
             const correspondeBusca =
-              textoBusca === '' ||
+              textoBusca ===
+                '' ||
               nome.includes(
                 textoBusca
               ) ||
@@ -259,19 +329,57 @@ function Produtos() {
               ) ===
                 categoriaFiltro
 
-            const correspondeTamanho =
-              tamanhoFiltro ===
-                'Todos' ||
-              String(
-                produto?.tamanho ||
-                  ''
-              ) ===
-                tamanhoFiltro
+            const correspondeStatus =
+              statusFiltro === 'Todos' ||
+              (statusFiltro === 'Ativos' && produto.ativo !== false) ||
+              (statusFiltro === 'Inativos' && produto.ativo === false)
+
+            let correspondeTamanho =
+              true
+
+            if (
+              tamanhoFiltro !==
+              'Todos'
+            ) {
+              if (
+                Array.isArray(
+                  produto?.tamanhos
+                )
+              ) {
+                correspondeTamanho =
+                  produto.tamanhos.some(
+                    (item) =>
+                      String(
+                        item.tamanho
+                      ) ===
+                        tamanhoFiltro &&
+                      Number(
+                        item.quantidade ||
+                          0
+                      ) > 0
+                  )
+              } else {
+                correspondeTamanho =
+                  String(
+                    produto?.tamanho ||
+                      ''
+                  )
+                    .split(',')
+                    .map(
+                      (item) =>
+                        item.trim()
+                    )
+                    .includes(
+                      tamanhoFiltro
+                    )
+              }
+            }
 
             return (
               correspondeBusca &&
               correspondeCategoria &&
-              correspondeTamanho
+              correspondeTamanho &&
+              correspondeStatus
             )
           }
         )
@@ -282,12 +390,11 @@ function Produtos() {
   // =====================================================
 
   return (
-    <div className="produtos-page">
+    <div>
 
       <div className="produtos-header">
 
         <div>
-
           <h1>
             Produtos
           </h1>
@@ -295,7 +402,6 @@ function Produtos() {
           <p>
             Gerencie as peças do seu bazar
           </p>
-
         </div>
 
         <button
@@ -315,8 +421,10 @@ function Produtos() {
         <input
           type="text"
           placeholder="🔎  Buscar por nome, marca ou SKU..."
-          value={busca}
-          onChange={e =>
+          value={
+            busca
+          }
+          onChange={(e) =>
             setBusca(
               e.target.value
             )
@@ -327,13 +435,12 @@ function Produtos() {
           value={
             categoriaFiltro
           }
-          onChange={e =>
+          onChange={(e) =>
             setCategoriaFiltro(
               e.target.value
             )
           }
         >
-
           <option value="Todas">
             Todas as categorias
           </option>
@@ -365,20 +472,24 @@ function Produtos() {
           <option value="Outros">
             Outros
           </option>
+        </select>
 
+        <select value={statusFiltro} onChange={(e) => setStatusFiltro(e.target.value)}>
+          <option value="Todos">Todos os status</option>
+          <option value="Ativos">Ativos</option>
+          <option value="Inativos">Inativos</option>
         </select>
 
         <select
           value={
             tamanhoFiltro
           }
-          onChange={e =>
+          onChange={(e) =>
             setTamanhoFiltro(
               e.target.value
             )
           }
         >
-
           <option value="Todos">
             Todos os tamanhos
           </option>
@@ -419,6 +530,13 @@ function Produtos() {
             42
           </option>
 
+          <option value="44">
+            44
+          </option>
+
+          <option value="46">
+            46
+          </option>
         </select>
 
       </div>
@@ -428,9 +546,7 @@ function Produtos() {
         <table>
 
           <thead>
-
             <tr>
-
               <th>
                 Produto
               </th>
@@ -440,7 +556,7 @@ function Produtos() {
               </th>
 
               <th>
-                Tamanho
+                Tamanhos
               </th>
 
               <th>
@@ -455,6 +571,8 @@ function Produtos() {
                 Venda
               </th>
 
+              <th>Status</th>
+
               <th>
                 Lucro
               </th>
@@ -462,9 +580,7 @@ function Produtos() {
               <th>
                 Ações
               </th>
-
             </tr>
-
           </thead>
 
           <tbody>
@@ -472,9 +588,8 @@ function Produtos() {
             {carregando ? (
 
               <tr>
-
                 <td
-                  colSpan="8"
+                  colSpan="9"
                   style={{
                     textAlign:
                       'center',
@@ -484,16 +599,14 @@ function Produtos() {
                 >
                   Carregando produtos...
                 </td>
-
               </tr>
 
             ) : produtosFiltrados.length ===
               0 ? (
 
               <tr>
-
                 <td
-                  colSpan="8"
+                  colSpan="9"
                   style={{
                     textAlign:
                       'center',
@@ -503,13 +616,12 @@ function Produtos() {
                 >
                   Nenhum produto encontrado.
                 </td>
-
               </tr>
 
             ) : (
 
               produtosFiltrados.map(
-                produto => {
+                (produto) => {
 
                   const quantidade =
                     Number(
@@ -540,6 +652,28 @@ function Produtos() {
                         )
                       : venda -
                         custo
+
+                  const tamanhosTexto =
+                    Array.isArray(
+                      produto?.tamanhos
+                    )
+                      ? produto.tamanhos
+                          .filter(
+                            (item) =>
+                              Number(
+                                item.quantidade ||
+                                  0
+                              ) > 0
+                          )
+                          .map(
+                            (item) =>
+                              `${item.tamanho}: ${item.quantidade}`
+                          )
+                          .join(
+                            ' | '
+                          )
+                      : produto?.tamanho ||
+                        '-'
 
                   return (
 
@@ -577,10 +711,7 @@ function Produtos() {
                       </td>
 
                       <td>
-                        {
-                          produto?.tamanho ||
-                          '-'
-                        }
+                        {tamanhosTexto}
                       </td>
 
                       <td>
@@ -618,6 +749,18 @@ function Produtos() {
                       </td>
 
                       <td>
+                        <span
+                          className={
+                            produto.ativo === false
+                              ? 'produto-inativo'
+                              : 'produto-ativo'
+                          }
+                        >
+                          {produto.ativo === false ? 'Inativo' : 'Ativo'}
+                        </span>
+                      </td>
+
+                      <td>
 
                         <strong>
                           R${' '}
@@ -631,6 +774,15 @@ function Produtos() {
                       <td>
 
                         <div className="product-actions">
+
+                          <button
+                            type="button"
+                            className="action-toggle"
+                            onClick={() => alternarAtivo(produto)}
+                            title={produto.ativo === false ? 'Ativar' : 'Desativar'}
+                          >
+                            {produto.ativo === false ? 'Ativar' : 'Desativar'}
+                          </button>
 
                           <button
                             type="button"
@@ -679,7 +831,6 @@ function Produtos() {
       {mostrarFormulario && (
 
         <ProductForm
-
           onClose={() => {
             setMostrarFormulario(
               false
@@ -689,19 +840,15 @@ function Produtos() {
               null
             )
           }}
-
           onAddProduct={
             handleAdicionarProduto
           }
-
           onUpdateProduct={
             handleAtualizarProduto
           }
-
           produtoEditando={
             produtoEditando
           }
-
         />
 
       )}
