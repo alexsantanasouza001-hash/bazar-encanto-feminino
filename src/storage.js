@@ -1,5 +1,6 @@
 import { supabase } from './lib/supabase'
 import { produtosIniciais } from './data/products'
+import { agruparClientesDosPedidos } from './pages/clientesHelpers'
 
 const CHAVE_PRODUTOS =
   'meu_bazar_produtos'
@@ -1585,6 +1586,40 @@ export async function carregarPedidos() {
         numero:
           pedido.numero,
 
+        user_id:
+          pedido.user_id ||
+          null,
+
+        email:
+          pedido.email_cliente ||
+          pedido.email ||
+          '',
+
+        email_cliente:
+          pedido.email_cliente ||
+          pedido.email ||
+          '',
+
+        telefone:
+          pedido.telefone_cliente ||
+          pedido.telefone ||
+          '',
+
+        telefone_cliente:
+          pedido.telefone_cliente ||
+          pedido.telefone ||
+          '',
+
+        cpf:
+          pedido.cpf_cliente ||
+          pedido.cpf ||
+          '',
+
+        cpf_cliente:
+          pedido.cpf_cliente ||
+          pedido.cpf ||
+          '',
+
         cliente:
           pedido.cliente ||
           '',
@@ -1772,10 +1807,15 @@ export async function carregarPedidos() {
   }
 }
 
+export async function carregarClientes() {
+  const pedidos = await carregarPedidos()
+  return agruparClientesDosPedidos(pedidos)
+}
 
 // =====================================================
 // REGISTRAR PEDIDO
 // =====================================================
+
 
 async function obterMensagemErroCriarPedido(erro, dados) {
   if (dados?.mensagem) {
