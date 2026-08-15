@@ -11,6 +11,7 @@ const Produtos = lazy(() => import('./pages/Produtos'))
 const Estoque = lazy(() => import('./pages/Estoque'))
 const Pedidos = lazy(() => import('./pages/Pedidos'))
 const Clientes = lazy(() => import('./pages/Clientes'))
+const Relatorios = lazy(() => import('./pages/Relatorios'))
 const Sobre = lazy(() => import('./pages/Sobre'))
 const PoliticaPrivacidade = lazy(() => import('./pages/PoliticaPrivacidade'))
 const Termos = lazy(() => import('./pages/Termos'))
@@ -147,6 +148,7 @@ function PainelAdministrativo({ usuario, onNavegar }) {
     { id: 'estoque', icone: '▣', nome: 'Estoque' },
     { id: 'pedidos', icone: '◇', nome: 'Pedidos' },
     { id: 'clientes', icone: '♡', nome: 'Clientes' },
+    { id: 'relatorios', icone: '▦', nome: 'Relatórios' },
   ]
 
   const handleLogout = async () => {
@@ -229,6 +231,7 @@ function PainelAdministrativo({ usuario, onNavegar }) {
           {pagina === 'estoque' && <Estoque />}
           {pagina === 'pedidos' && <Pedidos />}
           {pagina === 'clientes' && <Clientes />}
+          {pagina === 'relatorios' && <Relatorios />}
         </Suspense>
       </main>
     </div>
