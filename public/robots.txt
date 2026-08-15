@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/*
+
+Sitemap: https://bazar-encanto-feminino.vercel.app/sitemap.xml

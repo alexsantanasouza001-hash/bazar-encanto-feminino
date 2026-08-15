@@ -43,7 +43,7 @@ export default function TrocasDevolucoes({ onNavegar }) {
         </p>
 
         <div className="institucional-alerta">
-          <strong>Canais de Atendimento para Trocas:</strong> O e-mail e canal de suporte oficial para abertura de solicitações de troca serão formalizados nas configurações da loja.
+          <strong>Solicitação de Troca ou Devolução:</strong> Para iniciar o procedimento de postagem reversa, entre em contato com nosso atendimento informando o número do pedido e as peças a serem trocadas.
         </div>
       </div>
       <Footer onNavegar={onNavegar} />

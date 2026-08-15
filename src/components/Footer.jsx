@@ -67,9 +67,6 @@ export default function Footer({ onNavegar }) {
         <div>
           © {new Date().getFullYear()} Bazar Encanto Feminino. Todos os direitos reservados.
         </div>
-        <div className="footer-aviso">
-          Ambiente de testes em homologação segura. Dados de contato empresarial e CNPJ serão preenchidos antes do lançamento oficial.
-        </div>
       </div>
     </footer>
   )

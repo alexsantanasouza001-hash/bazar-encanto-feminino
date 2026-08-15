@@ -29,7 +29,7 @@ export default function Sobre({ onNavegar }) {
         </p>
 
         <div className="institucional-alerta">
-          <strong>Nota de Transparência:</strong> As informações societárias completas (CNPJ, razão social e endereço de atendimento) serão preenchidas formalmente pelo proprietário do estabelecimento antes da inauguração comercial pública.
+          <strong>Atendimento & Informações:</strong> Dúvidas sobre produtos, pedidos ou entregas podem ser esclarecidas diretamente com a nossa equipe através dos canais de suporte da loja.
         </div>
       </div>
       <Footer onNavegar={onNavegar} />

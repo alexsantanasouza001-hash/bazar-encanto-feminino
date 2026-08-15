@@ -54,7 +54,7 @@ export default function PoliticaPrivacidade({ onNavegar }) {
         </p>
 
         <div className="institucional-alerta">
-          <strong>Ponto de Contato DPO/Suporte:</strong> O endereço de e-mail dedicado para atendimento a direitos de privacidade será configurado pelo proprietário antes do lançamento definitivo.
+          <strong>Privacidade e Atendimento:</strong> Para solicitações sobre seus dados pessoais ou dúvidas sobre esta política, entre em contato através dos nossos canais de atendimento.
         </div>
       </div>
       <Footer onNavegar={onNavegar} />
