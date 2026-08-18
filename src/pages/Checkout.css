@@ -950,6 +950,54 @@
   color: #9A443F;
 }
 
+.checkout-cep-group {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+}
+
+.checkout-cep-group input {
+  flex: 1;
+  min-width: 0;
+}
+
+.checkout-cep-btn {
+  flex-shrink: 0;
+  min-height: 42px;
+  padding: 0 14px;
+  border: 1px solid #71805A;
+  border-radius: 8px;
+  background: #71805A;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.checkout-cep-btn:hover {
+  background: #56745A;
+  border-color: #56745A;
+}
+
+.checkout-cep-btn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+@media (max-width: 480px) {
+  .checkout-cep-group {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .checkout-cep-btn {
+    width: 100%;
+  }
+}
+
 .checkout-shipping-option {
   display: flex;
   align-items: center;
@@ -968,7 +1016,8 @@
   background: rgba(113, 128, 90, 0.1);
 }
 
-.checkout-shipping-option.consultar {
+.checkout-shipping-option.consultar,
+.checkout-shipping-option.aguardando_cep {
   flex-wrap: wrap;
   border-color: rgba(184, 95, 74, 0.35);
 }
@@ -997,6 +1046,118 @@
   color: #9A443F;
   font-size: 9px;
   line-height: 1.45;
+}
+
+.checkout-shipping-trigger {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px dashed #71805A;
+  border-radius: 6px;
+  background: rgba(113, 128, 90, 0.08);
+  color: #234B36;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: all 0.15s ease;
+}
+
+.checkout-shipping-trigger:hover {
+  background: rgba(113, 128, 90, 0.18);
+  border-color: #234B36;
+  color: #173626;
+}
+
+/* =====================================================
+   OPÇÕES DE ENTREGA (MELHOR ENVIO)
+   ===================================================== */
+.checkout-shipping-section {
+  margin: 0 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkout-shipping-label {
+  color: #71805A;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+}
+
+.checkout-shipping-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkout-shipping-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid #E5DDCF;
+  border-radius: 10px;
+  background: #FFFDF9;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.checkout-shipping-card:hover {
+  border-color: #71805A;
+  background: #FAF8F2;
+}
+
+.checkout-shipping-card.selected {
+  border-color: #234B36;
+  background: rgba(113, 128, 90, 0.08);
+  box-shadow: 0 2px 6px rgba(35, 75, 54, 0.08);
+}
+
+.checkout-shipping-card input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  accent-color: #234B36;
+  cursor: pointer;
+}
+
+.shipping-card-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shipping-card-header {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.shipping-card-title {
+  color: #234B36;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.shipping-card-carrier {
+  color: #71805A;
+  font-size: 10px;
+}
+
+.shipping-card-time {
+  color: #6E746B;
+  font-size: 10px;
+}
+
+.shipping-card-price {
+  color: #234B36;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .checkout-checkbox {

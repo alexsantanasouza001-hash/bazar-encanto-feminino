@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { carregarPedidos, carregarProdutos } from '../storage'
+import {
+  carregarPagamentosRevendas,
+  carregarPedidos,
+  carregarProdutos,
+  carregarRemessas,
+  carregarRevendedoras,
+  carregarVendasRevendas
+} from '../storage'
+import { consolidarResumoRevendedora } from './revendasHelpers'
 import { obterStatusPagamento, obterStatusPedido } from './statusHelpers'
 
 function formatarPreco(valor) {
@@ -70,9 +78,13 @@ function calcularUltimosMeses(pedidos) {
   }))
 }
 
-function Dashboard({ setPagina }) {
+function Dashboard({ setPagina, papelUsuario = 'admin' }) {
   const [pedidos, setPedidos] = useState([])
   const [produtos, setProdutos] = useState([])
+  const [revendedoras, setRevendedoras] = useState([])
+  const [remessas, setRemessas] = useState([])
+  const [vendasRevendas, setVendasRevendas] = useState([])
+  const [pagamentosRevendas, setPagamentosRevendas] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
 
@@ -87,13 +99,28 @@ function Dashboard({ setPagina }) {
       setCarregando(true)
       setErro(null)
 
-      const [pedidosCarregados, produtosCarregados] = await Promise.all([
+      const [
+        pedidosCarregados,
+        produtosCarregados,
+        revs,
+        rems,
+        vends,
+        pags
+      ] = await Promise.all([
         carregarPedidos(),
-        carregarProdutos(true)
+        carregarProdutos(true),
+        carregarRevendedoras(),
+        carregarRemessas(),
+        carregarVendasRevendas(),
+        carregarPagamentosRevendas()
       ])
 
       setPedidos(Array.isArray(pedidosCarregados) ? pedidosCarregados : [])
       setProdutos(Array.isArray(produtosCarregados) ? produtosCarregados : [])
+      setRevendedoras(Array.isArray(revs) ? revs : [])
+      setRemessas(Array.isArray(rems) ? rems : [])
+      setVendasRevendas(Array.isArray(vends) ? vends : [])
+      setPagamentosRevendas(Array.isArray(pags) ? pags : [])
     } catch (err) {
       console.error('Erro ao carregar dados do Dashboard:', err)
       setErro('Não foi possível carregar as métricas do painel.')
@@ -163,6 +190,14 @@ function Dashboard({ setPagina }) {
 
   // Gráfico de 6 meses
   const dadosGrafico = calcularUltimosMeses(pedidos)
+
+  // Resumo de Revendas / Consignação
+  const resumosRev = revendedoras.map((r) => consolidarResumoRevendedora(r, remessas, vendasRevendas, pagamentosRevendas))
+  const revendedorasAtivasCount = revendedoras.filter((r) => r.status === 'Ativa').length
+  const pecasConsignadasTotal = resumosRev.reduce((acc, r) => acc + (r?.pecasConsignadas || 0), 0)
+  const valorConsignadoTotal = resumosRev.reduce((acc, r) => acc + (r?.valorConsignado || 0), 0)
+  const saldoReceberRevendasTotal = resumosRev.reduce((acc, r) => acc + (r?.saldoPendente || 0), 0)
+  const acertosAtrasadosCount = resumosRev.filter((r) => r?.atrasado).length
 
   if (carregando) {
     return (
@@ -293,6 +328,58 @@ function Dashboard({ setPagina }) {
           </div>
         </div>
       </section>
+
+      {/* ==========================================
+          REVENDA / CONSIGNAÇÃO
+      ========================================== */}
+      {papelUsuario !== 'operador' && (
+        <section className="dashboard-panel" style={{ marginTop: '24px', marginBottom: '24px' }}>
+          <div className="dashboard-panel-header">
+            <div>
+              <h2>Revenda / Consignação 🤝</h2>
+              <p>Acompanhamento de estoque consignado e acertos com parceiras</p>
+            </div>
+            <button
+              type="button"
+              className="panel-link"
+              onClick={() => navegarPara('revendas')}
+            >
+              Ver revendas →
+            </button>
+          </div>
+
+          <div className="dashboard-cards" style={{ marginTop: '16px', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
+            <div className="dashboard-card" style={{ padding: '14px', cursor: 'pointer' }} onClick={() => navegarPara('revendas')}>
+              <div className="dashboard-card-top">
+                <div className="dashboard-card-icon green">🤝</div>
+                <span className="dashboard-card-label">Parceiras Ativas</span>
+              </div>
+              <div className="dashboard-card-value" style={{ fontSize: '20px' }}>{revendedorasAtivasCount}</div>
+              <div className="dashboard-card-footer">{revendedoras.length} cadastradas</div>
+            </div>
+
+            <div className="dashboard-card" style={{ padding: '14px', cursor: 'pointer' }} onClick={() => navegarPara('revendas')}>
+              <div className="dashboard-card-top">
+                <div className="dashboard-card-icon purple">▣</div>
+                <span className="dashboard-card-label">Em Consignação</span>
+              </div>
+              <div className="dashboard-card-value" style={{ fontSize: '20px' }}>{pecasConsignadasTotal} un.</div>
+              <div className="dashboard-card-footer">{formatarPreco(valorConsignadoTotal)} em mercadoria</div>
+            </div>
+
+            <div className="dashboard-card" style={{ padding: '14px', cursor: 'pointer' }} onClick={() => navegarPara('revendas')}>
+              <div className="dashboard-card-top">
+                <div className="dashboard-card-icon gold">R$</div>
+                <span className="dashboard-card-label">Vendido a Receber</span>
+              </div>
+              <div className="dashboard-card-value" style={{ fontSize: '20px', color: '#b45309' }}>{formatarPreco(saldoReceberRevendasTotal)}</div>
+              <div className="dashboard-card-footer">
+                {acertosAtrasadosCount > 0 ? `⚠ ${acertosAtrasadosCount} acerto(s) atrasado(s)` : 'Acertos em dia'}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ==========================================
           GRÁFICOS / ESTOQUE

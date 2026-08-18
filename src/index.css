@@ -25,7 +25,7 @@
   --heading: 'Playfair Display', Georgia, serif;
 
   font-family: var(--sans);
-  color-scheme: light;
+  color-scheme: light !important;
   color: var(--text);
   background-color: var(--background);
   text-rendering: optimizeLegibility;
@@ -43,9 +43,11 @@ body {
   padding: 0;
   width: 100%;
   min-height: 100vh;
-  background-color: var(--background);
-  color: var(--text);
+  color-scheme: light !important;
+  background-color: #F7F3EB !important;
+  color: #25352A !important;
   overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 #root {
@@ -55,4 +57,27 @@ body {
   padding: 0;
   display: flex;
   flex-direction: column;
+  background-color: #F7F3EB !important;
+}
+
+/* Forçar controles de formulário no tema claro oficial */
+input,
+select,
+textarea,
+button {
+  color-scheme: light !important;
+}
+
+/* Evitar inversão de cores e fundo escuro no autofill do mobile */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: #25352A !important;
+  -webkit-box-shadow: 0 0 0px 1000px #FFFDF8 inset !important;
+  box-shadow: 0 0 0px 1000px #FFFDF8 inset !important;
+  caret-color: #234B36 !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

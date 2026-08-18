@@ -1,0 +1,881 @@
+.revendas-page {
+  padding: 24px;
+  max-width: 1300px;
+  margin: 0 auto;
+  min-height: 80vh;
+}
+
+/* ===================================================
+   CABEÇALHO
+=================================================== */
+.revendas-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.revendas-eyebrow {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #c9a35a;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.revendas-header h1 {
+  font-size: 26px;
+  font-weight: 800;
+  color: #1f2937;
+  margin: 0 0 6px 0;
+  font-family: inherit;
+}
+
+.revendas-header p {
+  color: #6b7280;
+  font-size: 14px;
+  margin: 0;
+}
+
+.revendas-header-acoes {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn-acao-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-acao-header.primario {
+  background: #25352a;
+  color: #ffffff;
+}
+
+.btn-acao-header.primario:hover {
+  background: #19241d;
+  transform: translateY(-1px);
+}
+
+.btn-acao-header.secundario {
+  background: #ffffff;
+  color: #25352a;
+  border: 1px solid #d1d5db;
+}
+
+.btn-acao-header.secundario:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.revendas-alerta-sucesso {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: fadeIn 0.3s ease;
+}
+
+/* ===================================================
+   KPIS GRID
+=================================================== */
+.revendas-kpis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.rev-kpi-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.rev-kpi-card.destaque {
+  border-color: #c9a35a;
+  background: #fdfbf7;
+}
+
+.rev-kpi-card.alerta {
+  border-color: #fed7aa;
+  background: #fffbf5;
+}
+
+.kpi-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.rev-kpi-card strong {
+  font-size: 22px;
+  font-weight: 800;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.rev-kpi-card small {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.text-destaque-saldo {
+  color: #b45309 !important;
+}
+
+/* ===================================================
+   ABAS
+=================================================== */
+.revendas-abas-nav {
+  display: flex;
+  gap: 8px;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 20px;
+  overflow-x: auto;
+}
+
+.aba-btn {
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #6b7280;
+  cursor: pointer;
+  margin-bottom: -2px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.aba-btn:hover {
+  color: #25352a;
+}
+
+.aba-btn.active {
+  color: #25352a;
+  border-bottom-color: #25352a;
+}
+
+/* ===================================================
+   TOOLBAR & TABELAS
+=================================================== */
+.revendas-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.busca-wrap {
+  flex: 1;
+  min-width: 250px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.busca-wrap span {
+  position: absolute;
+  left: 12px;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.busca-wrap input {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.filtros-wrap select {
+  padding: 9px 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+.tabela-scroll {
+  overflow-x: auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.revendas-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+
+.revendas-tabela th {
+  background: #f9fafb;
+  padding: 12px 16px;
+  font-weight: 600;
+  color: #4b5563;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.revendas-tabela td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f3f4f6;
+  color: #1f2937;
+  vertical-align: middle;
+}
+
+.revendas-tabela tbody tr:hover {
+  background: #fdfbf7;
+}
+
+.revendedora-nome-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.revendedora-nome-col small {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.badge-comissao {
+  background: #fef3c7;
+  color: #92400e;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.tabela-sub-valor {
+  display: block;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.text-pendente {
+  color: #dc2626;
+}
+
+.text-zerado {
+  color: #059669;
+}
+
+.badge-atrasado {
+  margin-left: 6px;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.status-ativa {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+.status-pausada {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-encerrada {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.status-enviada {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.acoes-btn-grupo {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-tabela-acao {
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-tabela-acao:hover {
+  background: #f3f4f6;
+}
+
+.btn-tabela-acao.destaque {
+  background: #25352a;
+  color: #ffffff;
+  border-color: #25352a;
+}
+
+.btn-tabela-acao.destaque:hover {
+  background: #19241d;
+}
+
+/* ===================================================
+   CARDS DE REMESSAS
+=================================================== */
+.remessas-cards-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.remessa-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.remessa-card-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.remessa-numero {
+  background: #25352a;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-right: 8px;
+}
+
+.remessa-card-stats {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.remessa-card-stats div {
+  display: flex;
+  flex-direction: column;
+}
+
+.remessa-card-stats span {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.remessa-card-stats strong {
+  font-size: 14px;
+  color: #111827;
+}
+
+.remessa-itens-tabela-wrap {
+  overflow-x: auto;
+}
+
+.remessa-itens-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.remessa-itens-tabela th {
+  background: #f9fafb;
+  padding: 8px 12px;
+  color: #4b5563;
+  font-weight: 600;
+  text-align: left;
+}
+
+.remessa-itens-tabela td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.acoes-item-grupo {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-item-venda {
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-item-venda:hover {
+  background: #047857;
+}
+
+.btn-item-devolucao {
+  background: #ffffff;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-item-devolucao:hover {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.item-liquidado {
+  font-size: 11px;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* ===================================================
+   MODAIS & FORMULÁRIOS
+=================================================== */
+.revendas-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 16px;
+  backdrop-filter: blur(2px);
+}
+
+.revendas-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+}
+
+.revendas-modal.remessa-larga {
+  max-width: 760px;
+}
+
+.btn-fechar-modal {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.revendas-modal h2 {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 6px 0;
+}
+
+.modal-sub {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 18px;
+}
+
+.revendas-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-campo {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-campo.full {
+  grid-column: span 2;
+}
+
+.form-linha-dupla {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.form-campo label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.form-campo input,
+.form-campo select,
+.form-campo textarea {
+  padding: 9px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+.form-campo input:focus,
+.form-campo select:focus,
+.form-campo textarea:focus {
+  border-color: #25352a;
+  outline: none;
+}
+
+.simulacao-venda-card {
+  background: #fdfbf7;
+  border: 1px solid #c9a35a;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.simulacao-venda-card div {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.text-comissao {
+  color: #b45309;
+}
+
+.text-loja-receita {
+  color: #059669;
+}
+
+.text-sucesso-valor {
+  color: #059669;
+}
+
+.aviso-retorno-estoque {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1e40af;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.form-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.btn-cancelar {
+  padding: 9px 16px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.btn-salvar {
+  padding: 9px 20px;
+  border: none;
+  background: #25352a;
+  color: #ffffff;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-salvar:hover {
+  background: #19241d;
+}
+
+/* ===================================================
+   EDITOR DE ITENS DA REMESSA
+=================================================== */
+.remessa-itens-editor {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  background: #f9fafb;
+}
+
+.editor-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.editor-topo h3 {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  color: #111827;
+}
+
+.btn-add-item {
+  background: #25352a;
+  color: #ffffff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.itens-inputs-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item-remessa-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+  gap: 8px;
+  align-items: flex-end;
+  background: #ffffff;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.item-remessa-row label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.item-remessa-row select,
+.item-remessa-row input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.btn-remover-item-row {
+  background: #fee2e2;
+  color: #991b1b;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  height: 30px;
+}
+
+.nenhum-item-aviso {
+  font-size: 13px;
+  color: #6b7280;
+  text-align: center;
+  padding: 16px;
+}
+
+/* ===================================================
+   DETALHES REVENDEDORA MODAL
+=================================================== */
+.detalhe-rev-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detalhe-rev-botoes {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-whatsapp-rev {
+  background: #25d366;
+  color: #ffffff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-editar-rev {
+  background: #ffffff;
+  color: #25352a;
+  border: 1px solid #d1d5db;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.detalhes-metricas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.mini-metric {
+  background: #f9fafb;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+}
+
+.mini-metric.destaque {
+  background: #fdfbf7;
+  border-color: #c9a35a;
+}
+
+.mini-metric span {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.mini-metric strong {
+  font-size: 16px;
+  color: #111827;
+}
+
+.mini-metric small {
+  font-size: 11px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.revendas-feedback-state {
+  text-align: center;
+  padding: 48px;
+  color: #6b7280;
+}
+
+.revendas-vazio {
+  text-align: center;
+  padding: 48px;
+  background: #ffffff;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+  color: #6b7280;
+}
+
+.revendas-vazio button {
+  margin-top: 12px;
+}
+
+/* ===================================================
+   RESPONSIVIDADE MOBILE
+=================================================== */
+@media (max-width: 768px) {
+  .revendas-page {
+    padding: 16px;
+  }
+
+  .revendas-form-grid,
+  .form-linha-dupla {
+    grid-template-columns: 1fr;
+  }
+
+  .form-campo.full {
+    grid-column: span 1;
+  }
+
+  .item-remessa-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .item-remessa-row .col-prod {
+    grid-column: span 2;
+  }
+
+  .btn-remover-item-row {
+    grid-column: span 2;
+  }
+}

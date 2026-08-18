@@ -25,6 +25,9 @@ type JsonObject = Record<string, unknown>
 
 type ItemCheckout = {
   produto_id: number
+  variacao_id?: number | null
+  cor?: string | null
+  cor_hex?: string | null
   tamanho: string | null
   quantidade: number
 }
@@ -37,6 +40,11 @@ type Entrega = {
   bairro: string
   cidade: string
   estado: string
+  valor_frete?: number | null
+  regiao_frete?: string | null
+  servico_frete?: string | null
+  transportadora_frete?: string | null
+  prazo_frete?: string | null
 }
 
 type CartaoTokenizado = {
@@ -125,6 +133,17 @@ function validarEntrega(valor: unknown): Entrega | string {
     ? normalizarTexto(valor.complemento, 150)
     : null
 
+  const valorFreteNum = typeof valor.valor_frete === 'number'
+    ? Math.max(0, valor.valor_frete)
+    : typeof valor.valor_frete === 'string' && /^[0-9]+(\.[0-9]{1,2})?$/.test(valor.valor_frete)
+      ? Number(valor.valor_frete)
+      : null
+
+  const regiaoFrete = normalizarTexto(valor.regiao_frete, 100)
+  const servicoFrete = normalizarTexto(valor.servico_frete, 100)
+  const transportadoraFrete = normalizarTexto(valor.transportadora_frete, 100)
+  const prazoFrete = normalizarTexto(valor.prazo_frete, 100)
+
   if (
     !/^[0-9]{8}$/.test(cep) ||
     !endereco ||
@@ -137,7 +156,20 @@ function validarEntrega(valor: unknown): Entrega | string {
     return 'O endereço de entrega está incompleto ou inválido.'
   }
 
-  return { cep, endereco, numero, complemento, bairro, cidade, estado }
+  return {
+    cep,
+    endereco,
+    numero,
+    complemento,
+    bairro,
+    cidade,
+    estado,
+    valor_frete: valorFreteNum,
+    regiao_frete: regiaoFrete,
+    servico_frete: servicoFrete,
+    transportadora_frete: transportadoraFrete,
+    prazo_frete: prazoFrete,
+  }
 }
 
 function validarCartao(valor: unknown): CartaoTokenizado | string {
@@ -210,6 +242,11 @@ function validarPayload(corpo: unknown): Payload | string {
     const tamanho = typeof valor.tamanho === 'string'
       ? valor.tamanho.trim()
       : ''
+    const variacaoId = typeof valor.variacao_id === 'number' && Number.isSafeInteger(valor.variacao_id) && valor.variacao_id > 0
+      ? valor.variacao_id
+      : (typeof valor.variacao_id === 'string' && /^\d+$/.test(valor.variacao_id) ? Number(valor.variacao_id) : null)
+    const cor = typeof valor.cor === 'string' ? valor.cor.trim() : null
+    const corHex = typeof valor.cor_hex === 'string' ? valor.cor_hex.trim() : null
 
     if (
       !Number.isSafeInteger(produtoId) ||
@@ -222,12 +259,15 @@ function validarPayload(corpo: unknown): Payload | string {
       return `O item ${indice + 1} é inválido.`
     }
 
-    const chave = `${produtoId}:${tamanho.toUpperCase()}`
+    const chave = `${produtoId}:${variacaoId || cor || ''}:${tamanho.toUpperCase()}`
     if (chaves.has(chave)) return 'O carrinho contém itens duplicados.'
     chaves.add(chave)
 
     itens.push({
       produto_id: produtoId,
+      variacao_id: variacaoId,
+      cor: cor || null,
+      cor_hex: corHex || null,
       tamanho: tamanho || null,
       quantidade,
     })

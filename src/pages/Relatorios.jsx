@@ -1,7 +1,14 @@
-import { useEffect, useMemo, useState } from 'react'
-import { carregarPedidos, carregarProdutos } from '../storage'
+import {
+  carregarPagamentosRevendas,
+  carregarPedidos,
+  carregarProdutos,
+  carregarRemessas,
+  carregarRevendedoras,
+  carregarVendasRevendas
+} from '../storage'
 import {
   calcularMetricasRelatorio,
+  calcularMetricasRevendas,
   filtrarPedidosPorPeriodo,
   formatarMoeda,
   gerarCsvRelatorio,
@@ -13,6 +20,10 @@ import './Relatorios.css'
 function Relatorios() {
   const [pedidos, setPedidos] = useState([])
   const [produtos, setProdutos] = useState([])
+  const [revendedoras, setRevendedoras] = useState([])
+  const [remessas, setRemessas] = useState([])
+  const [vendasRevendas, setVendasRevendas] = useState([])
+  const [pagamentosRevendas, setPagamentosRevendas] = useState([])
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState(null)
 
@@ -28,12 +39,27 @@ function Relatorios() {
     try {
       setCarregando(true)
       setErro(null)
-      const [listaPedidos, listaProdutos] = await Promise.all([
+      const [
+        listaPedidos,
+        listaProdutos,
+        revs,
+        rems,
+        vends,
+        pags
+      ] = await Promise.all([
         carregarPedidos(),
-        carregarProdutos(true)
+        carregarProdutos(true),
+        carregarRevendedoras(),
+        carregarRemessas(),
+        carregarVendasRevendas(),
+        carregarPagamentosRevendas()
       ])
       setPedidos(Array.isArray(listaPedidos) ? listaPedidos : [])
       setProdutos(Array.isArray(listaProdutos) ? listaProdutos : [])
+      setRevendedoras(Array.isArray(revs) ? revs : [])
+      setRemessas(Array.isArray(rems) ? rems : [])
+      setVendasRevendas(Array.isArray(vends) ? vends : [])
+      setPagamentosRevendas(Array.isArray(pags) ? pags : [])
     } catch (err) {
       console.error('Erro ao carregar dados dos relatórios:', err)
       setErro('Não foi possível carregar os dados para os relatórios.')
@@ -66,6 +92,20 @@ function Relatorios() {
   const metricas = useMemo(() => {
     return calcularMetricasRelatorio(pedidosFiltrados, produtos)
   }, [pedidosFiltrados, produtos])
+
+  // Métricas de Revendas / Consignação
+  const metricasRevendas = useMemo(() => {
+    return calcularMetricasRevendas(
+      revendedoras,
+      remessas,
+      vendasRevendas,
+      pagamentosRevendas,
+      {
+        dataInicio: intervalo.dataInicio,
+        dataFim: intervalo.dataFim
+      }
+    )
+  }, [revendedoras, remessas, vendasRevendas, pagamentosRevendas, intervalo])
 
   // Pedidos para a tabela com busca
   const pedidosTabela = useMemo(() => {
@@ -243,6 +283,115 @@ function Relatorios() {
               <span className="kpi-label">Descontos & Frete</span>
               <strong className="kpi-valor">{formatarMoeda(metricas.totalDescontos)}</strong>
               <small className="kpi-sub">Frete total: {formatarMoeda(metricas.totalFrete)}</small>
+            </div>
+          </section>
+
+          {/* ===================================================
+              COMPARATIVO DE CANAIS: ONLINE vs REVENDAS vs TOTAL
+          =================================================== */}
+          <section className="relatorios-secao-box">
+            <div className="secao-box-header">
+              <div>
+                <span>VISÃO MULTICANAL</span>
+                <h2>Comparativo de Canais de Venda</h2>
+              </div>
+              <small>Vendas Online da Loja vs Revendedoras Consignadas</small>
+            </div>
+
+            <div className="relatorios-kpis-grid" style={{ marginTop: '14px' }}>
+              <div className="kpi-card">
+                <span className="kpi-label">🌐 Loja Online</span>
+                <strong className="kpi-valor">{formatarMoeda(metricas.faturamentoLiquido)}</strong>
+                <small className="kpi-sub">{metricas.pedidosPagos} pedidos pagos ({metricas.totalItensVendidos} peças)</small>
+              </div>
+
+              <div className="kpi-card">
+                <span className="kpi-label">🤝 Revendas / Consignação</span>
+                <strong className="kpi-valor">{formatarMoeda(metricasRevendas.faturamentoRevendas)}</strong>
+                <small className="kpi-sub">Receita loja: {formatarMoeda(metricasRevendas.receitaLiquidaLoja)} ({metricasRevendas.totalPecasVendidas} peças)</small>
+              </div>
+
+              <div className="kpi-card destaque-principal">
+                <span className="kpi-label">🏆 Total Consolidado</span>
+                <strong className="kpi-valor">
+                  {formatarMoeda(metricas.faturamentoLiquido + metricasRevendas.faturamentoRevendas)}
+                </strong>
+                <small className="kpi-sub">
+                  Receita líquida total: {formatarMoeda(metricas.faturamentoLiquido + metricasRevendas.receitaLiquidaLoja)}
+                </small>
+              </div>
+            </div>
+          </section>
+
+          {/* ===================================================
+              SEÇÃO EXCLUSIVA: REVENDAS & CONSIGNAÇÃO
+          =================================================== */}
+          <section className="relatorios-secao-box">
+            <div className="secao-box-header">
+              <div>
+                <span>PARCEIRAS & CONSIGNAÇÃO</span>
+                <h2>Desempenho de Revendas</h2>
+              </div>
+              <small>Métricas detalhadas do canal de consignação</small>
+            </div>
+
+            <div className="relatorios-kpis-grid" style={{ marginTop: '14px' }}>
+              <div className="kpi-card">
+                <span className="kpi-label">Vendido por Revendedoras</span>
+                <strong className="kpi-valor">{formatarMoeda(metricasRevendas.faturamentoRevendas)}</strong>
+                <small className="kpi-sub">{metricasRevendas.totalPecasVendidas} peças vendidas</small>
+              </div>
+
+              <div className="kpi-card">
+                <span className="kpi-label">Comissões Pagas</span>
+                <strong className="kpi-valor" style={{ color: '#b45309' }}>{formatarMoeda(metricasRevendas.comissaoPaga)}</strong>
+                <small className="kpi-sub">Retidas pelas parceiras</small>
+              </div>
+
+              <div className="kpi-card">
+                <span className="kpi-label">Receita Líquida Loja</span>
+                <strong className="kpi-valor text-success">{formatarMoeda(metricasRevendas.receitaLiquidaLoja)}</strong>
+                <small className="kpi-sub">Após desconto de comissões</small>
+              </div>
+
+              <div className="kpi-card">
+                <span className="kpi-label">Estoque com Parceiras</span>
+                <strong className="kpi-valor">{metricasRevendas.totalPecasConsignadas} un.</strong>
+                <small className="kpi-sub">{formatarMoeda(metricasRevendas.totalValorConsignado)} em mercadoria</small>
+              </div>
+            </div>
+
+            {/* TABELA RANKING DE REVENDEDORAS */}
+            <div style={{ marginTop: '20px' }}>
+              <h3 style={{ fontSize: '15px', color: '#1f2937', marginBottom: '10px' }}>Ranking de Revendedoras</h3>
+              {metricasRevendas.rankingRevendedoras.length === 0 ? (
+                <p className="relatorios-sem-dados">Nenhuma venda de revendedora no período selecionado.</p>
+              ) : (
+                <div className="relatorios-tabela-scroll">
+                  <table className="relatorios-tabela">
+                    <thead>
+                      <tr>
+                        <th>Revendedora</th>
+                        <th>Peças Vendidas</th>
+                        <th>Faturamento Bruto</th>
+                        <th>Comissão</th>
+                        <th>Receita Loja</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {metricasRevendas.rankingRevendedoras.map((r) => (
+                        <tr key={r.id}>
+                          <td><strong>{r.nome}</strong></td>
+                          <td>{r.pecasVendidas} un.</td>
+                          <td><strong>{formatarMoeda(r.faturamento)}</strong></td>
+                          <td>{formatarMoeda(r.comissao)}</td>
+                          <td><strong className="text-success">{formatarMoeda(r.receitaLoja)}</strong></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </section>
 

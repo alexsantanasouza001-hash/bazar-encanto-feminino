@@ -5,6 +5,13 @@ import Loja from './pages/Loja'
 import AdminAuth from './components/AdminAuth'
 import AcompanharPedido from './pages/AcompanharPedido'
 import { supabase } from './lib/supabase'
+import { carregarPerfilAdmin } from './storage'
+import {
+  normalizarPapel,
+  obterTituloPapel,
+  obterMenuPermitido,
+  podeAcessarPagina
+} from './pages/permissoesHelpers'
 
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const Produtos = lazy(() => import('./pages/Produtos'))
@@ -12,6 +19,8 @@ const Estoque = lazy(() => import('./pages/Estoque'))
 const Pedidos = lazy(() => import('./pages/Pedidos'))
 const Clientes = lazy(() => import('./pages/Clientes'))
 const Relatorios = lazy(() => import('./pages/Relatorios'))
+const Revendas = lazy(() => import('./pages/Revendas'))
+const Usuarios = lazy(() => import('./pages/Usuarios'))
 const Sobre = lazy(() => import('./pages/Sobre'))
 const PoliticaPrivacidade = lazy(() => import('./pages/PoliticaPrivacidade'))
 const Termos = lazy(() => import('./pages/Termos'))
@@ -76,35 +85,60 @@ function App() {
 
 function PainelAdministrativoProtegido({ onNavegar }) {
   const [sessao, setSessao] = useState(null)
+  const [perfilAdmin, setPerfilAdmin] = useState(null)
   const [carregandoSessao, setCarregandoSessao] = useState(true)
 
   useEffect(() => {
     let componenteAtivo = true
 
-    const carregarSessao = async () => {
-      const { data, error } = await supabase.auth.getSession()
+    const carregarSessaoEPerfil = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession()
 
-      if (!componenteAtivo) {
-        return
-      }
+        if (!componenteAtivo) return
 
-      if (error) {
-        console.error('Erro ao carregar sessão administrativa:', error.message)
-        setSessao(null)
-      } else {
+        if (error || !data?.session) {
+          setSessao(null)
+          setPerfilAdmin(null)
+          setCarregandoSessao(false)
+          return
+        }
+
+        const user = data.session.user
         setSessao(data.session)
-      }
 
-      setCarregandoSessao(false)
+        // Carrega perfil na tabela admin_usuarios
+        const perfil = await carregarPerfilAdmin(user.id, user.email)
+        if (componenteAtivo) {
+          setPerfilAdmin(perfil)
+        }
+      } catch (e) {
+        console.error('Erro ao verificar permissões de admin:', e)
+      } finally {
+        if (componenteAtivo) {
+          setCarregandoSessao(false)
+        }
+      }
     }
 
-    carregarSessao()
+    carregarSessaoEPerfil()
 
     const {
       data: { subscription }
-    } = supabase.auth.onAuthStateChange((_evento, proximaSessao) => {
+    } = supabase.auth.onAuthStateChange(async (_evento, proximaSessao) => {
       if (componenteAtivo) {
         setSessao(proximaSessao)
+        if (proximaSessao?.user) {
+          const perfil = await carregarPerfilAdmin(
+            proximaSessao.user.id,
+            proximaSessao.user.email
+          )
+          if (componenteAtivo) {
+            setPerfilAdmin(perfil)
+          }
+        } else {
+          setPerfilAdmin(null)
+        }
         setCarregandoSessao(false)
       }
     })
@@ -115,9 +149,6 @@ function PainelAdministrativoProtegido({ onNavegar }) {
     }
   }, [])
 
-  const possuiAcessoAdmin =
-    sessao?.user?.app_metadata?.role === 'admin'
-
   if (carregandoSessao) {
     return <AdminAuth carregando />
   }
@@ -126,7 +157,18 @@ function PainelAdministrativoProtegido({ onNavegar }) {
     return <AdminAuth />
   }
 
-  if (!possuiAcessoAdmin) {
+  // Verifica se a conta está desativada
+  if (perfilAdmin && perfilAdmin.ativo === false) {
+    return <AdminAuth contaInativa usuario={sessao.user} />
+  }
+
+  // Identifica o papel administrativo do usuário
+  const papel =
+    perfilAdmin?.papel ||
+    normalizarPapel(sessao?.user?.app_metadata?.role) ||
+    (sessao?.user?.app_metadata?.role === 'admin' ? 'admin' : null)
+
+  if (!papel) {
     return (
       <AdminAuth
         acessoNegado
@@ -135,21 +177,29 @@ function PainelAdministrativoProtegido({ onNavegar }) {
     )
   }
 
-  return <PainelAdministrativo usuario={sessao.user} onNavegar={onNavegar} />
+  return (
+    <PainelAdministrativo
+      usuario={sessao.user}
+      perfil={perfilAdmin}
+      papel={papel}
+      onNavegar={onNavegar}
+    />
+  )
 }
 
-function PainelAdministrativo({ usuario, onNavegar }) {
+function PainelAdministrativo({ usuario, perfil, papel, onNavegar }) {
   const [pagina, setPagina] = useState('dashboard')
   const [saindo, setSaindo] = useState(false)
 
-  const menuPrincipal = [
-    { id: 'dashboard', icone: '⌂', nome: 'Dashboard' },
-    { id: 'produtos', icone: '♢', nome: 'Produtos' },
-    { id: 'estoque', icone: '▣', nome: 'Estoque' },
-    { id: 'pedidos', icone: '◇', nome: 'Pedidos' },
-    { id: 'clientes', icone: '♡', nome: 'Clientes' },
-    { id: 'relatorios', icone: '▦', nome: 'Relatórios' },
-  ]
+  // Monta menu dinâmico de acordo com o papel do usuário
+  const menuPrincipal = obterMenuPermitido(papel)
+
+  // Se a página selecionada não for permitida para o perfil, redireciona para o Dashboard
+  useEffect(() => {
+    if (!podeAcessarPagina(papel, pagina)) {
+      setPagina('dashboard')
+    }
+  }, [papel, pagina])
 
   const handleLogout = async () => {
     try {
@@ -162,7 +212,9 @@ function PainelAdministrativo({ usuario, onNavegar }) {
     }
   }
 
-  const inicialUsuario = usuario?.email?.charAt(0).toUpperCase() || 'A'
+  const nomeExibicao = perfil?.nome || usuario?.user_metadata?.name || usuario?.email || 'Administrador'
+  const inicialUsuario = nomeExibicao.charAt(0).toUpperCase() || 'A'
+  const tituloPapel = obterTituloPapel(papel)
 
   return (
     <div className="app">
@@ -187,7 +239,7 @@ function PainelAdministrativo({ usuario, onNavegar }) {
               onClick={() => setPagina(item.id)}
             >
               <span className="menu-icon">{item.icone}</span>
-              <span className="menu-name">{item.nome}</span>
+              <span className="menu-name">{item.label || item.nome}</span>
             </button>
           ))}
         </nav>
@@ -196,8 +248,10 @@ function PainelAdministrativo({ usuario, onNavegar }) {
           <div className="user-card">
             <div className="user-avatar">{inicialUsuario}</div>
             <div className="user-info">
-              <strong>Painel Admin</strong>
-              <span>{usuario.email}</span>
+              <strong style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {papel === 'admin' ? '👑' : papel === 'socio' ? '🤝' : '🛠️'} {tituloPapel}
+              </strong>
+              <span title={usuario.email}>{usuario.email}</span>
             </div>
             <span className="user-status" />
           </div>
@@ -226,12 +280,14 @@ function PainelAdministrativo({ usuario, onNavegar }) {
 
       <main className="main">
         <Suspense fallback={<LoadingFallback />}>
-          {pagina === 'dashboard' && <Dashboard setPagina={setPagina} />}
-          {pagina === 'produtos' && <Produtos />}
-          {pagina === 'estoque' && <Estoque />}
-          {pagina === 'pedidos' && <Pedidos />}
-          {pagina === 'clientes' && <Clientes />}
-          {pagina === 'relatorios' && <Relatorios />}
+          {pagina === 'dashboard' && <Dashboard setPagina={setPagina} papelUsuario={papel} />}
+          {pagina === 'produtos' && <Produtos papelUsuario={papel} />}
+          {pagina === 'estoque' && <Estoque papelUsuario={papel} />}
+          {pagina === 'pedidos' && <Pedidos papelUsuario={papel} />}
+          {pagina === 'clientes' && podeAcessarPagina(papel, 'clientes') && <Clientes />}
+          {pagina === 'revendas' && podeAcessarPagina(papel, 'revendas') && <Revendas />}
+          {pagina === 'relatorios' && podeAcessarPagina(papel, 'relatorios') && <Relatorios />}
+          {pagina === 'usuarios' && podeAcessarPagina(papel, 'usuarios') && <Usuarios usuarioLogado={usuario} />}
         </Suspense>
       </main>
     </div>

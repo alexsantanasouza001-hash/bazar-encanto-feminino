@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 
 import './Loja.css'
 
@@ -7,13 +7,15 @@ import Checkout from './Checkout'
 import PedidoCompleto from './PedidoCompleto'
 import ClienteAuth from '../components/ClienteAuth'
 import Footer from '../components/Footer'
+import ModalDetalheProduto from '../components/ModalDetalheProduto'
 import {
   calcularTotaisCupom,
   resolverAplicacaoCupom
 } from './checkoutCoupons'
 import {
   calcularRegraFrete,
-  normalizarCepFrete
+  normalizarCepFrete,
+  cotarFreteMelhorEnvio
 } from './checkoutShipping'
 import { supabase } from '../lib/supabase'
 
@@ -21,6 +23,13 @@ import {
   carregarProdutos,
   registrarPagamento
 } from '../storage'
+
+import {
+  obterPaletaCoresProduto,
+  obterFotosDaCor,
+  obterGradeTamanhosDaCor,
+  gerarChaveCarrinho
+} from './variacoesHelpers.js'
 
 function formatarPreco(valor) {
   return Number(
@@ -56,11 +65,12 @@ const DADOS_CLIENTE_INICIAIS = {
 function Loja({ onNavegar }) {
   const [produtos, setProdutos] = useState([])
   const [categoriaAtiva, setCategoriaAtiva] = useState('Todos')
-  const [busca, setBusca] = useState('')
   const [ordenacao, setOrdenacao] = useState('novidades')
   const [detalheProdutoModal, setDetalheProdutoModal] = useState(null)
+  const [detalheCorInicial, setDetalheCorInicial] = useState('')
   const [carrinho, setCarrinho] = useState([])
   const [nomeCliente, setNomeCliente] = useState('')
+  const [corAtivaPorProduto, setCorAtivaPorProduto] = useState({})
 
   const [
     carrinhoAberto,
@@ -108,6 +118,11 @@ function Loja({ onNavegar }) {
     salvarDados,
     setSalvarDados
   ] = useState(false)
+
+  const [opcoesFrete, setOpcoesFrete] = useState([])
+  const [servicoFreteSelecionado, setServicoFreteSelecionado] = useState(null)
+  const [cotandoFrete, setCotandoFrete] = useState(false)
+  const [mensagemFrete, setMensagemFrete] = useState('')
 
   const [
     formaPagamento,
@@ -506,15 +521,6 @@ function Loja({ onNavegar }) {
       if (categoriaAtiva !== 'Todos' && produto.categoria !== categoriaAtiva) {
         return false
       }
-      if (busca.trim()) {
-        const termo = busca.toLowerCase().trim()
-        const nome = String(produto.nome || '').toLowerCase()
-        const sku = String(produto.sku || '').toLowerCase()
-        const marca = String(produto.marca || '').toLowerCase()
-        if (!nome.includes(termo) && !sku.includes(termo) && !marca.includes(termo)) {
-          return false
-        }
-      }
       return true
     })
     .sort((a, b) => {
@@ -546,14 +552,6 @@ function Loja({ onNavegar }) {
     return []
   }
 
-  const obterIndiceFoto = (produto) => {
-    const indice = Number(fotoAtiva[produto.id])
-    if (Number.isFinite(indice) && indice >= 0 && indice < obterFotos(produto).length) {
-      return indice
-    }
-    return 0
-  }
-
   const mudarFoto = (
     produto,
     direcao
@@ -570,9 +568,7 @@ function Loja({ onNavegar }) {
     }
 
     const atual =
-      obterIndiceFoto(
-        produto
-      )
+      Number(fotoAtiva[produto.id] || 0)
 
     let proxima =
       atual +
@@ -657,54 +653,6 @@ function Loja({ onNavegar }) {
   }
 
   // =====================================================
-  // TAMANHOS DO PRODUTO
-  // =====================================================
-
-  const obterTamanhos =
-    (produto) => {
-      if (
-        Array.isArray(
-          produto?.tamanhos
-        ) &&
-        produto.tamanhos.length >
-          0
-      ) {
-        return produto.tamanhos.filter(
-          (item) =>
-            item &&
-            typeof item.tamanho ===
-              'string' &&
-            item.tamanho.trim()
-        )
-      }
-
-      return []
-    }
-
-  const selecionarTamanho =
-    (
-      produtoId,
-      tamanho
-    ) => {
-      setTamanhoSelecionado(
-        (atual) => ({
-          ...atual,
-
-          [produtoId]:
-            tamanho
-        })
-      )
-
-      if (
-        String(
-          feedbackProduto?.produtoId
-        ) === String(produtoId)
-      ) {
-        setFeedbackProduto(null)
-      }
-    }
-
-  // =====================================================
   // ADICIONAR AO CARRINHO
   // =====================================================
 
@@ -735,46 +683,29 @@ function Loja({ onNavegar }) {
 
   const adicionarCarrinho = (
     produto,
+    corNome = null,
+    tamanho = null,
+    fotoPersonalizada = null,
     abrirPainel = true
   ) => {
-    const tamanhos =
-      obterTamanhos(produto)
+    const paleta = obterPaletaCoresProduto(produto)
+    const corFinal = corNome || corAtivaPorProduto[produto.id] || paleta[0]?.nome || produto.cor || 'Única'
+    const corObj = paleta.find((c) => c.nome === corFinal) || paleta[0] || { nome: corFinal, hex: '#234B36' }
 
-    const exigeTamanho =
-      tamanhos.length > 0
+    const grade = obterGradeTamanhosDaCor(produto, corFinal)
+    const exigeTamanho = grade.length > 0 && grade.some((t) => t.quantidade > 0)
+    const tamanhoFinal = tamanho || tamanhoSelecionado[produto.id] || null
 
-    const tamanho =
-      exigeTamanho
-        ? tamanhoSelecionado[
-            produto.id
-          ]
-        : null
-
-    if (
-      exigeTamanho &&
-      !tamanho
-    ) {
-      mostrarFeedbackProduto(
-        produto.id,
-        'erro',
-        'Selecione um tamanho para adicionar.'
-      )
+    if (exigeTamanho && !tamanhoFinal) {
+      setDetalheCorInicial(corFinal)
+      setDetalheProdutoModal(produto)
       return
     }
 
-    const tamanhoProduto =
-      exigeTamanho
-        ? tamanhos.find(
-            (item) =>
-              item.tamanho ===
-              tamanho
-          )
-        : null
-
+    const tamItem = grade.find((t) => t.tamanho === tamanhoFinal)
     const estoque = Number(
       exigeTamanho
-        ? tamanhoProduto?.quantidade ||
-            0
+        ? tamItem?.quantidade || 0
         : produto.quantidade || 0
     )
 
@@ -783,38 +714,23 @@ function Loja({ onNavegar }) {
         produto.id,
         'erro',
         exigeTamanho
-          ? 'Esse tamanho não está disponível.'
+          ? `O tamanho ${tamanhoFinal} está esgotado nesta cor.`
           : 'Este produto está sem estoque.'
       )
       return
     }
 
-    const chaveBloqueio =
-      `${produto.id}-${
-        tamanho || 'sem-tamanho'
-      }`
+    const chaveItem = gerarChaveCarrinho(produto.id, corFinal, tamanhoFinal)
 
-    if (
-      bloqueiosAdicionarRef.current
-        .has(chaveBloqueio)
-    ) {
+    if (bloqueiosAdicionarRef.current.has(chaveItem)) {
       return
     }
 
-    const itemExistente =
-      carrinho.find(
-        (item) =>
-          String(item.id) ===
-            String(produto.id) &&
-          (item.tamanho || null) ===
-            tamanho
-      )
+    const itemExistente = carrinho.find(
+      (item) => gerarChaveCarrinho(item.id, item.cor, item.tamanho) === chaveItem
+    )
 
-    const quantidadeAtual =
-      Number(
-        itemExistente?.quantidade ||
-          0
-      )
+    const quantidadeAtual = Number(itemExistente?.quantidade || 0)
 
     if (quantidadeAtual >= estoque) {
       mostrarFeedbackProduto(
@@ -825,66 +741,44 @@ function Loja({ onNavegar }) {
       return
     }
 
-    bloqueiosAdicionarRef.current
-      .add(chaveBloqueio)
+    bloqueiosAdicionarRef.current.add(chaveItem)
 
-    const temporizador =
-      window.setTimeout(() => {
-        bloqueiosAdicionarRef.current
-          .delete(chaveBloqueio)
-        temporizadoresAdicionarRef.current
-          .delete(temporizador)
-      }, 650)
+    const temporizador = window.setTimeout(() => {
+      bloqueiosAdicionarRef.current.delete(chaveItem)
+      temporizadoresAdicionarRef.current.delete(temporizador)
+    }, 650)
 
-    temporizadoresAdicionarRef.current
-      .add(temporizador)
+    temporizadoresAdicionarRef.current.add(temporizador)
 
-    setCarrinho(
-      (carrinhoAtual) => {
-        const existe =
-          carrinhoAtual.some(
-            (item) =>
-              String(item.id) ===
-                String(produto.id) &&
-              (item.tamanho || null) ===
-                tamanho
-          )
+    const fotoFinal = fotoPersonalizada || (corObj.fotoPrincipal || produto.foto || null)
 
-        if (existe) {
-          return carrinhoAtual.map(
-            (item) =>
-              String(item.id) ===
-                String(produto.id) &&
-              (item.tamanho || null) ===
-                tamanho
-                ? {
-                    ...item,
-                    quantidade:
-                      Number(
-                        item.quantidade ||
-                          0
-                      ) + 1
-                  }
-                : item
-          )
-        }
+    setCarrinho((carrinhoAtual) => {
+      const existe = carrinhoAtual.some(
+        (item) => gerarChaveCarrinho(item.id, item.cor, item.tamanho) === chaveItem
+      )
 
-        return [
-          ...carrinhoAtual,
-          {
-            ...produto,
-            tamanho,
-            quantidade: 1
-          }
-        ]
+      if (existe) {
+        return carrinhoAtual.map((item) =>
+          gerarChaveCarrinho(item.id, item.cor, item.tamanho) === chaveItem
+            ? { ...item, quantidade: Number(item.quantidade || 0) + 1 }
+            : item
+        )
       }
-    )
 
-    mostrarFeedbackProduto(
-      produto.id,
-      'sucesso',
-      'Adicionado ao carrinho.'
-    )
+      return [
+        ...carrinhoAtual,
+        {
+          ...produto,
+          cor: corFinal,
+          cor_hex: corObj.hex,
+          tamanho: tamanhoFinal,
+          foto: fotoFinal,
+          quantidade: 1
+        }
+      ]
+    })
+
+    mostrarFeedbackProduto(produto.id, 'sucesso', 'Adicionado à sacola.')
 
     if (abrirPainel) {
       setCarrinhoAberto(true)
@@ -895,170 +789,62 @@ function Loja({ onNavegar }) {
   // AUMENTAR QUANTIDADE
   // =====================================================
 
-  const aumentarQuantidade =
-    (id, tamanho) => {
-      const produtoOriginal =
-        produtos.find(
-          (produto) =>
-            String(
-              produto.id
-            ) ===
-            String(id)
-        )
+  const aumentarQuantidade = (id, corNome, tamanho) => {
+    const chave = gerarChaveCarrinho(id, corNome, tamanho)
+    const produtoOriginal = produtos.find((p) => String(p.id) === String(id))
+    if (!produtoOriginal) return
 
-      if (
-        !produtoOriginal
-      ) {
-        return
-      }
+    const grade = obterGradeTamanhosDaCor(produtoOriginal, corNome)
+    const tamItem = grade.find((t) => t.tamanho === tamanho)
+    const estoque = Number(tamItem?.quantidade ?? produtoOriginal.quantidade ?? 0)
 
-      const tamanhos =
-        obterTamanhos(
-          produtoOriginal
-        )
+    const itemCarrinho = carrinho.find(
+      (item) => gerarChaveCarrinho(item.id, item.cor, item.tamanho) === chave
+    )
 
-      const tamanhoProduto =
-        tamanhos.find(
-          (item) =>
-            item.tamanho ===
-            tamanho
-        )
+    if (!itemCarrinho) return
 
-      if (
-        tamanhos.length > 0 &&
-        !tamanhoProduto
-      ) {
-        return
-      }
-
-      const estoque =
-        Number(
-          tamanhos.length > 0
-            ? tamanhoProduto.quantidade ||
-                0
-            : produtoOriginal.quantidade ||
-                0
-        )
-
-      const itemCarrinho =
-        carrinho.find(
-          (item) =>
-            String(
-              item.id
-            ) ===
-              String(id) &&
-            (item.tamanho || null) ===
-              (tamanho || null)
-        )
-
-      if (
-        !itemCarrinho
-      ) {
-        return
-      }
-
-      if (
-        Number(
-          itemCarrinho.quantidade ||
-            0
-        ) >= estoque
-      ) {
-        alert(
-          'Não há mais unidades disponíveis deste tamanho.'
-        )
-
-        return
-      }
-
-      setCarrinho(
-        (
-          carrinhoAtual
-        ) =>
-          carrinhoAtual.map(
-            (item) =>
-              String(
-                item.id
-              ) ===
-                String(id) &&
-              (item.tamanho || null) ===
-                (tamanho || null)
-                ? {
-                    ...item,
-
-                    quantidade:
-                      Number(
-                        item.quantidade ||
-                          0
-                      ) + 1
-                  }
-                : item
-          )
-      )
+    if (Number(itemCarrinho.quantidade || 0) >= estoque) {
+      alert('Não há mais unidades disponíveis deste tamanho e cor.')
+      return
     }
+
+    setCarrinho((carrinhoAtual) =>
+      carrinhoAtual.map((item) =>
+        gerarChaveCarrinho(item.id, item.cor, item.tamanho) === chave
+          ? { ...item, quantidade: Number(item.quantidade || 0) + 1 }
+          : item
+      )
+    )
+  }
 
   // =====================================================
   // DIMINUIR QUANTIDADE
   // =====================================================
 
-  const diminuirQuantidade =
-    (id, tamanho) => {
-      setCarrinho(
-        (
-          carrinhoAtual
-        ) =>
-          carrinhoAtual
-            .map(
-              (item) =>
-                String(
-                  item.id
-                ) ===
-                  String(id) &&
-                item.tamanho ===
-                  tamanho
-                  ? {
-                      ...item,
-
-                      quantidade:
-                        Number(
-                          item.quantidade ||
-                            0
-                        ) - 1
-                    }
-                  : item
-            )
-            .filter(
-              (item) =>
-                Number(
-                  item.quantidade ||
-                    0
-                ) > 0
-            )
-      )
-    }
+  const diminuirQuantidade = (id, corNome, tamanho) => {
+    const chave = gerarChaveCarrinho(id, corNome, tamanho)
+    setCarrinho((carrinhoAtual) =>
+      carrinhoAtual
+        .map((item) =>
+          gerarChaveCarrinho(item.id, item.cor, item.tamanho) === chave
+            ? { ...item, quantidade: Number(item.quantidade || 0) - 1 }
+            : item
+        )
+        .filter((item) => Number(item.quantidade || 0) > 0)
+    )
+  }
 
   // =====================================================
   // REMOVER PRODUTO
   // =====================================================
 
-  const removerProduto =
-    (id, tamanho) => {
-      setCarrinho(
-        (
-          carrinhoAtual
-        ) =>
-          carrinhoAtual.filter(
-            (item) =>
-              !(
-                String(
-                  item.id
-                ) ===
-                  String(id) &&
-                item.tamanho ===
-                  tamanho
-              )
-          )
-      )
-    }
+  const removerProduto = (id, corNome, tamanho) => {
+    const chave = gerarChaveCarrinho(id, corNome, tamanho)
+    setCarrinho((carrinhoAtual) =>
+      carrinhoAtual.filter((item) => gerarChaveCarrinho(item.id, item.cor, item.tamanho) !== chave)
+    )
+  }
 
   // =====================================================
   // TOTAIS
@@ -1124,7 +910,8 @@ function Loja({ onNavegar }) {
       cepConfirmado:
         cepEntregaConfirmado?.cep ===
           cepAtual &&
-        cepAtual.length === 8
+        cepAtual.length === 8,
+      servicoSelecionado: servicoFreteSelecionado
     })
 
   const totalPedido =
@@ -1132,6 +919,60 @@ function Loja({ onNavegar }) {
     (frete.valido
       ? Number(frete.valor || 0)
       : 0)
+
+  const executarCotacaoFrete = useCallback(async (cepParaCotar) => {
+    const cepLimpo = normalizarCepFrete(cepParaCotar || dadosCliente.cep)
+    if (cepLimpo.length !== 8 || valorTotal >= 400 || carrinho.length === 0) {
+      setOpcoesFrete([])
+      setServicoFreteSelecionado(null)
+      return
+    }
+
+    setCotandoFrete(true)
+    setMensagemFrete('Calculando frete no Melhor Envio...')
+
+    const resultado = await cotarFreteMelhorEnvio({
+      cepDestino: cepLimpo,
+      itens: carrinho
+    })
+
+    setCotandoFrete(false)
+
+    if (resultado.sucesso && Array.isArray(resultado.opcoes) && resultado.opcoes.length > 0) {
+      setOpcoesFrete(resultado.opcoes)
+      setMensagemFrete('')
+      const opcaoPadrao = resultado.opcoes[0]
+      setServicoFreteSelecionado({
+        id: opcaoPadrao.id,
+        nome: `${opcaoPadrao.servico} (${opcaoPadrao.transportadora})`,
+        valor: opcaoPadrao.valor,
+        prazo: opcaoPadrao.prazo_texto,
+        transportadora: opcaoPadrao.transportadora
+      })
+    } else {
+      setOpcoesFrete([])
+      setServicoFreteSelecionado(null)
+      setMensagemFrete(
+        resultado.mensagem || 'Opções de entrega indisponíveis no momento.'
+      )
+    }
+  }, [dadosCliente.cep, valorTotal, carrinho])
+
+  useEffect(() => {
+    if (
+      cepEntregaConfirmado?.cep &&
+      cepEntregaConfirmado.cep === cepAtual &&
+      cepAtual.length === 8 &&
+      valorTotal < 400 &&
+      carrinho.length > 0
+    ) {
+      executarCotacaoFrete(cepAtual)
+    } else if (valorTotal >= 400) {
+      setOpcoesFrete([])
+      setServicoFreteSelecionado(null)
+      setMensagemFrete('')
+    }
+  }, [cepEntregaConfirmado?.cep, cepAtual, valorTotal, carrinho.length, executarCotacaoFrete])
 
   const aplicarCupom = () => {
     const resultadoCupom =
@@ -1237,17 +1078,24 @@ function Loja({ onNavegar }) {
     for (const item of carrinho) {
       const produtoOrig = produtos.find((p) => String(p.id) === String(item.id))
       if (produtoOrig) {
-        const tamanhosProd = obterTamanhos(produtoOrig)
-        if (tamanhosProd.length > 0) {
-          const tamEncontrado = tamanhosProd.find((t) => t.tamanho === item.tamanho)
+        const gradeTamanhos = obterGradeTamanhosDaCor(produtoOrig, item.cor || item.variacao_id)
+        if (item.tamanho) {
+          const tamEncontrado = gradeTamanhos.find(
+            (t) => String(t.tamanho).toUpperCase() === String(item.tamanho).toUpperCase()
+          )
           if (!tamEncontrado || Number(tamEncontrado.quantidade || 0) <= 0) {
-            return `O tamanho "${item.tamanho || 'selecionado'}" para o produto "${produtoOrig.nome}" não está disponível no estoque.`
+            const corInfo = item.cor && item.cor !== 'Única' ? ` na cor "${item.cor}"` : ''
+            return `O tamanho "${item.tamanho}"${corInfo} para o produto "${produtoOrig.nome}" não está disponível no estoque.`
           }
           if (Number(item.quantidade || 1) > Number(tamEncontrado.quantidade || 0)) {
+            const corInfo = item.cor && item.cor !== 'Única' ? ` na cor "${item.cor}"` : ''
+            return `A quantidade solicitada para o produto "${produtoOrig.nome}"${corInfo} excede o estoque disponível (${tamEncontrado.quantidade} unid).`
+          }
+        } else {
+          const totalEstoque = Number(produtoOrig.quantidade || 0)
+          if (totalEstoque <= 0 || Number(item.quantidade || 1) > totalEstoque) {
             return `A quantidade solicitada para o produto "${produtoOrig.nome}" excede o estoque disponível.`
           }
-        } else if (Number(item.quantidade || 1) > Number(produtoOrig.quantidade || 0)) {
-          return `A quantidade solicitada para o produto "${produtoOrig.nome}" excede o estoque disponível.`
         }
       }
     }
@@ -1306,22 +1154,22 @@ function Loja({ onNavegar }) {
       return
     }
 
-    const erroValidacao =
-      validarCheckout()
-
-    if (erroValidacao) {
-      setErroCheckout(
-        erroValidacao
-      )
-
-      return
-    }
-
-    finalizandoRef.current = true
-    setFinalizando(true)
-    setErroCheckout('')
-
     try {
+      const erroValidacao =
+        validarCheckout()
+
+      if (erroValidacao) {
+        setErroCheckout(
+          erroValidacao
+        )
+
+        return
+      }
+
+      finalizandoRef.current = true
+      setFinalizando(true)
+      setErroCheckout('')
+
       const nomeCompleto = [
         dadosCliente.nome,
         dadosCliente.sobrenome
@@ -1333,11 +1181,13 @@ function Loja({ onNavegar }) {
       const itensAntesDoPedido =
         carrinho.map((item) => {
           const produtoOrig = produtos.find((p) => String(p.id) === String(item.id))
-          const tamanhosProd = obterTamanhos(produtoOrig || item)
-          const temVariacaoTamanho = tamanhosProd.length > 0
-          const tamanhoSanitizado = temVariacaoTamanho
-            ? (tamanhosProd.some((t) => t.tamanho === item.tamanho && Number(t.quantidade || 0) > 0) ? item.tamanho : null)
-            : null
+          const gradeTamanhos = obterGradeTamanhosDaCor(produtoOrig || item, item.cor || item.variacao_id)
+          const temTamanhoValido = gradeTamanhos.some(
+            (t) => String(t.tamanho).toUpperCase() === String(item.tamanho).toUpperCase() && Number(t.quantidade || 0) > 0
+          )
+          const tamanhoSanitizado = temTamanhoValido
+            ? String(item.tamanho).toUpperCase()
+            : (item.tamanho || null)
 
           return {
             ...item,
@@ -1384,7 +1234,22 @@ function Loja({ onNavegar }) {
                 dadosCliente.cidade,
 
               estado:
-                dadosCliente.estado
+                dadosCliente.estado,
+
+              valor_frete:
+                frete.valido ? frete.valor : null,
+
+              regiao_frete:
+                frete.regiao || dadosCliente.estado,
+
+              servico_frete:
+                servicoFreteSelecionado?.nome || frete.servico || null,
+
+              transportadora_frete:
+                servicoFreteSelecionado?.transportadora || (frete.status === 'gratis' ? 'Bazar Encanto' : null),
+
+              prazo_frete:
+                servicoFreteSelecionado?.prazo || frete.prazo || null
             }
           },
 
@@ -1448,73 +1313,64 @@ function Loja({ onNavegar }) {
 
             return {
               ...itemPedido,
+              cor:
+                itemCarrinho?.cor ||
+                null,
               foto:
                 itemCarrinho?.foto ||
                 obterFotos(
                   itemCarrinho || {}
                 )[0] ||
-                ''
+                null
             }
           }
         )
 
       setPedidoFinalizado({
         ...resultado.pedido,
-
-        nomeCliente:
-          resultado.pedido
-            .cliente ||
-          nomeCompleto,
-
         itens:
           itensConfirmacao,
-
-        dadosCliente: {
-          ...dadosCliente
-        },
-
-        formaPagamento,
-
         pagamento:
           resultado.pagamento ||
-          null,
-
-        entrega:
-          Number(
-            resultado.pedido
-              .valor_frete ||
-              0
-          )
+          resultado.pedido?.pagamento ||
+          null
       })
 
-      idempotencyKeyRef.current =
-        null
+      localStorage.removeItem(
+        'carrinho_bazar'
+      )
+      localStorage.removeItem(
+        'bazar_carrinho'
+      )
       setCarrinho([])
       irParaEtapa('completo')
 
       return {
-        sucesso: true
+        sucesso: true,
+        pedido:
+          resultado.pedido
       }
-    } catch (erro) {
-      console.error(
-        'Erro ao finalizar checkout:',
-        erro
-      )
+    } catch {
+      idempotencyKeyRef.current = null
 
       setErroCheckout(
-        'Ocorreu um erro ao finalizar o pedido.'
+        'Ocorreu um erro ao processar o pedido. Tente novamente.'
       )
 
       return {
         sucesso: false,
         mensagem:
-          'Ocorreu um erro ao finalizar o pedido.'
+          'Ocorreu um erro ao processar o pedido. Tente novamente.'
       }
     } finally {
-      finalizandoRef.current = false
       setFinalizando(false)
+      finalizandoRef.current = false
     }
   }
+
+  // =====================================================
+  // RENDERIZAÇÃO
+  // =====================================================
 
   const abrirWhatsAppPedido = (
     pedido = pedidoFinalizado
@@ -1557,6 +1413,8 @@ function Loja({ onNavegar }) {
     setCupomAplicado(null)
     setMensagemCupom(null)
     setCepEntregaConfirmado(null)
+    setOpcoesFrete([])
+    setServicoFreteSelecionado(null)
     irParaEtapa('loja')
   }
 
@@ -1564,16 +1422,15 @@ function Loja({ onNavegar }) {
     sessaoCliente?.user || null
 
   const nomePerfil =
-    usuarioCliente?.user_metadata
-      ?.nome ||
-    usuarioCliente?.email
-      ?.split('@')[0] ||
+    usuarioCliente?.user_metadata?.nome ||
+    usuarioCliente?.email?.split('@')[0] ||
     'Entrar'
 
   const modalCliente = (
     <ClienteAuth
       aberto={perfilAberto}
       sessao={sessaoCliente}
+      usuario={usuarioCliente}
       carregandoSessao={
         carregandoSessao
       }
@@ -1591,10 +1448,6 @@ function Loja({ onNavegar }) {
     />
   )
 
-  // =====================================================
-  // TELAS DO CHECKOUT
-  // =====================================================
-
   if (
     etapaCheckout ===
     'carrinho'
@@ -1607,7 +1460,6 @@ function Loja({ onNavegar }) {
           desconto={valorDesconto}
           total={totalPedido}
           frete={frete}
-          cep={dadosCliente.cep}
           codigoCupom={codigoCupom}
           cupomAplicado={cupomAplicado}
           mensagemCupom={mensagemCupom}
@@ -1619,17 +1471,6 @@ function Loja({ onNavegar }) {
           }
           onRemoverCupom={
             removerCupom
-          }
-          onCepChange={(cep) =>
-            setDadosCliente(
-              (dadosAtuais) => ({
-                ...dadosAtuais,
-                cep
-              })
-            )
-          }
-          onCepResolvido={
-            setCepEntregaConfirmado
           }
           onVoltar={() =>
             irParaEtapa('loja')
@@ -1664,6 +1505,20 @@ function Loja({ onNavegar }) {
           desconto={valorDesconto}
           total={totalPedido}
           frete={frete}
+          opcoesFrete={opcoesFrete}
+          servicoFreteSelecionado={servicoFreteSelecionado}
+          onSelecionarServicoFrete={(opt) => {
+            setServicoFreteSelecionado({
+              id: opt.id,
+              nome: `${opt.servico} (${opt.transportadora})`,
+              valor: opt.valor,
+              prazo: opt.prazo_texto,
+              transportadora: opt.transportadora
+            })
+          }}
+          cotandoFrete={cotandoFrete}
+          mensagemFrete={mensagemFrete}
+          onExecutarCotacaoFrete={executarCotacaoFrete}
           cupomAplicado={cupomAplicado}
           dados={dadosCliente}
           onDadosChange={
@@ -1744,12 +1599,14 @@ function Loja({ onNavegar }) {
       ================================================= */}
 
       <header className="loja-header">
-        <div className="loja-brand">
-          <div className="loja-brand-symbol">
-            ✿
-          </div>
+        <div className="loja-brand" onClick={() => (onNavegar ? onNavegar('/') : (window.location.href = '/'))} role="button" tabIndex={0} style={{ cursor: 'pointer' }}>
+          <img
+            src="/logo-bazar-encanto.jpg"
+            alt="Bazar Encanto Feminino"
+            className="loja-brand-logo-img"
+          />
           <div className="loja-brand-text">
-            <span>Bazar</span>
+            <span>BAZAR</span>
             <strong>Encanto Feminino</strong>
           </div>
         </div>
@@ -1844,46 +1701,22 @@ function Loja({ onNavegar }) {
         <strong>
           FRETE GRÁTIS PARA TODO O BRASIL EM COMPRAS A PARTIR DE R$ 400
         </strong>
-        <span>Sul e Sudeste: R$ 19,90</span>
       </div>
 
 
       {/* ================================================= */}
-      {/* BARRA DE BENEFÍCIOS                               */}
+      {/* HERO BANNER                                       */}
       {/* ================================================= */}
 
-      <div className="loja-beneficios-bar">
-        <div className="loja-beneficios-grid">
-          <div className="beneficio-item">
-            <span className="beneficio-icone">🔒</span>
-            <span>Compra 100% Segura</span>
-          </div>
-          <div className="beneficio-item">
-            <span className="beneficio-icone">💳</span>
-            <span>Pix ou Cartão de Crédito</span>
-          </div>
-          <div className="beneficio-item">
-            <span className="beneficio-icone">📦</span>
-            <span>Acompanhe seu Pedido</span>
-          </div>
-          <div className="beneficio-item">
-            <span className="beneficio-icone">🚚</span>
-            <span>Entrega Garantida</span>
-          </div>
+      <section className="loja-hero-banner" aria-label="Bazar Encanto Feminino - Moda que encanta">
+        <h1 className="visually-hidden">Bazar Encanto Feminino - Moda que encanta</h1>
+        <div className="loja-hero-banner-container">
+          <img
+            src="/banner-moda-que-encanta.png"
+            alt="Bazar Encanto Feminino - Moda que encanta. Encontre peças especiais para deixar seu look ainda mais bonito."
+            className="loja-hero-banner-img"
+          />
         </div>
-      </div>
-
-      {/* ================================================= */}
-      {/* HERO                                              */}
-      {/* ================================================= */}
-
-      <section className="loja-hero">
-        <div className="loja-hero-content">
-          <span className="loja-hero-eyebrow">BAZAR ENCANTO FEMININO</span>
-          <h1>Moda que encanta.</h1>
-          <p>Encontre peças especiais para deixar seu look ainda mais bonito.</p>
-        </div>
-        <div className="loja-hero-decoration">✿</div>
       </section>
 
       {/* ================================================= */}
@@ -1912,18 +1745,7 @@ function Loja({ onNavegar }) {
 
       <main className="loja-conteudo">
 
-        <div className="loja-busca-ordenacao">
-          <div className="loja-busca-input-wrap">
-            <span className="loja-busca-icone">🔍</span>
-            <input
-              type="text"
-              className="loja-busca-input"
-              placeholder="Buscar por nome, categoria ou código..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              aria-label="Buscar produtos"
-            />
-          </div>
+        <div className="loja-filtros">
           <select
             className="loja-ordenacao-select"
             value={ordenacao}
@@ -1935,14 +1757,6 @@ function Loja({ onNavegar }) {
             <option value="maior-preco">Maior Preço</option>
             <option value="nome">Nome (A-Z)</option>
           </select>
-        </div>
-
-        <div className="loja-section-header">
-          <div>
-            <span>NOSSA SELEÇÃO</span>
-            <h2>Produtos em destaque</h2>
-          </div>
-          <p>Escolha suas peças favoritas</p>
         </div>
 
         {carregandoProdutos ? (
@@ -1987,336 +1801,92 @@ function Loja({ onNavegar }) {
         ) : (
 
           <div className="loja-produtos">
+            {produtosDisponiveis.map((produto) => {
+              const paleta = obterPaletaCoresProduto(produto)
+              const corAtiva = corAtivaPorProduto[produto.id] || paleta[0]?.nome || produto.cor || 'Única'
+              const fotosDaCor = obterFotosDaCor(produto, corAtiva)
+              const fotoPrincipal = fotosDaCor[0] || produto.foto || null
 
-            {produtosDisponiveis.map(
-              (produto) => {
-                const fotos =
-                  obterFotos(
-                    produto
-                  )
+              return (
+                <article
+                  className="loja-produto-card"
+                  key={produto.id}
+                  onClick={() => {
+                    setDetalheCorInicial(corAtiva)
+                    setDetalheProdutoModal(produto)
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {/* FOTO VERTICAL GRANDE */}
+                  <div className="loja-produto-foto">
+                    {fotoPrincipal ? (
+                      <img
+                        src={fotoPrincipal}
+                        alt={`${produto.nome} - ${corAtiva}`}
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="loja-foto-placeholder">✿</div>
+                    )}
 
-                const indiceFoto =
-                  obterIndiceFoto(
-                    produto
-                  )
+                    <span className="loja-produto-categoria">
+                      {produto.categoria || 'Moda'}
+                    </span>
+                  </div>
 
-                const tamanhos =
-                  obterTamanhos(
-                    produto
-                  )
+                  {/* INFORMAÇÕES DO PRODUTO */}
+                  <div className="loja-produto-info">
+                    <h3 title={produto.nome}>{produto.nome}</h3>
 
-                return (
-                  <article
-                    className="loja-produto-card"
-                    key={
-                      produto.id
-                    }
-                  >
-
-                    {/* =================================================
-                        FOTOS / CARROSSEL
-                    ================================================= */}
-
-                    <div className="loja-produto-foto">
-
-                      {fotos.length >
-                      0 ? (
-
-                        <>
-
-                          <button
-                            type="button"
-                            className="loja-foto-zoom"
-                            onClick={(evento) =>
-                              abrirLightbox(
-                                produto,
-                                indiceFoto,
-                                evento
-                              )
-                            }
-                            aria-label={`Ampliar foto de ${produto.nome}`}
-                          >
-                            <img
-                              src={
-                                fotos[
-                                  indiceFoto
-                                ]
-                              }
-                              alt={
-                                produto.nome
-                              }
-                            />
-                          </button>
-
-                        </>
-
-                      ) : (
-
-                        <div className="loja-foto-placeholder">
-                          ✿
-                        </div>
-
-                      )}
-
-                      <span className="loja-produto-categoria">
-                        {
-                          produto.categoria ||
-                          'Produto'
-                        }
-                      </span>
-
+                    {/* PREÇO (SEM PARCELAMENTO) */}
+                    <div className="loja-produto-preco-box">
+                      <strong className="loja-produto-preco">
+                        {formatarPreco(produto.venda)}
+                      </strong>
                     </div>
 
-                    {fotos.length >
-                      1 && (
-                      <div className="loja-foto-controls">
-
-                        <button
-                          type="button"
-                          className="loja-foto-prev"
-                          onClick={() =>
-                            mudarFoto(
-                              produto,
-                              -1
-                            )
-                          }
-                          aria-label="Foto anterior"
-                        >
-                          ‹
-                        </button>
-
-                        <div className="loja-foto-indicators">
-
-                          {fotos.map(
-                            (
-                              _,
-                              indice
-                            ) => (
-                              <button
-                                type="button"
-                                key={
-                                  indice
-                                }
-                                className={
-                                  indice ===
-                                  indiceFoto
-                                    ? 'active'
-                                    : ''
-                                }
-                                onClick={() =>
-                                  setFotoAtiva(
-                                    (
-                                      atual
-                                    ) => ({
-                                      ...atual,
-
-                                      [produto.id]:
-                                        indice
-                                    })
-                                  )
-                                }
-                                aria-label={
-                                  'Ver foto ' +
-                                  (
-                                    indice +
-                                    1
-                                  )
-                                }
-                              />
-                            )
-                          )}
-
-                        </div>
-
-                        <button
-                          type="button"
-                          className="loja-foto-next"
-                          onClick={() =>
-                            mudarFoto(
-                              produto,
-                              1
-                            )
-                          }
-                          aria-label="Próxima foto"
-                        >
-                          ›
-                        </button>
-
+                    {/* PALETA DE CORES REAIS */}
+                    {paleta.length > 0 && (
+                      <div
+                        className="loja-card-cores-paleta"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {paleta.map((corItem) => {
+                          const ativa = corItem.nome === corAtiva
+                          return (
+                            <button
+                              key={corItem.id || corItem.nome}
+                              type="button"
+                              className={`loja-cor-dot ${ativa ? 'active' : ''}`}
+                              style={{ backgroundColor: corItem.hex }}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setCorAtivaPorProduto((prev) => ({
+                                  ...prev,
+                                  [produto.id]: corItem.nome
+                                }))
+                              }}
+                              title={`Cor: ${corItem.nome}`}
+                              aria-label={`Ver na cor ${corItem.nome}`}
+                            />
+                          )
+                        })}
                       </div>
                     )}
 
-                    {/* =================================================
-                        INFORMAÇÕES
-                    ================================================= */}
-
-                    <div className="loja-produto-info">
-
-                      <h3>
-                        {
-                          produto.nome
-                        }
-                      </h3>
-
-                      {produto.marca && (
-                        <span className="loja-produto-marca">
-                          {
-                            produto.marca
-                          }
-                        </span>
-                      )}
-
-                      {/* COR REMOVIDA DA LOJA */}
-
-                      {/* =================================================
-                          TAMANHOS
-                      ================================================= */}
-
-                      {tamanhos.length >
-                        0 && (
-                        <div className="loja-tamanhos">
-
-                          {tamanhos.map(
-                            (
-                              item
-                            ) => {
-                              const indisponivel =
-                                Number(
-                                  item.quantidade ||
-                                    0
-                                ) <= 0
-
-                              const selecionado =
-                                tamanhoSelecionado[
-                                  produto.id
-                                ] ===
-                                item.tamanho
-
-                              return (
-                                <button
-                                  key={
-                                    item.tamanho
-                                  }
-                                  type="button"
-                                  className={
-                                    'loja-tamanho' +
-                                    (
-                                      selecionado
-                                        ? ' active'
-                                        : ''
-                                    ) +
-                                    (
-                                      indisponivel
-                                        ? ' disabled'
-                                        : ''
-                                    )
-                                  }
-                                  disabled={
-                                    indisponivel
-                                  }
-                                  onClick={() =>
-                                    selecionarTamanho(
-                                      produto.id,
-                                      item.tamanho
-                                    )
-                                  }
-                                  title={
-                                    indisponivel
-                                      ? 'Tamanho sem estoque'
-                                      : item.quantidade +
-                                        ' unidade(s)'
-                                  }
-                                  aria-pressed={
-                                    selecionado
-                                  }
-                                >
-                                  {
-                                    item.tamanho
-                                  }
-                                </button>
-                              )
-                            }
-                          )}
-
-                        </div>
-                      )}
-
-                      <div className="loja-produto-bottom">
-
-                        <strong>
-                          {
-                            formatarPreco(
-                              produto.venda
-                            )
-                          }
-                        </strong>
-
-                        <div className="loja-produto-actions">
-                          <button
-                            type="button"
-                            className="loja-produto-add"
-                            onClick={() =>
-                              adicionarCarrinho(
-                                produto
-                              )
-                            }
-                            aria-label={`Adicionar ${produto.nome} e abrir o carrinho`}
-                          >
-                            +
-                          </button>
-
-                          <button
-                            type="button"
-                            className="loja-produto-cart-add"
-                            onClick={() =>
-                              adicionarCarrinho(
-                                produto,
-                                false
-                              )
-                            }
-                            aria-label={`Adicionar ${produto.nome} ao carrinho`}
-                          >
-                            <svg viewBox="0 0 24 24" aria-hidden="true">
-                              <path d="M3 4h2l2.2 10h9.7l2-7H6" />
-                              <circle cx="9" cy="19" r="1.3" />
-                              <circle cx="17" cy="19" r="1.3" />
-                            </svg>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="loja-produto-detalhes"
-                            onClick={() =>
-                              setDetalheProdutoModal(
-                                produto
-                              )
-                            }
-                            aria-label={`Ver detalhes de ${produto.nome}`}
-                          >
-                            Ver detalhes
-                          </button>
-                        </div>
-
-                      </div>
-
-                      {String(
-                        feedbackProduto?.produtoId
-                      ) === String(produto.id) && (
-                        <p
-                          className={`loja-produto-feedback ${feedbackProduto.tipo}`}
-                          role="status"
-                          aria-live="polite"
-                        >
-                          {feedbackProduto.mensagem}
-                        </p>
-                      )}
-
-                    </div>
-
-                  </article>
-                )
-              }
-            )}
-
+                    {String(feedbackProduto?.produtoId) === String(produto.id) && (
+                      <p
+                        className={`loja-produto-feedback ${feedbackProduto.tipo}`}
+                        role="status"
+                        aria-live="polite"
+                      >
+                        {feedbackProduto.mensagem}
+                      </p>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
           </div>
 
         )}
@@ -2435,121 +2005,72 @@ function Loja({ onNavegar }) {
 
                 <div className="loja-cart-items">
 
-                  {carrinho.map(
-                    (item) => (
-
-                      <div
-                        className="loja-cart-item"
-                        key={
-                          String(
-                            item.id
-                          ) +
-                          '-' +
-                          item.tamanho
-                        }
-                      >
-
-                        <div className="loja-cart-item-image">
-
-                          {item.foto ? (
-
-                            <img
-                              src={
-                                item.foto
-                              }
-                              alt={
-                                item.nome
-                              }
-                            />
-
-                          ) : (
-
-                            <span>
-                              ✿
-                            </span>
-
-                          )}
-
-                        </div>
-
-                        <div className="loja-cart-item-info">
-
-                          <strong>
-                            {
-                              item.nome
-                            }
-                          </strong>
-
-                          {item.tamanho && (
-                            <span>
-                              Tamanho{' '}
-                              {
-                                item.tamanho
-                              }
-                            </span>
-                          )}
-
-                          <small>
-                            {
-                              formatarPreco(
-                                item.venda
-                              )
-                            }
-                          </small>
-
-                          <div className="loja-quantity">
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                diminuirQuantidade(
-                                  item.id,
-                                  item.tamanho
-                                )
-                              }
-                            >
-                              −
-                            </button>
-
-                            <span>
-                              {
-                                item.quantidade
-                              }
-                            </span>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                aumentarQuantidade(
-                                  item.id,
-                                  item.tamanho
-                                )
-                              }
-                            >
-                              +
-                            </button>
-
-                          </div>
-
-                        </div>
-
-                        <button
-                          className="loja-remove"
-                          type="button"
-                          onClick={() =>
-                            removerProduto(
-                              item.id,
-                              item.tamanho
-                            )
-                          }
-                        >
-                          ×
-                        </button>
-
+                  {carrinho.map((item) => (
+                    <div
+                      className="loja-cart-item"
+                      key={gerarChaveCarrinho(item.id, item.cor, item.tamanho)}
+                    >
+                      <div className="loja-cart-item-image">
+                        {item.foto ? (
+                          <img src={item.foto} alt={item.nome} />
+                        ) : (
+                          <span>✿</span>
+                        )}
                       </div>
 
-                    )
-                  )}
+                      <div className="loja-cart-item-info">
+                        <strong>{item.nome}</strong>
+
+                        <div className="loja-cart-item-chips">
+                          {item.cor && item.cor !== 'Única' && (
+                            <span className="cart-chip-cor">
+                              <span
+                                className="cart-chip-cor-dot"
+                                style={{ backgroundColor: item.cor_hex || '#234B36' }}
+                              />
+                              {item.cor}
+                            </span>
+                          )}
+                          {item.tamanho && (
+                            <span className="cart-chip-tam">Tam {item.tamanho}</span>
+                          )}
+                        </div>
+
+                        <small>{formatarPreco(item.venda)}</small>
+
+                        <div className="loja-quantity">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              diminuirQuantidade(item.id, item.cor, item.tamanho)
+                            }
+                          >
+                            −
+                          </button>
+
+                          <span>{item.quantidade}</span>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              aumentarQuantidade(item.id, item.cor, item.tamanho)
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      <button
+                        className="loja-remove"
+                        type="button"
+                        onClick={() => removerProduto(item.id, item.cor, item.tamanho)}
+                        aria-label={`Remover ${item.nome}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
 
                 </div>
 
@@ -2762,118 +2283,45 @@ function Loja({ onNavegar }) {
       )}
 
       {/* =================================================
-          MODAL DETALHE DO PRODUTO
+          MODAL DETALHE DO PRODUTO (VARIAÇÕES DE COR E TAMANHO)
       ================================================= */}
 
-      {detalheProdutoModal && (() => {
-        const prod = detalheProdutoModal;
-        const fotosProd = obterFotos(prod);
-        const indiceProd = obterIndiceFoto(prod);
-        const tamProd = obterTamanhos(prod);
-        return (
-          <div
-            className="loja-detalhe-overlay"
-            onClick={(e) => { if (e.target === e.currentTarget) setDetalheProdutoModal(null); }}
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Detalhes de ${prod.nome}`}
-          >
-            <div className="loja-detalhe-modal">
-              <button
-                type="button"
-                className="loja-detalhe-fechar"
-                onClick={() => setDetalheProdutoModal(null)}
-                aria-label="Fechar detalhes"
-              >
-                ✕
-              </button>
+      {detalheProdutoModal && (
+        <ModalDetalheProduto
+          produto={detalheProdutoModal}
+          corInicial={detalheCorInicial}
+          onClose={() => {
+            setDetalheProdutoModal(null)
+            setDetalheCorInicial('')
+          }}
+          onAdicionarCarrinho={adicionarCarrinho}
+        />
+      )}
 
-              <div className="loja-detalhe-foto-area">
-                {fotosProd.length > 0 ? (
-                  <>
-                    <img
-                      src={fotosProd[indiceProd]}
-                      alt={prod.nome}
-                      className="loja-detalhe-foto-principal"
-                    />
-                    {fotosProd.length > 1 && (
-                      <div className="loja-detalhe-thumbs">
-                        {fotosProd.map((foto, idx) => (
-                          <button
-                            type="button"
-                            key={idx}
-                            className={'loja-detalhe-thumb' + (idx === indiceProd ? ' active' : '')}
-                            onClick={() =>
-                              setFotoAtiva((atual) => ({
-                                ...atual,
-                                [prod.id]: idx
-                              }))
-                            }
-                          >
-                            <img src={foto} alt={`${prod.nome} foto ${idx + 1}`} />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="loja-foto-placeholder">✿</div>
-                )}
-              </div>
+      {/* ================================================= */}
+      {/* BARRA DE BENEFÍCIOS                               */}
+      {/* ================================================= */}
 
-              <div className="loja-detalhe-info">
-                <span className="loja-detalhe-categoria">{prod.categoria || 'Produto'}</span>
-                <h2 className="loja-detalhe-nome">{prod.nome}</h2>
-                {prod.marca && <span className="loja-detalhe-marca">{prod.marca}</span>}
-                <strong className="loja-detalhe-preco">{formatarPreco(prod.venda)}</strong>
-                {prod.descricao && <p className="loja-detalhe-desc">{prod.descricao}</p>}
-
-                {tamProd.length > 0 && (
-                  <div className="loja-detalhe-tamanhos">
-                    <span>Tamanhos disponíveis:</span>
-                    <div className="loja-tamanhos">
-                      {tamProd.map((item) => {
-                        const indisponivel = Number(item.quantidade || 0) <= 0;
-                        const selecionado = tamanhoSelecionado[prod.id] === item.tamanho;
-                        return (
-                          <button
-                            key={item.tamanho}
-                            type="button"
-                            className={
-                              'loja-tamanho' +
-                              (selecionado ? ' active' : '') +
-                              (indisponivel ? ' disabled' : '')
-                            }
-                            disabled={indisponivel}
-                            onClick={() => selecionarTamanho(prod.id, item.tamanho)}
-                            title={indisponivel ? 'Tamanho sem estoque' : item.quantidade + ' unidade(s)'}
-                            aria-pressed={selecionado}
-                          >
-                            {item.tamanho}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <div className="loja-detalhe-acoes">
-                  <button
-                    type="button"
-                    className="loja-detalhe-comprar"
-                    onClick={() => {
-                      adicionarCarrinho(prod);
-                      setDetalheProdutoModal(null);
-                    }}
-                  >
-                    Adicionar ao Carrinho
-                  </button>
-                </div>
-              </div>
-            </div>
+      <div className="loja-beneficios-bar">
+        <div className="loja-beneficios-grid">
+          <div className="beneficio-item">
+            <span className="beneficio-icone">🔒</span>
+            <span>Compra 100% Segura</span>
           </div>
-        );
-      })()}
+          <div className="beneficio-item">
+            <span className="beneficio-icone">💳</span>
+            <span>Pix ou Cartão de Crédito</span>
+          </div>
+          <div className="beneficio-item">
+            <span className="beneficio-icone">📦</span>
+            <span>Acompanhe seu Pedido</span>
+          </div>
+          <div className="beneficio-item">
+            <span className="beneficio-icone">🚚</span>
+            <span>Entrega Garantida</span>
+          </div>
+        </div>
+      </div>
 
       {/* =================================================
           FOOTER

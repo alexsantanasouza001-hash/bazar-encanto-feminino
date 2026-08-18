@@ -1,6 +1,6 @@
-import { supabase } from './lib/supabase'
-import { produtosIniciais } from './data/products'
-import { agruparClientesDosPedidos } from './pages/clientesHelpers'
+import { supabase } from './lib/supabase.js'
+import { produtosIniciais } from './data/products.js'
+import { agruparClientesDosPedidos } from './pages/clientesHelpers.js'
 
 const CHAVE_PRODUTOS =
   'meu_bazar_produtos'
@@ -12,6 +12,11 @@ const CHAVE_MOVIMENTACOES =
 // AUXILIARES
 // =====================================================
 
+import {
+  normalizarVariacoesProduto,
+  normalizarVariacao
+} from './pages/variacoesHelpers.js'
+
 function normalizarProduto(
   produto
 ) {
@@ -19,75 +24,75 @@ function normalizarProduto(
     return null
   }
 
+  const variacoes = normalizarVariacoesProduto(produto)
+  
+  // Extrair todos os tamanhos consolidados de todas as variações
+  const todosTamanhos = []
+  const todasFotos = []
+
+  for (const v of variacoes) {
+    if (Array.isArray(v.fotos)) {
+      for (const f of v.fotos) {
+        todasFotos.push(f)
+      }
+    }
+    if (Array.isArray(v.tamanhos)) {
+      for (const t of v.tamanhos) {
+        todosTamanhos.push(t)
+      }
+    }
+  }
+
+  // Se não houver fotos em variações, usa produto.foto ou produto.fotos
+  const fotosFinais = todasFotos.length > 0
+    ? todasFotos
+    : Array.isArray(produto.fotos)
+      ? produto.fotos
+      : produto.foto
+        ? [{ foto: produto.foto, ordem: 0 }]
+        : []
+
+  const tamanhosFinais = todosTamanhos.length > 0
+    ? todosTamanhos
+    : Array.isArray(produto.tamanhos)
+      ? produto.tamanhos
+      : []
+
+  // Calcular quantidade total real = soma de TODAS as variações
+  const somaTamanhos = tamanhosFinais.reduce(
+    (acc, item) => acc + (Number(item.quantidade) || 0),
+    0
+  )
+  let quantidadeCalculada = 0
+  if (Array.isArray(produto.variacoes)) {
+    quantidadeCalculada = somaTamanhos
+  } else {
+    quantidadeCalculada = somaTamanhos > 0 ? somaTamanhos : Math.max(0, Number(produto.quantidade || 0))
+  }
+
+  const fotoPrincipal = fotosFinais[0]?.foto || produto.foto || produto.imagem || produto.image || null
+
   return {
     ...produto,
-
-    id:
-      Number(produto.id),
-
-    quantidade:
-      Number(
-        produto.quantidade || 0
-      ),
-
-    custo:
-      Number(
-        produto.custo || 0
-      ),
-
-    venda:
-      Number(
-        produto.venda || 0
-      ),
-
-    ativo:
-      produto.ativo !== false,
-
-    nome:
-      produto.nome || '',
-
-    marca:
-      produto.marca || '',
-
-    categoria:
-      produto.categoria || '',
-
-    tamanho:
-      produto.tamanho || '',
-
-    cor:
-      produto.cor || '',
-
-    sku:
-      produto.sku || '',
-
-    foto:
-      produto.foto ||
-      produto.imagem ||
-      produto.image ||
-      null,
-
-    fotos:
-      Array.isArray(
-        produto.fotos
-      )
-        ? produto.fotos
-        : produto.foto
-          ? [
-              {
-                foto:
-                  produto.foto,
-                ordem: 0
-              }
-            ]
-          : [],
-
-    tamanhos:
-      Array.isArray(
-        produto.tamanhos
-      )
-        ? produto.tamanhos
-        : []
+    id: Number(produto.id),
+    quantidade: quantidadeCalculada,
+    custo: Number(produto.custo || 0),
+    venda: Number(produto.venda || 0),
+    peso_kg: Number(produto.peso_kg || 0.300),
+    altura_cm: Number(produto.altura_cm || 4.00),
+    largura_cm: Number(produto.largura_cm || 20.00),
+    comprimento_cm: Number(produto.comprimento_cm || 25.00),
+    ativo: produto.ativo !== false,
+    nome: produto.nome || '',
+    marca: produto.marca || '',
+    categoria: produto.categoria || '',
+    tamanho: produto.tamanho || tamanhosFinais.map((t) => t.tamanho).join(', '),
+    cor: produto.cor || variacoes[0]?.cor_nome || '',
+    sku: produto.sku || '',
+    foto: fotoPrincipal,
+    fotos: fotosFinais,
+    tamanhos: tamanhosFinais,
+    variacoes: variacoes
   }
 }
 
@@ -112,7 +117,7 @@ function produtoParaBanco(
       produto.tamanho || '',
 
     cor:
-      produto.cor || '',
+      produto.cor || (produto.variacoes && produto.variacoes[0]?.cor_nome) || '',
 
     sku:
       produto.sku || '',
@@ -132,14 +137,55 @@ function produtoParaBanco(
         produto.venda || 0
       ),
 
+    peso_kg:
+      Math.max(0.001, Number(produto.peso_kg || 0.300)),
+
+    altura_cm:
+      Math.max(1, Number(produto.altura_cm || 4.00)),
+
+    largura_cm:
+      Math.max(1, Number(produto.largura_cm || 20.00)),
+
+    comprimento_cm:
+      Math.max(1, Number(produto.comprimento_cm || 25.00)),
+
     foto:
       produto.foto ||
+      produto.fotos?.[0]?.foto ||
+      produto.variacoes?.[0]?.foto ||
       produto.imagem ||
-      produto.image ||
       null,
 
     ativo:
       produto.ativo !== false
+  }
+}
+
+// =====================================================
+// CARREGAR VARIAÇÕES
+// =====================================================
+
+async function carregarVariacoesProduto(
+  produtoId
+) {
+  try {
+    const {
+      data,
+      error
+    } = await supabase
+      .from('produto_variacoes')
+      .select('*')
+      .eq('produto_id', Number(produtoId))
+      .order('ordem', { ascending: true })
+
+    if (error || !Array.isArray(data)) {
+      return []
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro ao carregar variações:', erro)
+    return []
   }
 }
 
@@ -214,19 +260,13 @@ async function carregarTamanhosProduto(
 
     return data.map(
       (item) => ({
-        id:
-          item.id,
-
-        produtoId:
-          item.produto_id,
-
-        tamanho:
-          item.tamanho || '',
-
-        quantidade:
-          Number(
-            item.quantidade || 0
-          )
+        id: item.id,
+        produtoId: item.produto_id,
+        variacao_id: item.variacao_id,
+        cor: item.cor || 'Única',
+        cor_hex: item.cor_hex || '#234B36',
+        tamanho: item.tamanho || '',
+        quantidade: Number(item.quantidade || 0)
       })
     )
   } catch (erro) {
@@ -240,114 +280,7 @@ async function carregarTamanhosProduto(
 }
 
 // =====================================================
-// CARREGAR PRODUTOS
-// =====================================================
-
-function filtrarProdutosVisiveis(produtos, incluirInativos) {
-  const lista = Array.isArray(produtos) ? produtos : []
-
-  return incluirInativos
-    ? lista
-    : lista.filter((produto) => produto?.ativo !== false)
-}
-
-export async function carregarProdutos(incluirInativos = false) {
-  try {
-    const {
-      data,
-      error
-    } = await supabase
-      .from('produtos')
-      .select('*')
-      .order('id', {
-        ascending: false
-      })
-
-    if (error) {
-      console.error(
-        'Erro ao carregar produtos do Supabase:',
-        error
-      )
-
-      return incluirInativos ? carregarProdutosLocal() : []
-    }
-
-    if (
-      !Array.isArray(data)
-    ) {
-      return incluirInativos ? carregarProdutosLocal() : []
-    }
-
-    if (data.length === 0) {
-      const locais =
-        carregarProdutosLocal()
-
-      if (
-        incluirInativos &&
-        locais.length > 0
-      ) {
-        await migrarProdutos(
-          locais
-        )
-
-        const resultado =
-          await supabase
-            .from('produtos')
-            .select('*')
-            .order('id', {
-              ascending: false
-            })
-
-        if (
-          !resultado.error &&
-          Array.isArray(
-            resultado.data
-          )
-        ) {
-          const produtos =
-            await montarProdutosComDetalhes(
-              resultado.data
-            )
-
-          localStorage.setItem(
-            CHAVE_PRODUTOS,
-            JSON.stringify(
-              produtos
-            )
-          )
-
-          return filtrarProdutosVisiveis(produtos, incluirInativos)
-        }
-      }
-
-      return []
-    }
-
-    const produtos =
-      await montarProdutosComDetalhes(
-        data
-      )
-
-    localStorage.setItem(
-      CHAVE_PRODUTOS,
-      JSON.stringify(
-        produtos
-      )
-    )
-
-    return filtrarProdutosVisiveis(produtos, incluirInativos)
-  } catch (erro) {
-    console.error(
-      'Erro inesperado ao carregar produtos:',
-      erro
-    )
-
-    return incluirInativos ? carregarProdutosLocal() : []
-  }
-}
-
-// =====================================================
-// MONTAR PRODUTOS + FOTOS + TAMANHOS
+// MONTAR PRODUTOS + VARIAÇÕES + FOTOS + TAMANHOS
 // =====================================================
 
 async function montarProdutosComDetalhes(
@@ -358,59 +291,112 @@ async function montarProdutosComDetalhes(
   for (
     const produto of produtos
   ) {
-    const normalizado =
-      normalizarProduto(
-        produto
-      )
-
-    if (!normalizado) {
-      continue
-    }
-
     const [
-      fotos,
-      tamanhos
-    ] =
-      await Promise.all([
-        carregarFotosProduto(
-          produto.id
-        ),
-        carregarTamanhosProduto(
-          produto.id
-        )
-      ])
+      variacoesBanco,
+      fotosBanco,
+      tamanhosBanco
+    ] = await Promise.all([
+      carregarVariacoesProduto(produto.id),
+      carregarFotosProduto(produto.id),
+      carregarTamanhosProduto(produto.id)
+    ])
 
-    normalizado.fotos =
-      fotos
+    let variacoesMontadas = []
 
-    normalizado.tamanhos =
-      tamanhos
+    if (variacoesBanco.length > 0) {
+      variacoesMontadas = variacoesBanco.map((vb, vIdx) => {
+        const fotosVar = Array.isArray(vb.fotos) && vb.fotos.length > 0
+          ? vb.fotos.map((f, fIdx) => (typeof f === 'string' ? { id: `fv-${vb.id}-${fIdx}`, foto: f, ordem: fIdx } : f))
+          : fotosBanco.map((f, fIdx) => ({ id: f.id || `fb-${fIdx}`, foto: f.foto, ordem: f.ordem ?? fIdx }))
 
-    if (
-      fotos.length > 0
-    ) {
-      normalizado.foto =
-        fotos[0].foto
+        const tamanhosVar = tamanhosBanco
+          .filter((tb) => {
+            if (tb.variacao_id != null) {
+              return String(tb.variacao_id) === String(vb.id)
+            }
+            if (tb.cor && vb.cor_nome) {
+              return String(tb.cor).trim().toLowerCase() === String(vb.cor_nome).trim().toLowerCase()
+            }
+            return vIdx === 0
+          })
+          .map((tb) => ({
+            id: tb.id,
+            variacao_id: vb.id,
+            tamanho: tb.tamanho,
+            quantidade: Number(tb.quantidade || 0)
+          }))
+
+        return normalizarVariacao({
+          ...vb,
+          fotos: fotosVar,
+          tamanhos: tamanhosVar
+        }, vIdx, produto.id)
+      })
+    } else if (tamanhosBanco.length > 0 && tamanhosBanco.some((tb) => tb.variacao_id == null)) {
+      // Fallback SOMENTE para produto legado que possui linhas em produto_tamanhos sem variacao_id
+      const varLegada = normalizarVariacao({
+        id: `var-${produto.id}-0`,
+        produto_id: produto.id,
+        cor_nome: produto.cor || 'Única',
+        cor_hex: '#234B36',
+        fotos: fotosBanco.length > 0 ? fotosBanco : (produto.foto ? [{ foto: produto.foto, ordem: 0 }] : []),
+        tamanhos: tamanhosBanco,
+        quantidade: Math.max(0, Number(produto.quantidade || 0)),
+        ativo: produto.ativo !== false,
+        ordem: 0
+      }, 0, produto.id)
+      variacoesMontadas = [varLegada]
+    } else {
+      // Produto sem variações cadastradas (não sintetiza nova variação)
+      variacoesMontadas = []
     }
 
-    if (
-      tamanhos.length > 0
-    ) {
-      normalizado.tamanho =
-        tamanhos
-          .map(
-            (item) =>
-              item.tamanho
-          )
-          .join(', ')
-    }
+    const produtoNormalizado = normalizarProduto({
+      ...produto,
+      variacoes: variacoesMontadas,
+      fotos: fotosBanco,
+      tamanhos: tamanhosBanco
+    })
 
-    resultado.push(
-      normalizado
-    )
+    if (produtoNormalizado) {
+      resultado.push(produtoNormalizado)
+    }
   }
 
   return resultado
+}
+
+// =====================================================
+// CARREGAR PRODUTOS (BANCO + DETALHES)
+// =====================================================
+
+export async function carregarProdutos(incluirInativos = false) {
+  try {
+    let query = supabase
+      .from('produtos')
+      .select('*')
+      .order('id', { ascending: false })
+
+    if (!incluirInativos) {
+      query = query.eq('ativo', true)
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('Erro ao carregar produtos do banco:', error)
+      return carregarProdutosLocal()
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+      return []
+    }
+
+    return await montarProdutosComDetalhes(data)
+  } catch (erro) {
+    console.error('Erro geral ao carregar produtos:', erro)
+    return carregarProdutosLocal()
+  }
 }
 
 // =====================================================
@@ -749,71 +735,157 @@ export async function salvarProdutos(
 }
 
 // =====================================================
+// SALVAR VARIAÇÕES E TAMANHOS
+// =====================================================
+
+async function salvarVariacoesETamanhos(
+  produtoId,
+  variacoes
+) {
+  try {
+    const pId = Number(produtoId)
+
+    // 1. Remover tamanhos antigos
+    await supabase.from('produto_tamanhos').delete().eq('produto_id', pId)
+    // 2. Remover fotos antigas
+    await supabase.from('produto_fotos').delete().eq('produto_id', pId)
+    // 3. Remover variações antigas
+    await supabase.from('produto_variacoes').delete().eq('produto_id', pId)
+
+    if (!Array.isArray(variacoes) || variacoes.length === 0) {
+      await supabase
+        .from('produtos')
+        .update({ quantidade: 0, tamanho: '', cor: '' })
+        .eq('id', pId)
+      return
+    }
+
+    for (let idx = 0; idx < variacoes.length; idx++) {
+      const v = variacoes[idx]
+      const fotosJson = Array.isArray(v.fotos)
+        ? v.fotos.map((f, fIdx) => (typeof f === 'string' ? { foto: f, ordem: fIdx } : { foto: f.foto || f.url || '', ordem: f.ordem ?? fIdx })).filter((f) => Boolean(f.foto))
+        : v.foto ? [{ foto: v.foto, ordem: 0 }] : []
+
+      const { data: varData, error: varError } = await supabase
+        .from('produto_variacoes')
+        .insert({
+          produto_id: pId,
+          cor_nome: (v.cor_nome || v.nome || v.cor || 'Única').trim(),
+          cor_hex: (v.cor_hex || v.hex || '#234B36').trim(),
+          fotos: fotosJson,
+          ativo: v.ativo !== false,
+          ordem: idx
+        })
+        .select()
+        .single()
+
+      if (varError) {
+        console.error('Erro ao salvar variação:', varError)
+        throw varError
+      }
+
+      const varId = varData.id
+
+      // Inserir fotos no produto_fotos para compatibilidade geral
+      for (const fotoItem of fotosJson) {
+        await supabase.from('produto_fotos').insert({
+          produto_id: pId,
+          foto: fotoItem.foto,
+          ordem: fotoItem.ordem
+        })
+      }
+
+      // Inserir tamanhos da variação
+      const tamanhosList = Array.isArray(v.tamanhos)
+        ? v.tamanhos
+        : typeof v.tamanhos === 'object' && v.tamanhos !== null
+          ? Object.entries(v.tamanhos).map(([tam, qtd]) => ({ tamanho: tam, quantidade: qtd }))
+          : []
+
+      const tamanhosParaInserir = tamanhosList
+        .filter((t) => t && t.tamanho)
+        .map((t) => ({
+          produto_id: pId,
+          variacao_id: varId,
+          cor: varData.cor_nome,
+          cor_hex: varData.cor_hex,
+          tamanho: String(t.tamanho).trim().toUpperCase(),
+          quantidade: Math.max(0, Number(t.quantidade || 0))
+        }))
+
+      if (tamanhosParaInserir.length > 0) {
+        const { error: tamError } = await supabase
+          .from('produto_tamanhos')
+          .insert(tamanhosParaInserir)
+
+        if (tamError) {
+          console.error('Erro ao salvar tamanhos da variação:', tamError)
+          throw tamError
+        }
+      }
+    }
+
+    // Recalcular e sincronizar produtos.quantidade com a soma real de todas as grades
+    const { data: todosOsTamanhos } = await supabase
+      .from('produto_tamanhos')
+      .select('quantidade')
+      .eq('produto_id', pId)
+
+    const totalConsolidado = (todosOsTamanhos || []).reduce(
+      (acc, t) => acc + Number(t.quantidade || 0), 0
+    )
+
+    await supabase
+      .from('produtos')
+      .update({ quantidade: totalConsolidado })
+      .eq('id', pId)
+  } catch (erro) {
+    console.error('Erro ao salvar variações e tamanhos:', erro)
+    throw erro
+  }
+}
+
+// =====================================================
 // ADICIONAR PRODUTO
 // =====================================================
 
 export async function adicionarProduto(
   produto
 ) {
+  const normalizado = normalizarProduto(produto)
   const novoProduto = {
-    ...produto,
-
-    id:
-      produto.id ||
-      Date.now()
+    ...normalizado,
+    id: normalizado.id || Date.now()
   }
 
   try {
-    const produtoBanco =
-      produtoParaBanco(
-        novoProduto
-      )
+    const produtoBanco = produtoParaBanco(novoProduto)
 
     const {
       data,
       error
     } = await supabase
       .from('produtos')
-      .insert(
-        produtoBanco
-      )
+      .insert(produtoBanco)
       .select()
       .single()
 
     if (error) {
-      console.error(
-        'Erro ao adicionar produto:',
-        error
-      )
-
+      console.error('Erro ao adicionar produto:', error)
       throw error
     }
 
-    await salvarFotosProduto(
-      data.id,
-      novoProduto.fotos
-    )
+    if (Array.isArray(novoProduto.variacoes)) {
+      await salvarVariacoesETamanhos(data.id, novoProduto.variacoes)
+    } else {
+      await salvarFotosProduto(data.id, novoProduto.fotos)
+      await salvarTamanhosProduto(data.id, novoProduto.tamanhos)
+    }
 
-    await salvarTamanhosProduto(
-      data.id,
-      novoProduto.tamanhos
-    )
-
-    return normalizarProduto({
-      ...data,
-      fotos:
-        novoProduto.fotos ||
-        [],
-      tamanhos:
-        novoProduto.tamanhos ||
-        []
-    })
+    const [detalhes] = await montarProdutosComDetalhes([data])
+    return detalhes || normalizarProduto(data)
   } catch (erro) {
-    console.error(
-      'Erro ao adicionar produto:',
-      erro
-    )
-
+    console.error('Erro ao adicionar produto:', erro)
     throw erro
   }
 }
@@ -826,115 +898,35 @@ export async function atualizarProduto(
   produtoAtualizado
 ) {
   try {
-    const produtoBanco = {
-      nome:
-        produtoAtualizado.nome ||
-        '',
-
-      marca:
-        produtoAtualizado.marca ||
-        '',
-
-      categoria:
-        produtoAtualizado.categoria ||
-        '',
-
-      tamanho:
-        Array.isArray(
-          produtoAtualizado.tamanhos
-        )
-          ? produtoAtualizado.tamanhos
-              .map(
-                (item) =>
-                  item.tamanho
-              )
-              .join(', ')
-          : produtoAtualizado.tamanho ||
-            '',
-
-      cor:
-        produtoAtualizado.cor ||
-        '',
-
-      sku:
-        produtoAtualizado.sku ||
-        '',
-
-      quantidade:
-        Number(
-          produtoAtualizado.quantidade ||
-            0
-        ),
-
-      custo:
-        Number(
-          produtoAtualizado.custo ||
-            0
-        ),
-
-      venda:
-        Number(
-          produtoAtualizado.venda ||
-            0
-        ),
-
-      foto:
-        produtoAtualizado.foto ||
-        produtoAtualizado.fotos?.[0]?.foto ||
-        null
-    }
+    const normalizado = normalizarProduto(produtoAtualizado)
+    const produtoBanco = produtoParaBanco(normalizado)
 
     const {
       data,
       error
     } = await supabase
       .from('produtos')
-      .update(
-        produtoBanco
-      )
-      .eq(
-        'id',
-        Number(
-          produtoAtualizado.id
-        )
-      )
+      .update(produtoBanco)
+      .eq('id', Number(normalizado.id))
       .select()
       .single()
 
     if (error) {
-      console.error(
-        'Erro ao atualizar produto:',
-        error
-      )
-
+      console.error('Erro ao atualizar produto:', error)
       throw error
     }
 
-    await salvarFotosProduto(
-      produtoAtualizado.id,
-      produtoAtualizado.fotos
-    )
+    if (Array.isArray(normalizado.variacoes)) {
+      await salvarVariacoesETamanhos(data.id, normalizado.variacoes)
+    } else {
+      await salvarFotosProduto(data.id, normalizado.fotos)
+      await salvarTamanhosProduto(data.id, normalizado.tamanhos)
+    }
 
-    await salvarTamanhosProduto(
-      produtoAtualizado.id,
-      produtoAtualizado.tamanhos
-    )
-
-    return normalizarProduto({
-      ...data,
-      fotos:
-        produtoAtualizado.fotos ||
-        [],
-      tamanhos:
-        produtoAtualizado.tamanhos ||
-        []
-    })
+    const [detalhes] = await montarProdutosComDetalhes([data])
+    return detalhes || normalizarProduto(data)
   } catch (erro) {
-    console.error(
-      'Erro ao atualizar produto:',
-      erro
-    )
-
+    console.error('Erro ao atualizar produto:', erro)
     throw erro
   }
 }
@@ -1219,6 +1211,8 @@ export async function salvarMovimentacoes(
 
 export async function registrarEntradaEstoque({
   produtoId,
+  variacaoId = null,
+  tamanho = null,
   quantidade,
   observacao = ''
 }) {
@@ -1270,14 +1264,56 @@ export async function registrarEntradaEstoque({
           0
       )
 
-    const novoEstoque =
-      estoqueAnterior +
-      quantidadeEntrada
+    // Se tamanho foi especificado, atualiza na tabela produto_tamanhos
+    if (tamanho) {
+      let queryTam = supabase
+        .from('produto_tamanhos')
+        .select('*')
+        .eq('produto_id', Number(produtoId))
+        .eq('tamanho', String(tamanho).trim().toUpperCase())
 
-    const {
-      data: atualizado,
-      error: erroUpdate
-    } =
+      if (variacaoId) {
+        queryTam = queryTam.eq('variacao_id', Number(variacaoId))
+      }
+
+      const { data: tamRows } = await queryTam
+
+      if (tamRows && tamRows.length > 0) {
+        const tamRow = tamRows[0]
+        const novaQtdTam = Number(tamRow.quantidade || 0) + quantidadeEntrada
+        await supabase
+          .from('produto_tamanhos')
+          .update({ quantidade: novaQtdTam })
+          .eq('id', tamRow.id)
+      } else {
+        // Insere nova linha de tamanho
+        await supabase
+          .from('produto_tamanhos')
+          .insert({
+            produto_id: Number(produtoId),
+            variacao_id: variacaoId ? Number(variacaoId) : null,
+            tamanho: String(tamanho).trim().toUpperCase(),
+            quantidade: quantidadeEntrada
+          })
+      }
+
+      // Recalcula a soma total de tamanhos do produto
+      const { data: todosTamanhos } = await supabase
+        .from('produto_tamanhos')
+        .select('quantidade')
+        .eq('produto_id', Number(produtoId))
+
+      const novoTotal = (todosTamanhos || []).reduce((acc, t) => acc + Number(t.quantidade || 0), 0)
+
+      await supabase
+        .from('produtos')
+        .update({ quantidade: novoTotal })
+        .eq('id', Number(produtoId))
+    } else {
+      const novoEstoque =
+        estoqueAnterior +
+        quantidadeEntrada
+
       await supabase
         .from('produtos')
         .update({
@@ -1288,21 +1324,15 @@ export async function registrarEntradaEstoque({
           'id',
           Number(produtoId)
         )
-        .select()
-        .single()
-
-    if (erroUpdate) {
-      console.error(
-        'Erro ao atualizar estoque:',
-        erroUpdate
-      )
-
-      return {
-        sucesso: false,
-        mensagem:
-          'Não foi possível atualizar o estoque.'
-      }
     }
+
+    const { data: atualizado } = await supabase
+      .from('produtos')
+      .select('*')
+      .eq('id', Number(produtoId))
+      .single()
+
+    const estoqueAtualFinal = Number(atualizado?.quantidade || 0)
 
     const movimentacao = {
       id:
@@ -1323,7 +1353,7 @@ export async function registrarEntradaEstoque({
       estoqueAnterior,
 
       estoqueAtual:
-        novoEstoque,
+        estoqueAtualFinal,
 
       observacao,
 
@@ -1368,6 +1398,8 @@ export async function registrarEntradaEstoque({
 
 export async function registrarSaidaEstoque({
   produtoId,
+  variacaoId = null,
+  tamanho = null,
   quantidade,
   observacao = ''
 }) {
@@ -1413,11 +1445,15 @@ export async function registrarSaidaEstoque({
       }
     }
 
-    const estoqueAnterior =
-      Number(
-        produto.quantidade ||
-          0
-      )
+    // Calcular estoque real a partir das grades
+    const { data: todosOsTamanhos } = await supabase
+      .from('produto_tamanhos')
+      .select('quantidade')
+      .eq('produto_id', Number(produtoId))
+
+    const estoqueAnterior = (todosOsTamanhos || []).reduce(
+      (acc, t) => acc + Number(t.quantidade || 0), 0
+    )
 
     if (
       quantidadeSaida >
@@ -1432,9 +1468,39 @@ export async function registrarSaidaEstoque({
       }
     }
 
-    const novoEstoque =
-      estoqueAnterior -
-      quantidadeSaida
+    // Se tamanho especificado, decrementar na grade
+    if (tamanho) {
+      let queryTam = supabase
+        .from('produto_tamanhos')
+        .select('*')
+        .eq('produto_id', Number(produtoId))
+        .eq('tamanho', String(tamanho).trim().toUpperCase())
+
+      if (variacaoId) {
+        queryTam = queryTam.eq('variacao_id', Number(variacaoId))
+      }
+
+      const { data: tamRows } = await queryTam
+
+      if (tamRows && tamRows.length > 0) {
+        const tamRow = tamRows[0]
+        const novaQtdTam = Math.max(0, Number(tamRow.quantidade || 0) - quantidadeSaida)
+        await supabase
+          .from('produto_tamanhos')
+          .update({ quantidade: novaQtdTam })
+          .eq('id', tamRow.id)
+      }
+    }
+
+    // Recalcular total do produto a partir de TODAS as grades
+    const { data: tamanhosAtualizados } = await supabase
+      .from('produto_tamanhos')
+      .select('quantidade')
+      .eq('produto_id', Number(produtoId))
+
+    const novoEstoque = (tamanhosAtualizados || []).reduce(
+      (acc, t) => acc + Number(t.quantidade || 0), 0
+    )
 
     const {
       data: atualizado,
@@ -1920,6 +1986,16 @@ function normalizarPedidoCheckout(
         0
       ),
 
+    pagamento_consulta_token:
+      pedido?.pagamento_consulta_token ||
+      pedido?.consulta_token ||
+      null,
+
+    consulta_token:
+      pedido?.pagamento_consulta_token ||
+      pedido?.consulta_token ||
+      null,
+
     itens:
       Array.isArray(
         pedido?.itens
@@ -2005,6 +2081,14 @@ export async function registrarPagamento({
           item.produtoId ??
           item.id
         ),
+
+      variacao_id:
+        item.variacao_id != null && item.variacao_id !== '' && !String(item.variacao_id).startsWith('var-')
+          ? Number(item.variacao_id)
+          : null,
+
+      cor: item.cor || null,
+      cor_hex: item.cor_hex || null,
 
       tamanho:
         item.tamanhoSelecionado ||
@@ -2286,15 +2370,30 @@ export async function removerPedido(
   pedidoId
 ) {
   try {
+    const id = Number(pedidoId)
+    if (!id || Number.isNaN(id)) {
+      throw new Error('ID do pedido inválido.')
+    }
+
+    // 1. Remove reservas de estoque associadas se existirem
+    await supabase
+      .from('reservas_estoque')
+      .delete()
+      .eq('pedido_id', id)
+
+    // 2. Remove itens do pedido se existirem
+    await supabase
+      .from('pedido_itens')
+      .delete()
+      .eq('pedido_id', id)
+
+    // 3. Remove o pedido
     const {
       error
     } = await supabase
       .from('pedidos')
       .delete()
-      .eq(
-        'id',
-        Number(pedidoId)
-      )
+      .eq('id', id)
 
     if (error) {
       console.error(
@@ -2315,3 +2414,420 @@ export async function removerPedido(
     return carregarPedidos()
   }
 }
+
+// =====================================================
+// REVENDAS E CONSIGNAÇÃO
+// =====================================================
+
+export async function carregarRevendedoras() {
+  try {
+    const { data, error } = await supabase
+      .from('revendedoras')
+      .select('*')
+      .order('nome', { ascending: true })
+
+    if (error) {
+      console.error('Erro ao carregar revendedoras:', error)
+      return []
+    }
+
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro inesperado ao carregar revendedoras:', erro)
+    return []
+  }
+}
+
+export async function salvarRevendedora(dados) {
+  try {
+    const payload = {
+      nome: dados.nome?.trim(),
+      telefone: dados.telefone?.trim() || null,
+      whatsapp: dados.whatsapp?.trim() || null,
+      email: dados.email?.trim()?.toLowerCase() || null,
+      cpf_cnpj: dados.cpf_cnpj?.trim() || null,
+      cidade: dados.cidade?.trim() || null,
+      estado: dados.estado?.trim() || null,
+      endereco: dados.endereco?.trim() || null,
+      comissao_padrao: Number(dados.comissao_padrao ?? 20),
+      periodicidade_acerto_dias: Number(dados.periodicidade_acerto_dias ?? 15),
+      data_inicio: dados.data_inicio || new Date().toISOString().slice(0, 10),
+      observacoes: dados.observacoes?.trim() || null,
+      status: dados.status || 'Ativa',
+      atualizado_em: new Date().toISOString()
+    }
+
+    if (dados.id) {
+      const { data, error } = await supabase
+        .from('revendedoras')
+        .update(payload)
+        .eq('id', Number(dados.id))
+        .select()
+        .single()
+
+      if (error) throw error
+      return { sucesso: true, revendedora: data }
+    } else {
+      const { data, error } = await supabase
+        .from('revendedoras')
+        .insert(payload)
+        .select()
+        .single()
+
+      if (error) throw error
+      return { sucesso: true, revendedora: data }
+    }
+  } catch (erro) {
+    console.error('Erro ao salvar revendedora:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Não foi possível salvar a revendedora.' }
+  }
+}
+
+export async function carregarRemessas(revendedoraId = null) {
+  try {
+    let query = supabase
+      .from('revenda_remessas')
+      .select('*, revendedoras(nome, comissao_padrao, telefone, whatsapp)')
+      .order('criado_em', { ascending: false })
+
+    if (revendedoraId) {
+      query = query.eq('revendedora_id', Number(revendedoraId))
+    }
+
+    const { data: remessas, error } = await query
+
+    if (error || !Array.isArray(remessas)) {
+      console.error('Erro ao carregar remessas:', error)
+      return []
+    }
+
+    const resultado = []
+    for (const remessa of remessas) {
+      const { data: itens, error: errItens } = await supabase
+        .from('revenda_remessa_itens')
+        .select('*')
+        .eq('remessa_id', remessa.id)
+        .order('id', { ascending: true })
+
+      if (errItens) {
+        console.error('Erro ao carregar itens da remessa:', errItens)
+      }
+
+      resultado.push({
+        ...remessa,
+        revendedora_nome: remessa.revendedoras?.nome || 'Revendedora',
+        itens: Array.isArray(itens) ? itens : []
+      })
+    }
+
+    return resultado
+  } catch (erro) {
+    console.error('Erro ao carregar remessas:', erro)
+    return []
+  }
+}
+
+export async function criarRemessaConsignacao({
+  revendedoraId,
+  itens,
+  observacao = '',
+  responsavel = ''
+}) {
+  try {
+    const { data, error } = await supabase.rpc('criar_remessa_consignacao', {
+      p_revendedora_id: Number(revendedoraId),
+      p_itens: itens,
+      p_observacao: observacao || null,
+      p_responsavel: responsavel || null
+    })
+
+    if (error) {
+      console.error('Erro na RPC criar_remessa_consignacao:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao criar remessa.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao criar remessa:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado ao criar remessa.' }
+  }
+}
+
+export async function registrarVendaConsignada({
+  remessaItemId,
+  quantidade,
+  precoUnitario,
+  dataVenda,
+  observacao = ''
+}) {
+  try {
+    const { data, error } = await supabase.rpc('registrar_venda_consignada', {
+      p_remessa_item_id: Number(remessaItemId),
+      p_quantidade: Number(quantidade),
+      p_preco_unitario: Number(precoUnitario),
+      p_data_venda: dataVenda || new Date().toISOString(),
+      p_observacao: observacao || null
+    })
+
+    if (error) {
+      console.error('Erro na RPC registrar_venda_consignada:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao registrar venda.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao registrar venda:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado.' }
+  }
+}
+
+export async function registrarDevolucaoConsignada({
+  remessaItemId,
+  quantidade,
+  motivo = ''
+}) {
+  try {
+    const { data, error } = await supabase.rpc('registrar_devolucao_consignada', {
+      p_remessa_item_id: Number(remessaItemId),
+      p_quantidade: Number(quantidade),
+      p_motivo: motivo || null
+    })
+
+    if (error) {
+      console.error('Erro na RPC registrar_devolucao_consignada:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao registrar devolução.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao registrar devolução:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado.' }
+  }
+}
+
+export async function carregarVendasRevendas(revendedoraId = null) {
+  try {
+    let query = supabase
+      .from('revenda_vendas')
+      .select('*, revendedoras(nome)')
+      .order('data_venda', { ascending: false })
+
+    if (revendedoraId) {
+      query = query.eq('revendedora_id', Number(revendedoraId))
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro ao carregar vendas de revendas:', erro)
+    return []
+  }
+}
+
+export async function carregarAcertosRevendas(revendedoraId = null) {
+  try {
+    let query = supabase
+      .from('revenda_acertos')
+      .select('*, revendedoras(nome, telefone, whatsapp)')
+      .order('data_vencimento', { ascending: false })
+
+    if (revendedoraId) {
+      query = query.eq('revendedora_id', Number(revendedoraId))
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro ao carregar acertos:', erro)
+    return []
+  }
+}
+
+export async function carregarPagamentosRevendas(revendedoraId = null) {
+  try {
+    let query = supabase
+      .from('revenda_pagamentos')
+      .select('*, revendedoras(nome)')
+      .order('data_pagamento', { ascending: false })
+
+    if (revendedoraId) {
+      query = query.eq('revendedora_id', Number(revendedoraId))
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro ao carregar pagamentos de revendas:', erro)
+    return []
+  }
+}
+
+export async function registrarPagamentoRevenda({
+  revendedoraId,
+  valor,
+  formaPagamento,
+  acertoId = null,
+  dataPagamento = null,
+  observacao = ''
+}) {
+  try {
+    const { data, error } = await supabase.rpc('registrar_pagamento_acerto', {
+      p_revendedora_id: Number(revendedoraId),
+      p_valor: Number(valor),
+      p_forma_pagamento: formaPagamento,
+      p_acerto_id: acertoId ? Number(acertoId) : null,
+      p_data_pagamento: dataPagamento || new Date().toISOString(),
+      p_observacao: observacao || null
+    })
+
+    if (error) {
+      console.error('Erro na RPC registrar_pagamento_acerto:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao registrar pagamento.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro ao registrar pagamento:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado.' }
+  }
+}
+
+// =====================================================
+// GESTÃO DE USUÁRIOS E PERMISSÕES ADMINISTRATIVAS
+// =====================================================
+
+export async function carregarPerfilAdmin(userId, email) {
+  try {
+    let query = supabase.from('admin_usuarios').select('*')
+    if (userId) {
+      query = query.eq('user_id', userId)
+    } else if (email) {
+      query = query.eq('email', email.toLowerCase().trim())
+    }
+
+    const { data, error } = await query.maybeSingle()
+    if (error) throw error
+    return data || null
+  } catch (erro) {
+    console.error('Erro ao carregar perfil do admin:', erro)
+    return null
+  }
+}
+
+export async function carregarUsuariosAdmin() {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-gerenciar-usuarios', {
+      body: { acao: 'listar' }
+    })
+
+    if (error) {
+      console.warn('Fallback para consulta direta admin_usuarios:', error)
+      const { data: usuariosDireto, error: errDir } = await supabase
+        .from('admin_usuarios')
+        .select('*')
+        .order('criado_em', { ascending: true })
+
+      if (errDir) throw errDir
+      return Array.isArray(usuariosDireto) ? usuariosDireto : []
+    }
+
+    return Array.isArray(data?.usuarios) ? data.usuarios : []
+  } catch (erro) {
+    console.error('Erro ao carregar usuários admin:', erro)
+    return []
+  }
+}
+
+export async function adicionarUsuarioAdmin({ nome, email, papel, enviarConvite = true }) {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-gerenciar-usuarios', {
+      body: {
+        acao: 'adicionar',
+        nome,
+        email,
+        papel,
+        enviarConvite
+      }
+    })
+
+    if (error) throw error
+    return data
+  } catch (erro) {
+    console.error('Erro ao adicionar usuário admin:', erro)
+    throw erro
+  }
+}
+
+export async function alterarPapelUsuarioAdmin(id, papel) {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-gerenciar-usuarios', {
+      body: {
+        acao: 'alterar_papel',
+        id,
+        papel
+      }
+    })
+
+    if (error) throw error
+    return data
+  } catch (erro) {
+    console.error('Erro ao alterar papel do usuário admin:', erro)
+    throw erro
+  }
+}
+
+export async function alterarStatusUsuarioAdmin(id, ativo) {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-gerenciar-usuarios', {
+      body: {
+        acao: 'alterar_status',
+        id,
+        ativo
+      }
+    })
+
+    if (error) throw error
+    return data
+  } catch (erro) {
+    console.error('Erro ao alterar status do usuário admin:', erro)
+    throw erro
+  }
+}
+
+export async function removerUsuarioAdmin(id) {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-gerenciar-usuarios', {
+      body: {
+        acao: 'remover',
+        id
+      }
+    })
+
+    if (error) throw error
+    return data
+  } catch (erro) {
+    console.error('Erro ao remover usuário admin:', erro)
+    throw erro
+  }
+}
+
+export async function reenviarConviteUsuarioAdmin(email) {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-gerenciar-usuarios', {
+      body: {
+        acao: 'reenviar_convite',
+        email
+      }
+    })
+
+    if (error) throw error
+    return data
+  } catch (erro) {
+    console.error('Erro ao reenviar convite admin:', erro)
+    throw erro
+  }
+}
+

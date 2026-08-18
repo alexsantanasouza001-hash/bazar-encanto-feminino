@@ -52,6 +52,9 @@ type JsonObject = Record<string, unknown>
 
 type ItemRpc = {
   produto_id: number
+  variacao_id?: number | null
+  cor?: string | null
+  cor_hex?: string | null
   tamanho: string | null
   quantidade: number
 }
@@ -322,8 +325,17 @@ function validarPayload(
       }
     }
 
+    const variacaoId = typeof item.variacao_id === 'number' && Number.isSafeInteger(item.variacao_id) && item.variacao_id > 0
+      ? item.variacao_id
+      : (typeof item.variacao_id === 'string' && /^\d+$/.test(item.variacao_id) ? Number(item.variacao_id) : null)
+    const cor = typeof item.cor === 'string' ? item.cor.trim() : null
+    const corHex = typeof item.cor_hex === 'string' ? item.cor_hex.trim() : null
+
     itens.push({
       produto_id: item.produto_id,
+      variacao_id: variacaoId,
+      cor: cor || null,
+      cor_hex: corHex || null,
       tamanho: tamanho || null,
       quantidade: item.quantidade,
     })
@@ -617,8 +629,36 @@ Deno.serve(async (request) => {
   const requestId = crypto.randomUUID()
 
   try {
-    const { data, error } = await adminClient.rpc(
+    // PASSO 1: Chamar a RPC multicor de 6 parâmetros
+    const { error: erroCriacao } = await adminClient.rpc(
       'criar_pedido_checkout',
+      {
+        p_user_id: userId,
+        p_email_cliente: emailCliente,
+        p_cliente: payload.nomeCliente,
+        p_itens: payload.itens,
+        p_cupom: payload.cupom,
+        p_idempotency_key: payload.idempotencyKey,
+      },
+    )
+
+    if (erroCriacao) {
+      const status = statusErroRpc(erroCriacao)
+
+      console.error('criar-pedido: falha ao criar pedido checkout (6 params)', {
+        requestId,
+        code: erroCriacao.code || 'unknown',
+      })
+
+      return responder(status, {
+        sucesso: false,
+        mensagem: mensagemRpcSegura(erroCriacao),
+      })
+    }
+
+    // PASSO 2: Persistir dados de frete e entrega via salvar_entrega_pedido_checkout
+    const { data: pedidoComEntrega, error: erroEntrega } = await adminClient.rpc(
+      'salvar_entrega_pedido_checkout',
       {
         p_user_id: userId,
         p_email_cliente: emailCliente,
@@ -630,23 +670,23 @@ Deno.serve(async (request) => {
       },
     )
 
-    if (error) {
-      const status = statusErroRpc(error)
+    if (erroEntrega) {
+      const status = statusErroRpc(erroEntrega)
 
-      console.error('criar-pedido: falha na RPC', {
+      console.error('criar-pedido: falha ao salvar entrega do pedido', {
         requestId,
-        code: error.code || 'unknown',
+        code: erroEntrega.code || 'unknown',
       })
 
       return responder(status, {
         sucesso: false,
-        mensagem: mensagemRpcSegura(error),
+        mensagem: mensagemRpcSegura(erroEntrega),
       })
     }
 
     return responder(200, {
       sucesso: true,
-      pedido: data,
+      pedido: pedidoComEntrega,
     })
   } catch {
     console.error('criar-pedido: erro interno inesperado', {

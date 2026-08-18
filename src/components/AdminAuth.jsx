@@ -5,6 +5,7 @@ import './AdminAuth.css'
 function AdminAuth({
   carregando = false,
   acessoNegado = false,
+  contaInativa = false,
   usuario = null
 }) {
   const [email, setEmail] = useState('')
@@ -74,14 +75,23 @@ function AdminAuth({
             <h1>Verificando acesso</h1>
             <p>Aguarde um instante.</p>
           </div>
-        ) : acessoNegado ? (
+        ) : (acessoNegado || contaInativa) ? (
           <div className="admin-auth-state">
             <div className="admin-auth-state-icon" aria-hidden="true">!</div>
             <span className="admin-auth-eyebrow">ACESSO RESTRITO</span>
-            <h1>Acesso não autorizado.</h1>
+            <h1>{contaInativa ? 'Conta desativada' : 'Acesso não autorizado.'}</h1>
             <p>
-              A conta {usuario?.email && <strong>{usuario.email}</strong>} não
-              possui permissão administrativa.
+              {contaInativa ? (
+                <>
+                  A conta {usuario?.email && <strong>{usuario.email}</strong>} está desativada no momento.
+                  Solicite a reativação ao administrador do sistema.
+                </>
+              ) : (
+                <>
+                  A conta {usuario?.email && <strong>{usuario.email}</strong>} não
+                  possui permissão administrativa.
+                </>
+              )}
             </p>
 
             {erro && <div className="admin-auth-message error">{erro}</div>}
@@ -108,7 +118,7 @@ function AdminAuth({
             <div className="admin-auth-heading">
               <span className="admin-auth-eyebrow">ACESSO RESTRITO</span>
               <h1>Painel administrativo</h1>
-              <p>Entre com a conta autorizada para administrar o Bazar.</p>
+              <p>Entre com seu e-mail e senha para acessar o painel do Bazar.</p>
             </div>
 
             <form className="admin-auth-form" onSubmit={entrar}>
@@ -117,24 +127,26 @@ function AdminAuth({
                 <input
                   id="admin-email"
                   type="email"
+                  required
+                  autoComplete="username"
                   value={email}
                   onChange={(evento) => setEmail(evento.target.value)}
-                  placeholder="admin@exemplo.com"
-                  autoComplete="email"
-                  required
+                  placeholder="seu-email@bazar.com"
+                  disabled={processando}
                 />
               </label>
 
-              <label htmlFor="admin-senha">
+              <label htmlFor="admin-password">
                 Senha
                 <input
-                  id="admin-senha"
+                  id="admin-password"
                   type="password"
+                  required
+                  autoComplete="current-password"
                   value={senha}
                   onChange={(evento) => setSenha(evento.target.value)}
-                  placeholder="Digite sua senha"
-                  autoComplete="current-password"
-                  required
+                  placeholder="Sua senha de acesso"
+                  disabled={processando}
                 />
               </label>
 
@@ -145,17 +157,18 @@ function AdminAuth({
                 type="submit"
                 disabled={processando}
               >
-                {processando ? 'Entrando...' : 'Entrar'}
+                {processando ? 'Entrando...' : 'Entrar no painel'}
+              </button>
+
+              <button
+                className="admin-auth-secondary"
+                type="button"
+                onClick={voltarParaLoja}
+                disabled={processando}
+              >
+                Voltar para a Loja
               </button>
             </form>
-
-            <button
-              className="admin-auth-store-link"
-              type="button"
-              onClick={voltarParaLoja}
-            >
-              ← Voltar para a Loja
-            </button>
           </>
         )}
       </section>

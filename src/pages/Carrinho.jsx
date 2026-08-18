@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
 import CheckoutSteps from '../components/CheckoutSteps'
 import {
   calcularIncentivoFreteGratis,
-  normalizarCepFrete
+  LIMITE_FRETE_GRATIS
 } from './checkoutShipping'
 import './Checkout.css'
 
@@ -27,196 +26,26 @@ function obterFoto(item) {
     : primeiraFoto?.foto || ''
 }
 
-function formatarCep(valor) {
-  const cep = normalizarCepFrete(valor)
-  return cep.length > 5
-    ? `${cep.slice(0, 5)}-${cep.slice(5)}`
-    : cep
-}
-
 function Carrinho({
   itens,
   subtotal,
   desconto,
-  total,
-  frete,
-  cep,
   codigoCupom,
   cupomAplicado,
   mensagemCupom,
   onCodigoCupomChange,
   onAplicarCupom,
   onRemoverCupom,
-  onCepChange,
-  onCepResolvido,
   onVoltar,
   onContinuar,
   onAumentar,
   onDiminuir,
   onRemover
 }) {
-  const [cepAberto, setCepAberto] = useState(false)
-  const [cepDigitado, setCepDigitado] = useState(
-    formatarCep(cep)
-  )
-  const [consultaCep, setConsultaCep] = useState({
-    estado: 'idle',
-    mensagem: ''
-  })
-  const consultaCepRef = useRef(null)
-
-  useEffect(() => {
-    setCepDigitado(formatarCep(cep))
-  }, [cep])
-
-  useEffect(() => {
-    if (itens.length > 0) {
-      return
-    }
-
-    consultaCepRef.current?.abort()
-    consultaCepRef.current = null
-    setCepAberto(false)
-    setCepDigitado('')
-    setConsultaCep({
-      estado: 'idle',
-      mensagem: ''
-    })
-  }, [itens.length])
-
-  useEffect(() => () => {
-    consultaCepRef.current?.abort()
-  }, [])
-
-  const valorParaFreteGratis =
-    calcularIncentivoFreteGratis(
-      frete.baseFreteGratis
-    )
-
-  const abrirCalculoFrete = () => {
-    setCepAberto(true)
-    setConsultaCep({
-      estado: 'idle',
-      mensagem: ''
-    })
-  }
-
-  const alterarCep = (evento) => {
-    const cepFormatado =
-      formatarCep(evento.target.value)
-
-    consultaCepRef.current?.abort()
-    setCepDigitado(cepFormatado)
-    setConsultaCep({
-      estado: 'idle',
-      mensagem: ''
-    })
-    onCepChange(cepFormatado)
-    onCepResolvido(null)
-  }
-
-  const calcularFreteCep = async () => {
-    const cepNormalizado =
-      normalizarCepFrete(cepDigitado)
-
-    if (cepNormalizado.length !== 8) {
-      setConsultaCep({
-        estado: 'error',
-        mensagem: 'CEP inválido.'
-      })
-      onCepResolvido(null)
-      return
-    }
-
-    consultaCepRef.current?.abort()
-
-    const controller =
-      new AbortController()
-
-    consultaCepRef.current =
-      controller
-
-    setConsultaCep({
-      estado: 'loading',
-      mensagem: 'Calculando...'
-    })
-
-    try {
-      const resposta = await fetch(
-        `https://viacep.com.br/ws/${cepNormalizado}/json/`,
-        { signal: controller.signal }
-      )
-
-      if (!resposta.ok) {
-        throw new Error(
-          'Falha ao consultar o CEP.'
-        )
-      }
-
-      const endereco =
-        await resposta.json()
-
-      if (endereco.erro) {
-        onCepResolvido(null)
-        setConsultaCep({
-          estado: 'error',
-          mensagem: 'CEP não encontrado.'
-        })
-        return
-      }
-
-      const estado =
-        String(
-          endereco.uf || ''
-        ).toUpperCase()
-
-      if (!/^[A-Z]{2}$/.test(estado)) {
-        throw new Error(
-          'UF não retornada pelo ViaCEP.'
-        )
-      }
-
-      const cepConfirmado =
-        formatarCep(
-          endereco.cep ||
-          cepNormalizado
-        )
-
-      setCepDigitado(cepConfirmado)
-      onCepChange(cepConfirmado)
-      onCepResolvido({
-        cep: cepNormalizado,
-        estado
-      })
-      setConsultaCep({
-        estado: 'success',
-        mensagem: 'Frete calculado.'
-      })
-      setCepAberto(false)
-    } catch (erroConsulta) {
-      if (
-        erroConsulta.name ===
-        'AbortError'
-      ) {
-        return
-      }
-
-      onCepResolvido(null)
-      setConsultaCep({
-        estado: 'error',
-        mensagem:
-          'Não foi possível consultar o CEP.'
-      })
-    } finally {
-      if (
-        consultaCepRef.current ===
-        controller
-      ) {
-        consultaCepRef.current =
-          null
-      }
-    }
-  }
+  const baseCalculo = Math.max(0, Number(subtotal || 0) - Number(desconto || 0))
+  const valorParaFreteGratis = calcularIncentivoFreteGratis(baseCalculo)
+  const temFreteGratis = baseCalculo >= LIMITE_FRETE_GRATIS
+  const totalCarrinho = baseCalculo
 
   return (
     <div className="checkout-page">
@@ -268,7 +97,7 @@ function Carrinho({
                 return (
                   <article
                     className="checkout-cart-item"
-                    key={`${item.id}-${item.tamanho}`}
+                    key={item.cor ? `${item.id}-${item.cor}-${item.tamanho}` : `${item.id}-${item.tamanho}`}
                   >
                     <div className="checkout-item-image">
                       {foto ? (
@@ -281,7 +110,12 @@ function Carrinho({
                     <div className="checkout-item-info">
                       <span>{item.marca || 'Encanto Feminino'}</span>
                       <h3>{item.nome}</h3>
-                      <p>Tamanho: <strong>{item.tamanho}</strong></p>
+                      <p>
+                        {item.cor && item.cor !== 'Única' && (
+                          <>Cor: <strong>{item.cor}</strong> &bull; </>
+                        )}
+                        {item.tamanho && <>Tamanho: <strong>{item.tamanho}</strong></>}
+                      </p>
                       <small>{formatarPreco(preco)} cada</small>
                     </div>
 
@@ -289,7 +123,7 @@ function Carrinho({
                       <div className="checkout-quantity" aria-label="Quantidade">
                         <button
                           type="button"
-                          onClick={() => onDiminuir(item.id, item.tamanho)}
+                          onClick={() => onDiminuir(item.id, item.cor, item.tamanho)}
                           aria-label={`Diminuir quantidade de ${item.nome}`}
                         >
                           −
@@ -297,7 +131,7 @@ function Carrinho({
                         <span>{quantidade}</span>
                         <button
                           type="button"
-                          onClick={() => onAumentar(item.id, item.tamanho)}
+                          onClick={() => onAumentar(item.id, item.cor, item.tamanho)}
                           aria-label={`Aumentar quantidade de ${item.nome}`}
                         >
                           +
@@ -307,9 +141,10 @@ function Carrinho({
                       <strong>{formatarPreco(preco * quantidade)}</strong>
 
                       <button
-                        className="checkout-remove"
+                        className="checkout-item-remove"
                         type="button"
-                        onClick={() => onRemover(item.id, item.tamanho)}
+                        onClick={() => onRemover(item.id, item.cor, item.tamanho)}
+                        aria-label={`Remover ${item.nome}`}
                       >
                         Remover
                       </button>
@@ -340,102 +175,16 @@ function Carrinho({
                   {desconto > 0 ? '−' : ''}{formatarPreco(desconto)}
                 </strong>
               </div>
-              <div className="checkout-summary-row checkout-shipping-summary-row">
-                <span>Envio</span>
-                {frete.status === 'aguardando_cep' ? (
-                  <button
-                    type="button"
-                    className="checkout-shipping-trigger"
-                    onClick={abrirCalculoFrete}
-                    aria-expanded={cepAberto}
-                  >
-                    A calcular
-                  </button>
-                ) : (
-                  <div className="checkout-shipping-result">
-                    <span>
-                      {frete.status === 'gratis'
-                        ? 'Frete grátis'
-                        : frete.status === 'fixo'
-                          ? `Frete padrão — ${frete.regiao}`
-                          : 'Consulte o frete'}
-                    </span>
-                    {frete.valido && (
-                      <strong>
-                        {formatarPreco(frete.valor)}
-                      </strong>
-                    )}
-                    {cep && (
-                      <button
-                        type="button"
-                        onClick={abrirCalculoFrete}
-                      >
-                        Alterar CEP
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
 
-              {cepAberto && (
-                <div className="checkout-shipping-calculator">
-                  <label htmlFor="cep-carrinho">
-                    CEP
-                  </label>
-                  <div>
-                    <input
-                      id="cep-carrinho"
-                      value={cepDigitado}
-                      onChange={alterarCep}
-                      onKeyDown={(evento) => {
-                        if (evento.key === 'Enter') {
-                          evento.preventDefault()
-                          calcularFreteCep()
-                        }
-                      }}
-                      placeholder="00000-000"
-                      inputMode="numeric"
-                      autoComplete="postal-code"
-                      maxLength="9"
-                      aria-describedby="cep-carrinho-status"
-                    />
-                    <button
-                      type="button"
-                      onClick={calcularFreteCep}
-                      disabled={
-                        consultaCep.estado ===
-                        'loading'
-                      }
-                    >
-                      {consultaCep.estado === 'loading'
-                        ? 'Calculando...'
-                        : 'Calcular'}
-                    </button>
-                  </div>
-                  <p
-                    id="cep-carrinho-status"
-                    className={consultaCep.estado}
-                    role={
-                      consultaCep.estado === 'error'
-                        ? 'alert'
-                        : 'status'
-                    }
-                    aria-live="polite"
-                  >
-                    {consultaCep.mensagem}
-                  </p>
-                </div>
-              )}
-
-              <div className={`checkout-free-shipping ${frete.status}`}>
-                {frete.status === 'gratis'
+              <div className={`checkout-free-shipping ${temFreteGratis ? 'gratis' : ''}`}>
+                {temFreteGratis
                   ? '✓ Você ganhou FRETE GRÁTIS!'
                   : `Faltam ${formatarPreco(valorParaFreteGratis)} para você ganhar FRETE GRÁTIS.`}
               </div>
 
               <div className="checkout-summary-total">
                 <span>Total</span>
-                <strong>{formatarPreco(total)}</strong>
+                <strong>{formatarPreco(totalCarrinho)}</strong>
               </div>
 
               <div className="checkout-coupon">
@@ -499,11 +248,11 @@ function Carrinho({
                 type="button"
                 onClick={onContinuar}
               >
-                Continuar para finalização
+                Avançar para entrega
               </button>
 
               <p className="checkout-secure-note">
-                Você poderá revisar os dados antes de finalizar.
+                O cálculo de frete e opções de entrega serão preenchidos na próxima etapa.
               </p>
             </aside>
           </div>

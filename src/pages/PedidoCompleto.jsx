@@ -52,14 +52,22 @@ function PedidoCompleto({
     pedidoPagamento.forma_pagamento ||
     pedido.formaPagamento ||
     ''
+
+  const statusPedidoGeral = String(pedidoPagamento.status || pedido.status || '').toLowerCase()
+  const statusPedidoAprovado = ['confirmado', 'confirmada', 'em preparação', 'em preparacao', 'enviado', 'entregue', 'concluído', 'concluido', 'pago'].includes(statusPedidoGeral)
+
   const {
-    aprovado: pagamentoAprovado,
-    pendente: pagamentoPendente,
+    aprovado: statusPagamentoAprovado,
+    pendente: statusPagamentoPendente,
     titulo: tituloPagamento,
-    resumo: resumoPagamento
+    resumo: _resumoPagamento
   } = obterStatusPagamento(
-    pedidoPagamento.status_pagamento
+    pedidoPagamento.status_pagamento || (statusPedidoAprovado ? 'aprovado' : 'pendente')
   )
+
+  const pagamentoAprovado = statusPagamentoAprovado || statusPedidoAprovado
+  const pagamentoPendente = !pagamentoAprovado && (statusPagamentoPendente || statusPedidoGeral === 'aguardando pagamento')
+
   const reservaAtiva =
     pagamentoPendente &&
     pedidoPagamento.reserva_status ===
@@ -69,11 +77,11 @@ function PedidoCompleto({
     pagamentoPendente
 
   useEffect(() => {
-    if (!pagamentoPendente) return
+    if (!pagamentoPendente || pagamentoAprovado) return
 
     let ativo = true
     const intervalo = setInterval(async () => {
-      if (!ativo || consultando) return
+      if (!ativo) return
 
       const token =
         pedidoPagamento?.pagamento_consulta_token ||
@@ -92,8 +100,15 @@ function PedidoCompleto({
 
         if (!ativo || !resultado?.sucesso || !resultado?.pedido) return
 
-        const novoStatus = obterStatusPagamento(resultado.pedido.status_pagamento)
-        if (novoStatus.aprovado || resultado.pedido.status_pagamento !== pedidoPagamento.status_pagamento) {
+        const novoStatusPag = obterStatusPagamento(resultado.pedido.status_pagamento)
+        const novoStatusGeral = String(resultado.pedido.status || '').toLowerCase()
+        const foiAprovado = novoStatusPag.aprovado || ['confirmado', 'confirmada', 'em preparação', 'em preparacao', 'enviado', 'entregue', 'concluído', 'concluido', 'pago'].includes(novoStatusGeral)
+
+        if (
+          foiAprovado ||
+          resultado.pedido.status_pagamento !== pedidoPagamento.status_pagamento ||
+          resultado.pedido.status !== pedidoPagamento.status
+        ) {
           setPedidoPagamento((atual) => ({
             ...atual,
             ...resultado.pedido
@@ -113,14 +128,15 @@ function PedidoCompleto({
     }
   }, [
     pagamentoPendente,
+    pagamentoAprovado,
     pedidoPagamento?.status_pagamento,
+    pedidoPagamento?.status,
     pedidoPagamento?.numero,
     pedidoPagamento?.pagamento_consulta_token,
     pedidoPagamento?.consulta_token,
     pedido?.numero,
     pedido?.pagamento_consulta_token,
-    pedido?.consulta_token,
-    consultando
+    pedido?.consulta_token
   ])
 
   const copiarPix = async () => {
@@ -323,7 +339,7 @@ function PedidoCompleto({
             <div className="checkout-shipping-description">
               {valorFrete === 0
                 ? 'Frete grátis'
-                : `Frete padrão — ${formatarPreco(valorFrete)}`}
+                : `Entrega — ${formatarPreco(valorFrete)}`}
             </div>
             <div className="checkout-summary-total">
               <span>Total</span>

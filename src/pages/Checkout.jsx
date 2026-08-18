@@ -25,6 +25,11 @@ function Checkout({
   desconto,
   total,
   frete,
+  opcoesFrete = [],
+  servicoFreteSelecionado = null,
+  onSelecionarServicoFrete,
+  cotandoFrete = false,
+  mensagemFrete = '',
   cupomAplicado,
   dados,
   onDadosChange,
@@ -47,6 +52,116 @@ function Checkout({
     mensagem: ''
   })
   const ultimoCepConsultado = useRef('')
+  const cepInputRef = useRef(null)
+
+  const focarCalculoFrete = () => {
+    if (cepInputRef.current) {
+      cepInputRef.current.focus()
+      cepInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
+
+  useEffect(() => {
+    if (!erro) return
+
+    const erroLower = String(erro).toLowerCase()
+    if (erroLower.includes('termos') || erroLower.includes('concordar')) {
+      const termosEl = document.querySelector('.checkout-terms input')
+      if (termosEl) {
+        termosEl.focus()
+        termosEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    } else if (erroLower.includes('nome')) {
+      const el = document.querySelector('input[name="nome"]')
+      if (el) {
+        el.focus()
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    } else if (erroLower.includes('e-mail') || erroLower.includes('email')) {
+      const el = document.querySelector('input[name="email"]')
+      if (el) {
+        el.focus()
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    } else if (erroLower.includes('telefone') || erroLower.includes('whatsapp')) {
+      const el = document.querySelector('input[name="telefone"]')
+      if (el) {
+        el.focus()
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    } else if (erroLower.includes('cep') || erroLower.includes('frete')) {
+      if (cepInputRef.current) {
+        cepInputRef.current.focus()
+        cepInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    } else if (erroLower.includes('endereço') || erroLower.includes('número')) {
+      const el = document.querySelector('input[name="numero"]') || document.querySelector('input[name="endereco"]')
+      if (el) {
+        el.focus()
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    } else if (erroLower.includes('pagamento')) {
+      const el = document.querySelector('.checkout-payment')
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }
+  }, [erro])
+
+  const consultarCepManual = async () => {
+    const cep = normalizarCep(dados.cep)
+    if (cep.length !== 8) {
+      setConsultaCep({
+        estado: 'error',
+        mensagem: 'Informe um CEP válido com 8 dígitos.'
+      })
+      onCepResolvido(null)
+      return
+    }
+
+    ultimoCepConsultado.current = cep
+    setConsultaCep({
+      estado: 'loading',
+      mensagem: 'Consultando CEP...'
+    })
+
+    try {
+      const resposta = await fetch(`https://viacep.com.br/ws/${cep}/json/`)
+      if (!resposta.ok) throw new Error('Falha ao consultar o CEP.')
+      const endereco = await resposta.json()
+      if (endereco.erro) {
+        onCepResolvido(null)
+        setConsultaCep({
+          estado: 'error',
+          mensagem: 'CEP não encontrado. Confira ou preencha o endereço manualmente.'
+        })
+        return
+      }
+
+      onDadosChange((dadosAtuais) => ({
+        ...dadosAtuais,
+        cep: formatarCep(endereco.cep || cep),
+        endereco: endereco.logradouro || dadosAtuais.endereco,
+        bairro: endereco.bairro || dadosAtuais.bairro,
+        cidade: endereco.localidade || dadosAtuais.cidade,
+        estado: endereco.uf || dadosAtuais.estado
+      }))
+      onCepResolvido({
+        cep,
+        estado: String(endereco.uf || '').toUpperCase()
+      })
+      setConsultaCep({
+        estado: 'success',
+        mensagem: 'Endereço localizado com sucesso.'
+      })
+    } catch {
+      onCepResolvido(null)
+      setConsultaCep({
+        estado: 'error',
+        mensagem: 'Não foi possível consultar o CEP. Preencha o endereço manualmente.'
+      })
+    }
+  }
 
   useEffect(() => {
     const cep = normalizarCep(dados.cep)
@@ -275,17 +390,35 @@ function Checkout({
               </label>
               <label>
                 CEP
-                <input
-                  name="cep"
-                  value={dados.cep}
-                  onChange={atualizarCampo}
-                  onBlur={validarCepAoSair}
-                  autoComplete="postal-code"
-                  inputMode="numeric"
-                  maxLength="9"
-                  aria-describedby="checkout-cep-status"
-                  required
-                />
+                <div className="checkout-cep-group">
+                  <input
+                    ref={cepInputRef}
+                    name="cep"
+                    value={dados.cep}
+                    onChange={atualizarCampo}
+                    onBlur={validarCepAoSair}
+                    onKeyDown={(evento) => {
+                      if (evento.key === 'Enter') {
+                        evento.preventDefault()
+                        consultarCepManual()
+                      }
+                    }}
+                    autoComplete="postal-code"
+                    inputMode="numeric"
+                    maxLength="9"
+                    placeholder="00000-000"
+                    aria-describedby="checkout-cep-status"
+                    required
+                  />
+                  <button
+                    type="button"
+                    className="checkout-cep-btn"
+                    onClick={consultarCepManual}
+                    disabled={consultaCep.estado === 'loading'}
+                  >
+                    {consultaCep.estado === 'loading' ? 'Calculando...' : 'Calcular frete'}
+                  </button>
+                </div>
                 <small
                   id="checkout-cep-status"
                   className={`checkout-cep-status ${consultaCep.estado}`}
@@ -353,33 +486,90 @@ function Checkout({
               </label>
             </div>
 
-            <div className={`checkout-shipping-option ${frete.status}`}>
-              <div>
-                <span>ENTREGA</span>
-                <strong>
-                  {frete.status === 'gratis'
-                    ? 'Frete grátis'
-                    : frete.status === 'fixo'
-                      ? 'Frete padrão — Sul e Sudeste'
-                      : frete.status === 'consultar'
-                        ? 'Consulte o frete'
-                        : 'Informe o CEP para calcular o frete'}
-                </strong>
+            {frete.status === 'gratis' ? (
+              <div className="checkout-shipping-option gratis">
+                <div>
+                  <span>ENTREGA</span>
+                  <strong>Frete Grátis (Compras acima de R$ 400)</strong>
+                </div>
+                <strong>GRÁTIS</strong>
               </div>
-              {frete.valido && (
-                <strong>
-                  {frete.status === 'gratis'
-                    ? 'GRÁTIS'
-                    : formatarPreco(frete.valor)}
-                </strong>
-              )}
-              {frete.status === 'consultar' && (
+            ) : opcoesFrete && opcoesFrete.length > 0 ? (
+              <div className="checkout-shipping-section">
+                <span className="checkout-shipping-label">OPÇÕES DE ENTREGA (MELHOR ENVIO)</span>
+                <div className="checkout-shipping-list">
+                  {opcoesFrete.map((opt) => {
+                    const selecionado = servicoFreteSelecionado?.id === opt.id
+                    return (
+                      <label
+                        key={opt.id}
+                        className={`checkout-shipping-card ${selecionado ? 'selected' : ''}`}
+                      >
+                        <input
+                          type="radio"
+                          name="opcaoFreteMelhorEnvio"
+                          value={opt.id}
+                          checked={selecionado}
+                          onChange={() => onSelecionarServicoFrete?.(opt)}
+                        />
+                        <div className="shipping-card-details">
+                          <div className="shipping-card-header">
+                            <strong className="shipping-card-title">{opt.servico}</strong>
+                            <span className="shipping-card-carrier">({opt.transportadora})</span>
+                          </div>
+                          <span className="shipping-card-time">{opt.prazo_texto}</span>
+                        </div>
+                        <span className="shipping-card-price">{formatarPreco(opt.valor)}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className={`checkout-shipping-option ${frete.status}`}>
+                <div>
+                  <span>ENTREGA</span>
+                  <strong>
+                    {frete.status === 'calculado' ? (
+                      frete.servico || 'Entrega Calculada'
+                    ) : (
+                      <>
+                        Opções de entrega:{' '}
+                        <button
+                          type="button"
+                          className="checkout-shipping-trigger"
+                          onClick={focarCalculoFrete}
+                        >
+                          A calcular
+                        </button>
+                      </>
+                    )}
+                  </strong>
+                </div>
+
+                {frete.valido && frete.valor !== null ? (
+                  <strong>{formatarPreco(frete.valor)}</strong>
+                ) : (
+                  <button
+                    type="button"
+                    className="checkout-shipping-trigger"
+                    onClick={focarCalculoFrete}
+                  >
+                    A calcular
+                  </button>
+                )}
+
                 <p>
-                  Para esta região, confirme uma modalidade e um valor de
-                  entrega com a loja antes de finalizar.
+                  {cotandoFrete
+                    ? 'Calculando opções de envio no Melhor Envio...'
+                    : mensagemFrete
+                    ? mensagemFrete
+                    : !dados.cep || normalizarCep(dados.cep).length !== 8
+                    ? 'Informe seu CEP para consultar as opções de entrega.'
+                    : 'Opções de entrega indisponíveis no momento.'}
                 </p>
-              )}
-            </div>
+              </div>
+            )}
 
             <label className="checkout-checkbox">
               <input
@@ -409,10 +599,13 @@ function Checkout({
 
             <div className="checkout-mini-items">
               {itens.map((item) => (
-                <div key={`${item.id}-${item.tamanho}`}>
+                <div key={item.cor ? `${item.id}-${item.cor}-${item.tamanho}` : `${item.id}-${item.tamanho}`}>
                   <span>
                     {item.quantidade}× {item.nome}
-                    <small>Tamanho {item.tamanho}</small>
+                    <small>
+                      {item.cor && item.cor !== 'Única' ? `${item.cor} • ` : ''}
+                      {item.tamanho ? `Tam ${item.tamanho}` : ''}
+                    </small>
                   </span>
                   <strong>
                     {formatarPreco(
@@ -434,17 +627,22 @@ function Checkout({
                 {desconto > 0 ? '−' : ''}{formatarPreco(desconto)}
               </strong>
             </div>
-            <div className="checkout-summary-row">
+            <div className="checkout-summary-row checkout-shipping-summary-row">
               <span>Envio</span>
-              <strong>
-                {frete.status === 'gratis'
-                  ? 'GRÁTIS'
-                  : frete.status === 'fixo'
-                    ? formatarPreco(frete.valor)
-                    : frete.status === 'consultar'
-                      ? 'Consulte o frete'
-                      : 'A calcular'}
-              </strong>
+              {frete.status === 'gratis' ? (
+                <strong>GRÁTIS</strong>
+              ) : frete.valido && frete.valor !== null ? (
+                <strong>{formatarPreco(frete.valor)}</strong>
+              ) : (
+                <button
+                  type="button"
+                  className="checkout-shipping-trigger"
+                  onClick={focarCalculoFrete}
+                  title="Clique para informar o CEP e calcular o frete"
+                >
+                  A calcular
+                </button>
+              )}
             </div>
             <div className="checkout-summary-total">
               <span>Total</span>
@@ -498,16 +696,29 @@ function Checkout({
               />
             )}
 
-            <label className="checkout-checkbox checkout-terms">
-              <input
-                type="checkbox"
-                checked={aceitouTermos}
-                onChange={(evento) =>
-                  onAceitouTermosChange(evento.target.checked)
-                }
-              />
-              <span>Li e concordo com os termos e condições</span>
-            </label>
+            <div className={`checkout-terms-wrapper ${erro && !aceitouTermos ? 'has-error' : ''}`}>
+              <label className="checkout-checkbox checkout-terms">
+                <input
+                  type="checkbox"
+                  checked={aceitouTermos}
+                  onChange={(evento) =>
+                    onAceitouTermosChange(evento.target.checked)
+                  }
+                />
+                <span>Li e concordo com os termos e condições</span>
+              </label>
+              {erro && !aceitouTermos && (
+                <span className="checkout-field-error-msg" role="alert">
+                  ⚠ Você precisa concordar com os termos e condições.
+                </span>
+              )}
+            </div>
+
+            {erro && (
+              <div className="checkout-summary-error" role="alert">
+                <span>⚠ {erro}</span>
+              </div>
+            )}
 
             {formaPagamento !== 'Cartão de crédito' && (
               <button

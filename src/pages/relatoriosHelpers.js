@@ -384,3 +384,113 @@ export function gerarCsvRelatorio({ metricas, pedidosFiltrados, periodoRotulo = 
 
   return '\uFEFF' + linhas.join('\r\n')
 }
+
+export function calcularMetricasRevendas(
+  revendedoras = [],
+  remessas = [],
+  vendas = [],
+  pagamentos = [],
+  { dataInicio, dataFim } = {}
+) {
+  const timeInicio = dataInicio ? new Date(dataInicio).getTime() : 0
+  const timeFim = dataFim ? new Date(dataFim).getTime() : Number.POSITIVE_INFINITY
+
+  const vendasPeriodo = (vendas || []).filter((v) => {
+    const t = new Date(v.data_venda || v.criado_em || 0).getTime()
+    return t >= timeInicio && t <= timeFim
+  })
+
+  const pagamentosPeriodo = (pagamentos || []).filter((p) => {
+    const t = new Date(p.data_pagamento || p.criado_em || 0).getTime()
+    return t >= timeInicio && t <= timeFim
+  })
+
+  let faturamentoRevendas = 0
+  let comissaoPaga = 0
+  let receitaLiquidaLoja = 0
+  let totalPecasVendidas = 0
+
+  const revendaAgrupada = {}
+  const produtosAgrupados = {}
+
+  for (const v of vendasPeriodo) {
+    const bruto = Number(v.valor_total_bruto || 0)
+    const comissao = Number(v.valor_comissao || 0)
+    const loja = Number(v.valor_loja || 0)
+    const qtd = Number(v.quantidade || 1)
+
+    faturamentoRevendas += bruto
+    comissaoPaga += comissao
+    receitaLiquidaLoja += loja
+    totalPecasVendidas += qtd
+
+    // Agrupamento por revendedora
+    const revId = v.revendedora_id
+    if (!revendaAgrupada[revId]) {
+      const revObj = revendedoras.find((r) => Number(r.id) === Number(revId))
+      revendaAgrupada[revId] = {
+        id: revId,
+        nome: revObj?.nome || v.revendedoras?.nome || `Revendedora #${revId}`,
+        faturamento: 0,
+        comissao: 0,
+        receitaLoja: 0,
+        pecasVendidas: 0
+      }
+    }
+    revendaAgrupada[revId].faturamento += bruto
+    revendaAgrupada[revId].comissao += comissao
+    revendaAgrupada[revId].receitaLoja += loja
+    revendaAgrupada[revId].pecasVendidas += qtd
+
+    // Agrupamento por produto
+    const prodNome = v.produto_nome || 'Produto'
+    if (!produtosAgrupados[prodNome]) {
+      produtosAgrupados[prodNome] = {
+        nome: prodNome,
+        quantidade: 0,
+        faturamento: 0
+      }
+    }
+    produtosAgrupados[prodNome].quantidade += qtd
+    produtosAgrupados[prodNome].faturamento += bruto
+  }
+
+  const rankingRevendedoras = Object.values(revendaAgrupada).sort(
+    (a, b) => b.faturamento - a.faturamento
+  )
+
+  const topRevendedora = rankingRevendedoras[0] || null
+
+  const rankingProdutosRevenda = Object.values(produtosAgrupados).sort(
+    (a, b) => b.quantidade - a.quantidade
+  )
+
+  // Estoque parado em consignação
+  let totalPecasConsignadas = 0
+  let totalValorConsignado = 0
+  for (const rem of remessas) {
+    for (const item of (rem.itens || [])) {
+      const saldo = Math.max(0, Number(item.quantidade_enviada || 0) - Number(item.quantidade_vendida || 0) - Number(item.quantidade_devolvida || 0))
+      totalPecasConsignadas += saldo
+      totalValorConsignado += saldo * Number(item.preco_venda_sugerido || 0)
+    }
+  }
+
+  // Pagamentos recebidos
+  const totalPagoPeriodo = pagamentosPeriodo.reduce((acc, p) => acc + Number(p.valor || 0), 0)
+  const saldoReceberTotal = Math.max(0, receitaLiquidaLoja - totalPagoPeriodo)
+
+  return {
+    faturamentoRevendas: Number(faturamentoRevendas.toFixed(2)),
+    comissaoPaga: Number(comissaoPaga.toFixed(2)),
+    receitaLiquidaLoja: Number(receitaLiquidaLoja.toFixed(2)),
+    totalPecasVendidas,
+    totalPagoPeriodo: Number(totalPagoPeriodo.toFixed(2)),
+    saldoReceberTotal: Number(saldoReceberTotal.toFixed(2)),
+    topRevendedora,
+    rankingRevendedoras,
+    rankingProdutosRevenda,
+    totalPecasConsignadas,
+    totalValorConsignado: Number(totalValorConsignado.toFixed(2))
+  }
+}

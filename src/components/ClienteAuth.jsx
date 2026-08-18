@@ -30,7 +30,7 @@ function mensagemErroAuth(erro, contexto) {
       'email not confirmed'
     )
   ) {
-    return 'Confirme seu e-mail antes de entrar.'
+    return 'Não foi possível entrar. Tente novamente em alguns instantes.'
   }
 
   if (
@@ -259,10 +259,27 @@ function ClienteAuth({
       return
     }
 
+    // Se o Supabase não retornou sessão (confirmação de e-mail habilitada),
+    // tentar login automático com as credenciais recém-cadastradas
+    const { error: loginError } =
+      await supabase.auth
+        .signInWithPassword({
+          email: cadastro.email.trim(),
+          password: cadastro.senha
+        })
+
+    if (!loginError) {
+      onFechar()
+      return
+    }
+
+    // Se nem signUp com sessão nem login automático funcionaram,
+    // informar sucesso e pedir para tentar entrar manualmente
     setMensagem({
       tipo: 'sucesso',
-      texto: 'Conta criada. Verifique seu e-mail para confirmar o cadastro.'
+      texto: 'Conta criada com sucesso! Faça login para acessar sua conta.'
     })
+    setTela('login')
   }
 
   const enviarRecuperacao = async (

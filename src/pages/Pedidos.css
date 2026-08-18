@@ -1,26 +1,26 @@
 /* =========================================================
    BAZAR ENCANTO FEMININO
-   HISTÓRICO DE PEDIDOS — TICKET PREMIUM
-========================================================= */
+   HISTÓRICO DE PEDIDOS — LAYOUT COMPACTO DE ALTA DENSIDADE
+   ========================================================= */
 
 .pedidos-page {
-  min-height: 100%;
-  padding: 36px 40px 60px;
+  min-height: 100vh;
+  padding: 28px 36px 50px;
   background: #f7f3eb;
   color: #29382e;
 }
 
 /* =========================================================
-   CABEÇALHO DA PÁGINA
-========================================================= */
+   CABEÇALHO
+   ========================================================= */
 
 .pedidos-header {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
 }
 
 .pedidos-eyebrow {
   display: block;
-  margin-bottom: 7px;
+  margin-bottom: 4px;
   color: #7b8567;
   font-size: 9px;
   font-weight: 700;
@@ -31,823 +31,622 @@
   margin: 0;
   color: #234b36;
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 34px;
+  font-size: 28px;
   font-weight: 500;
 }
 
 .pedidos-header p {
-  margin: 8px 0 0;
-  color: #999589;
+  margin: 4px 0 0;
+  color: #7b8567;
   font-size: 12px;
 }
 
 /* =========================================================
-   RESUMO
-========================================================= */
+   CARDS DE RESUMO (COMPACTADOS)
+   ========================================================= */
 
 .pedidos-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 30px;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .pedido-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 18px 20px;
+  gap: 12px;
+  padding: 12px 16px;
   background: #fffdf8;
   border: 1px solid #e5ded1;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(52, 55, 43, 0.035);
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(52, 55, 43, 0.03);
 }
 
 .pedido-card-icon {
-  width: 42px;
-  height: 42px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 11px;
-  background: #ebe6da;
-  color: #31563f;
-  font-size: 16px;
-}
-
-.pedido-card span {
-  display: block;
-  margin-bottom: 4px;
-  color: #999589;
-  font-size: 9px;
-}
-
-.pedido-card strong {
-  display: block;
-  color: #234b36;
-  font-size: 19px;
-  font-weight: 600;
-}
-
-/* =========================================================
-   PAINEL DO HISTÓRICO
-========================================================= */
-
-.pedidos-panel {
-  overflow: hidden;
-  background: #fffdf8;
-  border: 1px solid #e3dccf;
-  border-radius: 15px;
-  box-shadow: 0 5px 20px rgba(45, 52, 43, 0.035);
-}
-
-.pedidos-panel-header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 25px 28px 22px;
-  border-bottom: 1px solid #e7e0d4;
-}
-
-.pedidos-panel-header span {
-  display: block;
-  margin-bottom: 6px;
-  color: #7b8567;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 1.8px;
-}
-
-.pedidos-panel-header h2 {
-  margin: 0;
-  color: #234b36;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 23px;
-  font-weight: 500;
-}
-
-.pedidos-panel-header p {
-  margin: 6px 0 0;
-  color: #999589;
-  font-size: 11px;
-}
-
-.pedidos-total-label {
-  padding: 7px 12px;
-  border: 1px solid #e1dbcf;
-  border-radius: 20px;
-  background: #faf7f0;
-  color: #77776e;
-  font-size: 9px;
-}
-
-/* =========================================================
-   ÁREA DOS TICKETS
-========================================================= */
-
-.pedidos-lista {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  align-items: start;
-  gap: 22px;
-  padding: 28px;
-  background: #f4f0e8;
-}
-
-/* =========================================================
-   TICKET
-========================================================= */
-
-.pedido-ticket {
-  position: relative;
-  overflow: hidden;
-  background: #fffefa;
-  border: 1px solid #ddd6c8;
-  border-radius: 4px;
-  box-shadow:
-    0 8px 22px rgba(46, 52, 42, 0.07),
-    0 2px 4px rgba(46, 52, 42, 0.035);
-}
-
-/*
-  Recorte decorativo nas laterais.
-  Dá ao cartão aparência de ticket/etiqueta.
-*/
-
-.pedido-ticket::before,
-.pedido-ticket::after {
-  content: "";
-  position: absolute;
-  top: 91px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #f4f0e8;
-  border: 1px solid #ddd6c8;
-  z-index: 5;
-}
-
-.pedido-ticket::before {
-  left: -8px;
-}
-
-.pedido-ticket::after {
-  right: -8px;
-}
-
-/* =========================================================
-   CABEÇALHO DO TICKET
-========================================================= */
-
-.ticket-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 22px 17px;
-  background: #fffefa;
-}
-
-.ticket-order {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.ticket-order span {
-  color: #aaa497;
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 1.7px;
-}
-
-.ticket-order strong {
-  color: #234b36;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 21px;
-  font-weight: 500;
-}
-
-.ticket-status {
-  padding: 6px 11px;
-  border: 1px solid #d6dfd1;
-  border-radius: 20px;
-  background: #eef3eb;
-  color: #55725a;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
-/* =========================================================
-   DIVISOR PONTILHADO
-========================================================= */
-
-.ticket-divider {
-  height: 1px;
-  margin: 0 20px;
-  background: repeating-linear-gradient(
-    to right,
-    #ded8cc 0,
-    #ded8cc 5px,
-    transparent 5px,
-    transparent 9px
-  );
-}
-
-/* =========================================================
-   CLIENTE
-========================================================= */
-
-.ticket-client {
-  display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 11px;
-  padding: 17px 22px;
-}
-
-.ticket-client-icon {
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 9px;
   background: #ebe6da;
   color: #31563f;
   font-size: 14px;
 }
 
-.ticket-client > div:nth-child(2) {
-  min-width: 0;
-}
-
-.ticket-client span,
-.ticket-date span {
+.pedido-card span {
   display: block;
-  margin-bottom: 4px;
-  color: #aaa497;
-  font-size: 7px;
+  margin-bottom: 2px;
+  color: #7b8567;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 1.3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.ticket-client strong {
+.pedido-card strong {
   display: block;
-  overflow: hidden;
-  color: #29382e;
-  font-size: 12px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ticket-date {
-  min-width: 58px;
-  text-align: right;
-}
-
-.ticket-date strong {
-  display: block;
-  color: #6e756c;
-  font-size: 9px;
-  font-weight: 600;
-}
-
-.ticket-date small {
-  display: block;
-  margin-top: 2px;
-  color: #aaa497;
-  font-size: 8px;
-}
-
-.ticket-delivery {
-  display: grid;
-  gap: 4px;
-  padding: 12px 22px;
-  background: #faf7f0;
-}
-
-.ticket-delivery span {
-  color: #aaa497;
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 1.3px;
-}
-
-.ticket-delivery strong {
-  color: #29382e;
-  font-size: 9px;
-  font-weight: 600;
-  line-height: 1.45;
-}
-
-.ticket-delivery small {
-  color: #77776e;
-  font-size: 8px;
-}
-
-.ticket-payment {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 10px;
-  padding: 11px 22px;
-  border-top: 1px solid #eee7da;
-  background: #fffdf8;
-}
-
-.ticket-payment span {
-  color: #aaa497;
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 1.3px;
-}
-
-.ticket-payment strong,
-.ticket-payment small {
-  color: #29382e;
-  font-size: 9px;
-}
-
-.ticket-payment small {
-  color: #71805a;
-  font-weight: 700;
-}
-
-/* =========================================================
-   ANDAMENTO
-========================================================= */
-
-.ticket-progress-area {
-  padding: 17px 22px 18px;
-  background: #faf7f0;
-}
-
-.ticket-progress-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-}
-
-.ticket-progress-title span {
-  color: #aaa497;
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 1.4px;
-}
-
-.ticket-progress-title strong {
-  color: #55725a;
-  font-size: 8px;
-  font-weight: 700;
-}
-
-.ticket-progress {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-}
-
-.ticket-progress::before {
-  content: "";
-  position: absolute;
-  top: 9px;
-  left: 12%;
-  right: 12%;
-  height: 1px;
-  background: #dcd5c8;
-}
-
-.progress-step {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 7px;
-}
-
-.progress-dot {
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #d6d0c4;
-  border-radius: 50%;
-  background: #fffefa;
-  color: transparent;
-  font-size: 8px;
-  font-weight: 700;
-}
-
-.progress-step.active .progress-dot {
-  border-color: #71805a;
-  background: #71805a;
-  color: #fff;
-}
-
-.progress-step span {
-  max-width: 70px;
-  color: #aaa497;
-  font-size: 7px;
-  line-height: 1.25;
-  text-align: center;
-}
-
-.progress-step.active span {
-  color: #55725a;
-  font-weight: 600;
-}
-
-/* =========================================================
-   PRODUTOS
-========================================================= */
-
-.ticket-products {
-  padding: 17px 22px 14px;
-  background: #fffefa;
-}
-
-.ticket-products-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 38px 34px 76px;
-  gap: 7px;
-  padding-bottom: 8px;
-  color: #aaa497;
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-.ticket-products-header span:nth-child(2),
-.ticket-products-header span:nth-child(3) {
-  text-align: center;
-}
-
-.ticket-products-header span:last-child {
-  text-align: right;
-}
-
-.ticket-product-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 38px 34px 76px;
-  align-items: center;
-  gap: 7px;
-  min-height: 46px;
-  border-top: 1px solid #eeeae2;
-}
-
-.ticket-product-name {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.ticket-product-name strong {
-  overflow: hidden;
-  color: #29382e;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 11px;
-  font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ticket-product-name small {
-  overflow: hidden;
-  color: #aaa497;
-  font-size: 7px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ticket-product-row > span {
-  color: #77776e;
-  font-size: 9px;
-  text-align: center;
-}
-
-.ticket-product-row > strong {
-  color: #31563f;
-  font-size: 9px;
-  font-weight: 600;
-  text-align: right;
-}
-
-.ticket-no-products {
-  padding: 16px 0 5px;
-  color: #aaa497;
-  font-size: 9px;
-  text-align: center;
-}
-
-/* =========================================================
-   TOTAL
-========================================================= */
-
-.ticket-bottom {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 17px 22px;
-  border-top: 1px solid #e4ded2;
-  background: #f8f4eb;
-}
-
-.ticket-financials {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 7px 16px;
-  padding: 14px 22px 0;
-  background: #f8f4eb;
-  color: #77776e;
-  font-size: 8px;
-}
-
-.ticket-financials strong {
-  color: #31563f;
-  font-size: 9px;
-  text-align: right;
-}
-
-.ticket-bottom span {
-  color: #77776e;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 1px;
-}
-
-.ticket-bottom strong {
   color: #234b36;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 21px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
 }
 
 /* =========================================================
-   BOTÕES DE STATUS
-========================================================= */
+   PAINEL PRINCIPAL DE PEDIDOS
+   ========================================================= */
 
-.ticket-status-actions {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 5px;
+.pedidos-panel {
+  background: #fffdf8;
+  border: 1px solid #e3dccf;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(37, 53, 42, 0.04);
+  overflow: hidden;
+}
+
+.pedidos-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   padding: 12px 18px;
-  border-top: 1px dashed #ded8cc;
-  background: #fffefa;
+  background: #fbf8f0;
+  border-bottom: 1px solid #eeeae2;
 }
 
-.status-action {
-  min-height: 28px;
-  padding: 5px 4px;
-  border: 1px solid #ded8cc;
-  border-radius: 5px;
-  background: #faf7f0;
-  color: #77776e;
-  font-family: inherit;
-  font-size: 7px;
+.pedidos-panel-header h2 {
+  margin: 0;
+  color: #234b36;
+  font-family: Georgia, serif;
+  font-size: 17px;
+  font-weight: 500;
+}
+
+.pedidos-panel-header p {
+  margin: 2px 0 0;
+  color: #7b8567;
+  font-size: 11px;
+}
+
+.pedidos-total-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #234b36;
+  background: #e8eedf;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+/* =========================================================
+   FILTROS DE ABAS E BOTÃO DE LIMPEZA
+   ========================================================= */
+
+.pedidos-filtros-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 18px;
+  background: #fdfbf7;
+  border-bottom: 1px solid #eeeae2;
+}
+
+.pedidos-filtros-tabs {
+  display: inline-flex;
+  background: #ebe6da;
+  padding: 3px;
+  border-radius: 8px;
+  gap: 2px;
+}
+
+.pedidos-filtro-tab {
+  padding: 5px 12px;
+  border: none;
+  background: transparent;
+  color: #6d675b;
+  font-size: 11px;
   font-weight: 600;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.18s ease;
+  transition: all 0.15s ease;
 }
 
-.status-action:hover {
-  border-color: #aeb9a8;
+.pedidos-filtro-tab:hover {
+  color: #234b36;
+}
+
+.pedidos-filtro-tab.ativo {
+  background: #ffffff;
+  color: #234b36;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.btn-limpar-testes-topo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-limpar-testes-topo:hover {
+  background: #fee2e2;
+  border-color: #f87171;
+}
+
+/* =========================================================
+   LISTAGEM DE PEDIDOS COMPACTA (ALTA DENSIDADE)
+   ========================================================= */
+
+.pedidos-lista-compacta {
+  display: flex;
+  flex-direction: column;
+  divide-y: 1px solid #eeeae2;
+}
+
+.pedido-ticket-compacto {
+  border-bottom: 1px solid #eeeae2;
+  background: #fffdf8;
+  transition: background 0.15s ease;
+}
+
+.pedido-ticket-compacto:hover {
+  background: #faf7ef;
+}
+
+.pedido-ticket-compacto:last-child {
+  border-bottom: none;
+}
+
+.pedido-ticket-compacto.pedido-teste {
+  border-left: 4px solid #f59e0b;
+}
+
+/* LINHA PRINCIPAL COMPACTA (1 LINHA NO DESKTOP) */
+.pedido-compacto-main {
+  display: grid;
+  grid-template-columns: 140px minmax(180px, 1.4fr) 140px 110px 140px minmax(200px, 1.6fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 18px;
+  min-height: 64px;
+}
+
+/* COLUNA 1: IDENTIFICAÇÃO */
+.pedido-col-ident {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pedido-numero-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pedido-numero-tag strong {
+  color: #234b36;
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ticket-tag-teste {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+.pedido-data-compact {
+  color: #8c887b;
+  font-size: 10px;
+}
+
+/* COLUNA 2: CLIENTE */
+.pedido-col-cliente {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+}
+
+.pedido-cliente-nome {
+  color: #25352a;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pedido-cliente-sub {
+  color: #7b8567;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* COLUNA 3: PAGAMENTO */
+.pedido-col-pagamento {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pedido-pag-metodo {
+  font-size: 11px;
+  color: #403a40;
+  font-weight: 500;
+}
+
+.pedido-pag-status {
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pedido-pag-status.pago {
+  color: #166534;
+}
+
+.pedido-pag-status.pendente {
+  color: #b45309;
+}
+
+.pedido-pag-status.cancelado {
+  color: #991b1b;
+}
+
+/* COLUNA 4: TOTAL */
+.pedido-col-total {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.pedido-total-label {
+  color: #8c887b;
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.pedido-total-valor {
+  color: #234b36;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* COLUNA 5: STATUS DO PEDIDO */
+.pedido-col-status {
+  display: flex;
+  align-items: center;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.status-pill.confirmado,
+.status-pill.pago {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-pill.aguardando {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-pill.preparacao {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.status-pill.enviado {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.status-pill.entregue,
+.status-pill.concluido {
+  background: #e8eedf;
+  color: #234b36;
+}
+
+.status-pill.cancelado {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* COLUNA 6: AÇÕES RÁPIDAS COMPACTAS */
+.pedido-col-acoes {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.btn-toggle-detalhes {
+  padding: 5px 9px;
+  border-radius: 6px;
+  border: 1px solid #d2ccbf;
+  background: #fffdf8;
+  color: #465d49;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-toggle-detalhes:hover {
+  background: #ebe6da;
+  border-color: #7b8567;
+}
+
+.btn-toggle-detalhes.aberto {
+  background: #234b36;
+  color: #ffffff;
+  border-color: #234b36;
+}
+
+.btn-status-acao-compact {
+  padding: 5px 9px;
+  border-radius: 6px;
+  border: 1px solid #aeb9a8;
   background: #f0f4ed;
-  color: #55725a;
+  color: #234b36;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
-.status-action.active {
-  border-color: #71805a;
-  background: #71805a;
-  color: #fff;
+.btn-status-acao-compact:hover {
+  background: #234b36;
+  color: #ffffff;
+  border-color: #234b36;
+}
+
+.btn-status-acao-compact:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.btn-remover-teste-compact {
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+  background: #fff5f5;
+  color: #c53030;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-remover-teste-compact:hover {
+  background: #fee2e2;
+  border-color: #e53e3e;
 }
 
 /* =========================================================
-   RODAPÉ DO TICKET
-========================================================= */
+   DETALHES EXPANSÍVEIS DO PEDIDO
+   ========================================================= */
 
-.ticket-footer {
-  padding: 10px 20px;
-  border-top: 1px dashed #d9d2c5;
-  background: #fffefa;
-  color: #b0aa9d;
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 8px;
-  text-align: center;
-  letter-spacing: 1px;
+.pedido-compacto-detalhes {
+  padding: 14px 20px 18px;
+  background: #fbf9f3;
+  border-top: 1px dashed #e2dbce;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+  animation: fadeInDetalhes 0.2s ease-out;
+}
+
+@keyframes fadeInDetalhes {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.detalhes-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detalhes-bloco-titulo {
+  font-size: 10px;
+  font-weight: 700;
+  color: #7b8567;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ITENS DO PEDIDO */
+.detalhes-itens-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: #ffffff;
+  border: 1px solid #e5ded1;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.detalhes-item-linha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  padding: 3px 0;
+  border-bottom: 1px solid #f5f2eb;
+}
+
+.detalhes-item-linha:last-child {
+  border-bottom: none;
+}
+
+.detalhes-item-nome {
+  font-weight: 600;
+  color: #25352a;
+}
+
+.detalhes-item-tam {
+  color: #7b8567;
+  font-size: 10px;
+  margin-left: 6px;
+}
+
+.detalhes-item-preco {
+  color: #234b36;
+  font-weight: 600;
+}
+
+/* ENTREGA E RASTREAMENTO */
+.detalhes-info-card {
+  background: #ffffff;
+  border: 1px solid #e5ded1;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detalhes-info-card strong {
+  color: #25352a;
+}
+
+.detalhes-info-card small {
+  color: #7b8567;
+}
+
+/* FORMULÁRIO DE RASTREAMENTO COMPACTO */
+.form-rastreio-compacto {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.form-rastreio-compacto input {
+  padding: 6px 10px;
+  border: 1px solid #d2ccbf;
+  border-radius: 6px;
+  font-size: 11px;
+  background: #ffffff;
 }
 
 /* =========================================================
-   VAZIO
-========================================================= */
+   ESTADO VAZIO
+   ========================================================= */
 
 .pedidos-vazio {
-  min-height: 310px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
+  padding: 50px 20px;
   text-align: center;
+  color: #7b8567;
 }
 
 .pedidos-vazio-icon {
-  width: 62px;
-  height: 62px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 15px;
-  border-radius: 16px;
-  background: #ebe6da;
-  color: #31563f;
-  font-size: 25px;
+  font-size: 2rem;
+  margin-bottom: 8px;
 }
 
 .pedidos-vazio strong {
-  color: #29382e;
-  font-size: 14px;
+  display: block;
+  font-size: 15px;
+  color: #234b36;
+  margin-bottom: 4px;
 }
 
 .pedidos-vazio span {
-  max-width: 320px;
-  margin-top: 8px;
-  color: #aaa497;
-  font-size: 10px;
-  line-height: 1.6;
+  font-size: 12px;
 }
 
 /* =========================================================
-   TABLET
-========================================================= */
+   RESPONSIVIDADE (NOTEBOOK, TABLET, MOBILE)
+   ========================================================= */
 
-@media (max-width: 1050px) {
-  .pedidos-page {
-    padding: 30px 25px 50px;
-  }
-
-  .pedidos-lista {
-    grid-template-columns: 1fr;
+@media (max-width: 1200px) {
+  .pedido-compacto-main {
+    grid-template-columns: 120px minmax(150px, 1.2fr) 120px 90px 120px minmax(180px, 1.5fr);
+    gap: 8px;
   }
 }
 
-/* =========================================================
-   CELULAR
-========================================================= */
+@media (max-width: 992px) {
+  .pedido-compacto-main {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 12px 16px;
+  }
 
-@media (max-width: 650px) {
-  .ticket-shipping-form {
+  .pedido-compacto-detalhes {
     grid-template-columns: 1fr;
-  }
-
-  .ticket-shipping-url {
-    grid-column: auto;
-  }
-
-  .ticket-shipping-form input,
-  .status-action {
-    min-height: 44px;
-  }
-  .pedidos-page {
-    padding: 25px 14px 40px;
-  }
-
-  .pedidos-header h1 {
-    font-size: 28px;
   }
 
   .pedidos-cards {
     grid-template-columns: 1fr;
-    gap: 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .pedidos-page {
+    padding: 18px 14px 36px;
   }
 
-  .pedidos-panel-header {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 12px;
-    padding: 20px;
-  }
-
-  .pedidos-lista {
+  .pedido-compacto-main {
     grid-template-columns: 1fr;
-    padding: 12px;
-    gap: 14px;
+    gap: 8px;
+    padding: 12px 14px;
   }
 
-  .ticket-top {
-    padding: 17px;
+  .pedido-col-acoes {
+    justify-content: flex-start;
   }
-
-  .ticket-client {
-    padding: 15px 17px;
-  }
-
-  .ticket-progress-area {
-    padding: 15px 17px;
-  }
-
-  .ticket-products {
-    padding: 14px 17px;
-  }
-
-  .ticket-divider {
-    margin: 0 17px;
-  }
-
-  .ticket-products-header,
-  .ticket-product-row {
-    grid-template-columns:
-      minmax(0, 1fr)
-      32px
-      30px
-      68px;
-  }
-
-  .ticket-bottom {
-    padding: 15px 17px;
-  }
-
-  .ticket-status-actions {
-    grid-template-columns: repeat(2, 1fr);
-    padding: 11px 15px;
-  }
-}
-
-.ticket-tracking,
-.ticket-shipping-form {
-  margin: 0 18px 12px;
-  padding: 12px;
-  border: 1px solid #ded8cc;
-  border-radius: 8px;
-  background: #faf7f0;
-}
-
-.ticket-tracking {
-  display: grid;
-  gap: 5px;
-}
-
-.ticket-tracking span,
-.ticket-shipping-form label {
-  color: #77776e;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-}
-
-.ticket-tracking code {
-  overflow-wrap: anywhere;
-  color: #465d49;
-  font-size: 12px;
-  user-select: all;
-}
-
-.ticket-tracking a {
-  color: #55725a;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.ticket-shipping-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.ticket-shipping-form label {
-  display: grid;
-  gap: 5px;
-}
-
-.ticket-shipping-form input {
-  width: 100%;
-  min-height: 40px;
-  padding: 8px 10px;
-  border: 1px solid #d2ccbf;
-  border-radius: 6px;
-  background: #fffefa;
-  color: #3f4e42;
-  font: inherit;
-  font-size: 12px;
-}
-
-.ticket-shipping-url {
-  grid-column: 1 / -1;
-}
-
-.ticket-terminal-status {
-  grid-column: 1 / -1;
-  color: #77776e;
-  font-size: 10px;
-  text-align: center;
-}
-
-.status-action:disabled {
-  cursor: wait;
-  opacity: 0.65;
 }

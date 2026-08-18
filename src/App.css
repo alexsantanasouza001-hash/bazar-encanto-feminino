@@ -56,37 +56,31 @@
 html,
 body,
 #root {
-
   margin: 0;
-
   min-height: 100%;
-
+  color-scheme: light !important;
+  background-color: var(--background) !important;
+  color: var(--text) !important;
 }
 
-
 body {
-
   font-family:
     Inter,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-
   background: var(--background);
-
   color: var(--text);
-
+  color-scheme: light !important;
 }
-
 
 button,
 input,
 select,
 textarea {
-
   font-family: inherit;
-
+  color-scheme: light !important;
 }
 
 
@@ -3474,32 +3468,23 @@ body {
 .loja-brand {
   display: flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
+  text-decoration: none;
+  cursor: pointer;
 }
 
-.loja-brand-symbol {
-  width: 40px;
-  height: 40px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 12px;
-
-  background: linear-gradient(
-    135deg,
-    var(--primary-light),
-    #F3EBDD
-  );
-
-  border: 1px solid rgba(201, 163, 90, 0.35);
-
-  color: var(--primary);
-  font-size: 22px;
+.loja-brand-logo-img {
+  height: 54px;
+  width: auto;
+  max-width: 85px;
+  object-fit: contain;
+  border-radius: 8px;
+  display: block;
+  flex-shrink: 0;
 }
 
-.loja-brand div:last-child {
+.loja-brand div:last-child,
+.loja-brand-text {
   display: flex;
   flex-direction: column;
   line-height: 1.15;
@@ -3507,17 +3492,18 @@ body {
 
 .loja-brand span {
   color: var(--text-secondary);
-  font-size: 11px;
-  letter-spacing: 1px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 
 .loja-brand strong {
   color: var(--primary);
-
   font-family: Georgia, "Times New Roman", serif;
-
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
+  letter-spacing: -0.2px;
 }
 
 .loja-header-actions {
@@ -3575,8 +3561,36 @@ body {
 }
 
 /* =========================================================
-   HERO
+/* =========================================================
+   HERO BANNER
    ========================================================= */
+
+.loja-hero-banner {
+  width: 100%;
+  background: #F5EFE3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(201, 163, 90, 0.2);
+}
+
+.loja-hero-banner-container {
+  width: 100%;
+  max-width: 1536px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loja-hero-banner-img {
+  width: 100%;
+  height: auto;
+  max-height: 560px;
+  object-fit: contain;
+  display: block;
+}
 
 .loja-hero {
   position: relative;
@@ -4334,20 +4348,26 @@ body {
 @media (max-width: 700px) {
 
   .loja-header {
-    height: 68px;
-
-    padding: 0 18px;
+    height: 60px;
+    padding: 0 10px;
   }
 
-  .loja-brand-symbol {
-    width: 36px;
-    height: 36px;
+  .loja-brand {
+    gap: 7px;
+    flex-shrink: 0;
+    min-width: 0;
+  }
 
-    font-size: 19px;
+  .loja-brand-logo-img {
+    height: 42px;
+    max-width: 60px;
+    object-fit: contain;
+    border-radius: 6px;
+    flex-shrink: 0;
   }
 
   .loja-brand strong {
-    font-size: 15px;
+    font-size: 13px;
   }
 
   .loja-hero {
