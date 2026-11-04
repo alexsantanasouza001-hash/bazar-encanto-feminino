@@ -238,3 +238,237 @@ export function filtrarEOrdenarProdutos(produtos = [], remessas = [], filtros = 
     return 0
   })
 }
+
+export function obterDistribuicaoEstoqueProduto(produto, remessas = []) {
+  if (!produto) {
+    return {
+      lojaPorCor: [],
+      totalLoja: 0,
+      revendedoras: [],
+      totalConsignado: 0,
+      totalEmpresa: 0
+    }
+  }
+
+  const prodIdNum = Number(produto.id)
+
+  // 1. ESTOQUE NA LOJA POR COR E TAMANHO
+  const lojaPorCor = []
+  let totalLoja = 0
+
+  if (Array.isArray(produto.variacoes) && produto.variacoes.length > 0) {
+    for (const v of produto.variacoes) {
+      const corNome = (v.cor_nome || v.cor || 'Única').trim()
+      const corHex = v.cor_hex || '#234B36'
+      const variacaoId = v.id
+
+      const tamanhosMap = new Map()
+      TAMANHOS_GRADE_PADRAO.forEach((tam) => tamanhosMap.set(tam, 0))
+
+      if (Array.isArray(v.tamanhos)) {
+        for (const t of v.tamanhos) {
+          const tNome = String(t.tamanho || '').trim().toUpperCase()
+          if (tNome) {
+            tamanhosMap.set(tNome, Number(t.quantidade || 0))
+          }
+        }
+      }
+
+      if (Array.isArray(produto.tamanhos)) {
+        for (const t of produto.tamanhos) {
+          if (Number(t.variacao_id) === Number(variacaoId)) {
+            const tNome = String(t.tamanho || '').trim().toUpperCase()
+            if (tNome) {
+              tamanhosMap.set(tNome, Number(t.quantidade || 0))
+            }
+          }
+        }
+      }
+
+      const tamanhosLista = Array.from(tamanhosMap.entries()).map(([tam, qtd]) => ({
+        tamanho: tam,
+        quantidade: qtd
+      }))
+
+      tamanhosLista.sort((a, b) => {
+        const idxA = TAMANHOS_GRADE_PADRAO.indexOf(a.tamanho)
+        const idxB = TAMANHOS_GRADE_PADRAO.indexOf(b.tamanho)
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB
+        if (idxA !== -1) return -1
+        if (idxB !== -1) return 1
+        return a.tamanho.localeCompare(b.tamanho)
+      })
+
+      const totalCor = tamanhosLista.reduce((acc, t) => acc + t.quantidade, 0)
+      totalLoja += totalCor
+
+      lojaPorCor.push({
+        variacaoId,
+        cor: corNome,
+        corHex,
+        tamanhos: tamanhosLista,
+        totalCor
+      })
+    }
+  } else if (Array.isArray(produto.tamanhos) && produto.tamanhos.length > 0) {
+    const coresMap = new Map()
+
+    for (const t of produto.tamanhos) {
+      const corNome = (t.cor || produto.cor || 'Única').trim()
+      const corHex = t.cor_hex || '#234B36'
+      const varId = t.variacao_id || null
+
+      if (!coresMap.has(corNome)) {
+        const tMap = new Map()
+        TAMANHOS_GRADE_PADRAO.forEach((tam) => tMap.set(tam, 0))
+        coresMap.set(corNome, { cor: corNome, corHex, variacaoId: varId, tamanhosMap: tMap })
+      }
+
+      const tNome = String(t.tamanho || '').trim().toUpperCase()
+      if (tNome) {
+        coresMap.get(corNome).tamanhosMap.set(tNome, Number(t.quantidade || 0))
+      }
+    }
+
+    for (const [, obj] of coresMap) {
+      const tamanhosLista = Array.from(obj.tamanhosMap.entries()).map(([tam, qtd]) => ({
+        tamanho: tam,
+        quantidade: qtd
+      }))
+
+      tamanhosLista.sort((a, b) => {
+        const idxA = TAMANHOS_GRADE_PADRAO.indexOf(a.tamanho)
+        const idxB = TAMANHOS_GRADE_PADRAO.indexOf(b.tamanho)
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB
+        if (idxA !== -1) return -1
+        if (idxB !== -1) return 1
+        return a.tamanho.localeCompare(b.tamanho)
+      })
+
+      const totalCor = tamanhosLista.reduce((acc, t) => acc + t.quantidade, 0)
+      totalLoja += totalCor
+
+      lojaPorCor.push({
+        variacaoId: obj.variacaoId,
+        cor: obj.cor,
+        corHex: obj.corHex,
+        tamanhos: tamanhosLista,
+        totalCor
+      })
+    }
+  } else {
+    const corNome = (produto.cor || 'Única').trim()
+    const qtd = Number(produto.quantidade || 0)
+    totalLoja = qtd
+    lojaPorCor.push({
+      variacaoId: null,
+      cor: corNome,
+      corHex: '#234B36',
+      tamanhos: [{ tamanho: produto.tamanho || 'U', quantidade: qtd }],
+      totalCor: qtd
+    })
+  }
+
+  // 2. ESTOQUE POR REVENDEDORA (CONSIGNADO)
+  const revendedorasMap = new Map()
+  let totalConsignado = 0
+
+  for (const remessa of remessas) {
+    for (const item of (remessa.itens || [])) {
+      if (Number(item.produto_id) === prodIdNum) {
+        const saldo = calcularSaldoConsignadoItem(item)
+        if (saldo > 0) {
+          const revId = remessa.revendedora_id || remessa.revendedora_nome || 'rev-outra'
+          const revNome = remessa.revendedora_nome || 'Revendedora Parceira'
+
+          if (!revendedorasMap.has(revId)) {
+            revendedorasMap.set(revId, {
+              revendedoraId: revId,
+              revendedoraNome: revNome,
+              totalRevendedora: 0,
+              coresMap: new Map()
+            })
+          }
+
+          const revData = revendedorasMap.get(revId)
+          revData.totalRevendedora += saldo
+          totalConsignado += saldo
+
+          const corItem = (item.cor || produto.cor || 'Única').trim()
+          const corHexItem = item.cor_hex || '#234B36'
+          const varIdItem = item.variacao_id || null
+
+          if (!revData.coresMap.has(corItem)) {
+            revData.coresMap.set(corItem, {
+              cor: corItem,
+              corHex: corHexItem,
+              variacaoId: varIdItem,
+              tamanhosMap: new Map(),
+              totalCor: 0
+            })
+          }
+
+          const corData = revData.coresMap.get(corItem)
+          corData.totalCor += saldo
+
+          const tamItem = String(item.tamanho || 'U').trim().toUpperCase()
+          const qtdAtual = corData.tamanhosMap.get(tamItem) || 0
+          corData.tamanhosMap.set(tamItem, qtdAtual + saldo)
+        }
+      }
+    }
+  }
+
+  const revendedoras = []
+  for (const [, rObj] of revendedorasMap) {
+    if (rObj.totalRevendedora > 0) {
+      const coresLista = []
+      for (const [, cObj] of rObj.coresMap) {
+        const tamanhosLista = Array.from(cObj.tamanhosMap.entries())
+          .filter(([, qtd]) => qtd > 0)
+          .map(([tam, qtd]) => ({
+            tamanho: tam,
+            quantidade: qtd
+          }))
+
+        tamanhosLista.sort((a, b) => {
+          const idxA = TAMANHOS_GRADE_PADRAO.indexOf(a.tamanho)
+          const idxB = TAMANHOS_GRADE_PADRAO.indexOf(b.tamanho)
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB
+          if (idxA !== -1) return -1
+          if (idxB !== -1) return 1
+          return a.tamanho.localeCompare(b.tamanho)
+        })
+
+        coresLista.push({
+          cor: cObj.cor,
+          corHex: cObj.corHex,
+          variacaoId: cObj.variacaoId,
+          tamanhos: tamanhosLista,
+          totalCor: cObj.totalCor
+        })
+      }
+
+      revendedoras.push({
+        revendedoraId: rObj.revendedoraId,
+        revendedoraNome: rObj.revendedoraNome,
+        totalRevendedora: rObj.totalRevendedora,
+        cores: coresLista
+      })
+    }
+  }
+
+  const totalEmpresa = totalLoja + totalConsignado
+
+  return {
+    produtoId: prodIdNum,
+    produtoNome: produto.nome || '',
+    sku: produto.sku || '',
+    foto: produto.foto || null,
+    lojaPorCor,
+    totalLoja,
+    revendedoras,
+    totalConsignado,
+    totalEmpresa
+  }
+}

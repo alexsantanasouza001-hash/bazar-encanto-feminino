@@ -1,3 +1,4 @@
+import { vendaAguardandoRecebimento } from '../lib/recebimentoVenda.js'
 import { agruparClientesDosPedidos, ePedidoPagoValido } from './clientesHelpers.js'
 
 export function formatarMoeda(valor) {
@@ -396,7 +397,9 @@ export function calcularMetricasRevendas(
   const timeFim = dataFim ? new Date(dataFim).getTime() : Number.POSITIVE_INFINITY
 
   const vendasPeriodo = (vendas || []).filter((v) => {
-    const t = new Date(v.data_venda || v.criado_em || 0).getTime()
+    // Venda com recebimento futuro só entra quando o dinheiro cai (e no período desse dia).
+    if (vendaAguardandoRecebimento(v)) return false
+    const t = new Date(v.data_recebimento || v.data_venda || v.criado_em || 0).getTime()
     return t >= timeInicio && t <= timeFim
   })
 

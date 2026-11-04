@@ -12,6 +12,7 @@ import {
   normalizarProduto,
   extrairGradeProduto,
   obterConsignadoTotalProduto,
+  obterDistribuicaoEstoqueProduto,
   filtrarEOrdenarProdutos
 } from './estoqueHelpers.js'
 
@@ -50,6 +51,9 @@ function Estoque() {
   const [mostrarEntrada, setMostrarEntrada] = useState(false)
   const [mostrarSaida, setMostrarSaida] = useState(false)
   const [produtoModalId, setProdutoModalId] = useState('')
+
+  // Modal de Distribuição de Estoque (Leitura e detalhamento)
+  const [produtoDetalhesDistribuicao, setProdutoDetalhesDistribuicao] = useState(null)
 
   // Filtros
   const [visibilidadeFiltro, setVisibilidadeFiltro] = useState('Ativos')
@@ -284,6 +288,20 @@ function Estoque() {
     setMostrarSaida(true)
   }
 
+  function abrirDetalhesDistribuicao(produto) {
+    if (!produto) return
+    setProdutoDetalhesDistribuicao(produto)
+  }
+
+  function fecharDetalhesDistribuicao() {
+    setProdutoDetalhesDistribuicao(null)
+  }
+
+  const distribuicaoSelecionada = useMemo(() => {
+    if (!produtoDetalhesDistribuicao) return null
+    return obterDistribuicaoEstoqueProduto(produtoDetalhesDistribuicao, remessas)
+  }, [produtoDetalhesDistribuicao, remessas])
+
   function formatarData(dataIso) {
     if (!dataIso) return '-'
     const d = new Date(dataIso)
@@ -515,7 +533,9 @@ function Estoque() {
               <div
                 key={produto.id}
                 className="estoque-card-produto"
-                style={{ opacity: arquivado ? 0.78 : 1 }}
+                onClick={() => abrirDetalhesDistribuicao(produto)}
+                style={{ opacity: arquivado ? 0.78 : 1, cursor: 'pointer' }}
+                title="Clique para ver a distribuição detalhada deste produto (Loja e Revendedoras)"
               >
                 {/* FOTO PRINCIPAL LIMPA (SOMENTE A ROUPA/PRODUTO) */}
                 <div className="estoque-card-foto-wrapper">
@@ -600,7 +620,10 @@ function Estoque() {
                     <button
                       type="button"
                       className="estoque-btn-card-acao saida"
-                      onClick={() => abrirSaida(produto.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        abrirSaida(produto.id)
+                      }}
                       title="Registrar saída deste produto"
                     >
                       − Saída
@@ -608,7 +631,10 @@ function Estoque() {
                     <button
                       type="button"
                       className="estoque-btn-card-acao entrada"
-                      onClick={() => abrirEntrada(produto.id)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        abrirEntrada(produto.id)
+                      }}
                       title="Registrar entrada deste produto"
                     >
                       + Entrada
@@ -616,7 +642,10 @@ function Estoque() {
                     <button
                       type="button"
                       className={`estoque-btn-card-acao ${arquivado ? 'reativar' : 'arquivar'}`}
-                      onClick={() => handleAlternarAtivo(produto)}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleAlternarAtivo(produto)
+                      }}
                       title={arquivado ? 'Reativar produto no estoque' : 'Arquivar produto que não será mais reposto'}
                     >
                       {arquivado ? 'Reativar' : 'Arquivar'}
@@ -670,7 +699,12 @@ function Estoque() {
                 }
 
                 return (
-                  <tr key={produto.id} style={{ opacity: arquivado ? 0.75 : 1 }}>
+                  <tr
+                    key={produto.id}
+                    onClick={() => abrirDetalhesDistribuicao(produto)}
+                    style={{ opacity: arquivado ? 0.75 : 1, cursor: 'pointer' }}
+                    title="Clique para ver a distribuição detalhada deste produto (Loja e Revendedoras)"
+                  >
                     <td>
                       <div className="estoque-tabela-foto-col">
                         {produto.foto ? (
@@ -729,7 +763,10 @@ function Estoque() {
                         <button
                           type="button"
                           className="action-edit"
-                          onClick={() => abrirEntrada(produto.id)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            abrirEntrada(produto.id)
+                          }}
                           title="Entrada de estoque"
                         >
                           +
@@ -737,7 +774,10 @@ function Estoque() {
                         <button
                           type="button"
                           className="action-delete"
-                          onClick={() => abrirSaida(produto.id)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            abrirSaida(produto.id)
+                          }}
                           title="Saída de estoque"
                         >
                           −
@@ -745,7 +785,10 @@ function Estoque() {
                         <button
                           type="button"
                           className={`action-toggle ${arquivado ? 'reativar' : ''}`}
-                          onClick={() => handleAlternarAtivo(produto)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleAlternarAtivo(produto)
+                          }}
                           title={arquivado ? 'Reativar produto' : 'Arquivar produto'}
                         >
                           {arquivado ? 'Reativar' : 'Arquivar'}
@@ -869,6 +912,171 @@ function Estoque() {
             setProdutoModalId('')
           }}
         />
+      )}
+
+      {/* MODAL DE DISTRIBUIÇÃO DE ESTOQUE (LOJA & REVENDEDORAS) */}
+      {produtoDetalhesDistribuicao && distribuicaoSelecionada && (
+        <div
+          className="estoque-modal-overlay"
+        >
+          <div className="estoque-modal-distribuicao">
+            <div className="distribuicao-modal-header">
+              <div className="distribuicao-modal-titulo-wrap">
+                <div className="distribuicao-modal-icone">📦</div>
+                <div>
+                  <h2>Distribuição de Estoque</h2>
+                  <p className="distribuicao-modal-sub">
+                    <strong>{distribuicaoSelecionada.produtoNome}</strong>
+                    {distribuicaoSelecionada.sku && ` • SKU #${distribuicaoSelecionada.sku}`}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="distribuicao-btn-fechar"
+                onClick={fecharDetalhesDistribuicao}
+                title="Fechar"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="distribuicao-modal-corpo">
+              {/* TOTAIS CONSOLIDADOS */}
+              <div className="distribuicao-totais-grid">
+                <div className="distribuicao-total-card loja">
+                  <span className="dist-tot-label">Na Loja</span>
+                  <strong className="dist-tot-valor">{distribuicaoSelecionada.totalLoja} un.</strong>
+                  <small className="dist-tot-sub">Físico / Online</small>
+                </div>
+                <div className="distribuicao-total-card consignado">
+                  <span className="dist-tot-label">Consignado</span>
+                  <strong className="dist-tot-valor">{distribuicaoSelecionada.totalConsignado} un.</strong>
+                  <small className="dist-tot-sub">Com revendedoras</small>
+                </div>
+                <div className="distribuicao-total-card empresa">
+                  <span className="dist-tot-label">Total Empresa</span>
+                  <strong className="dist-tot-valor">{distribuicaoSelecionada.totalEmpresa} un.</strong>
+                  <small className="dist-tot-sub">Patrimônio total</small>
+                </div>
+              </div>
+
+              {/* SEÇÃO 1: ESTOQUE NA LOJA */}
+              <div className="distribuicao-secao">
+                <div className="distribuicao-secao-titulo">
+                  <div className="distribuicao-secao-titulo-esq">
+                    <span className="distribuicao-secao-tag loja">LOJA</span>
+                    <h3>Estoque Físico na Loja</h3>
+                  </div>
+                  <span className="distribuicao-secao-total">Total: <strong>{distribuicaoSelecionada.totalLoja} un.</strong></span>
+                </div>
+
+                {distribuicaoSelecionada.lojaPorCor.length === 0 ? (
+                  <p className="distribuicao-vazio">Sem estoque na loja.</p>
+                ) : (
+                  <div className="distribuicao-cores-lista">
+                    {distribuicaoSelecionada.lojaPorCor.map((c, idx) => (
+                      <div key={idx} className="distribuicao-cor-bloco">
+                        <div className="distribuicao-cor-topo">
+                          <div className="distribuicao-cor-identificacao">
+                            <span
+                              className="distribuicao-cor-dot"
+                              style={{ backgroundColor: c.corHex || '#234B36' }}
+                            />
+                            <strong>{c.cor}</strong>
+                          </div>
+                          <span className="distribuicao-cor-total">
+                            Total {c.cor} na loja: <strong>{c.totalCor} un.</strong>
+                          </span>
+                        </div>
+
+                        <div className="distribuicao-tamanhos-chips">
+                          {c.tamanhos.map((t) => (
+                            <div
+                              key={t.tamanho}
+                              className={`distribuicao-tam-chip ${t.quantidade === 0 ? 'zerado' : ''}`}
+                              title={`${t.tamanho}: ${t.quantidade} disponíveis na loja`}
+                            >
+                              <span className="tam-label">{t.tamanho}</span>
+                              <strong className="tam-num">{t.quantidade}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* SEÇÃO 2: ESTOQUE EM CONSIGNAÇÃO COM REVENDEDORAS */}
+              <div className="distribuicao-secao" style={{ marginTop: '20px' }}>
+                <div className="distribuicao-secao-titulo">
+                  <div className="distribuicao-secao-titulo-esq">
+                    <span className="distribuicao-secao-tag consignado">CONSIGNAÇÃO</span>
+                    <h3>Estoque com Revendedoras</h3>
+                  </div>
+                  <span className="distribuicao-secao-total">Total: <strong>{distribuicaoSelecionada.totalConsignado} un.</strong></span>
+                </div>
+
+                {distribuicaoSelecionada.revendedoras.length === 0 ? (
+                  <div className="distribuicao-vazio-box">
+                    <span className="distribuicao-vazio-icone">🤝</span>
+                    <p>Nenhuma revendedora possui saldo em consignação deste produto no momento.</p>
+                  </div>
+                ) : (
+                  <div className="distribuicao-revendedoras-lista">
+                    {distribuicaoSelecionada.revendedoras.map((r) => (
+                      <div key={r.revendedoraId} className="distribuicao-revendedora-card">
+                        <div className="distribuicao-revendedora-topo">
+                          <div className="distribuicao-rev-nome-wrap">
+                            <span className="distribuicao-rev-avatar">👤</span>
+                            <strong>{r.revendedoraNome}</strong>
+                          </div>
+                          <span className="distribuicao-rev-total">
+                            Total com {r.revendedoraNome}: <strong>{r.totalRevendedora} un.</strong>
+                          </span>
+                        </div>
+
+                        <div className="distribuicao-rev-cores">
+                          {r.cores.map((c, cIdx) => (
+                            <div key={cIdx} className="distribuicao-rev-cor-item">
+                              <div className="distribuicao-rev-cor-header">
+                                <span
+                                  className="distribuicao-cor-dot-sm"
+                                  style={{ backgroundColor: c.corHex || '#234B36' }}
+                                />
+                                <strong className="distribuicao-rev-cor-nome">{c.cor}</strong>
+                                <span className="distribuicao-rev-cor-subtotal">({c.totalCor} un.)</span>
+                              </div>
+
+                              <div className="distribuicao-rev-tam-lista">
+                                {c.tamanhos.map((t) => (
+                                  <span key={t.tamanho} className="distribuicao-rev-tam-badge">
+                                    {t.tamanho}: <strong>{t.quantidade}</strong>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="distribuicao-modal-footer">
+              <button
+                type="button"
+                className="distribuicao-btn-fechar-footer"
+                onClick={fecharDetalhesDistribuicao}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

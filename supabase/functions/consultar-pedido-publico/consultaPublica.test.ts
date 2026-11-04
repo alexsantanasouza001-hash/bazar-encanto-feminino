@@ -8,16 +8,14 @@ const migration = readFileSync(
   'utf8',
 )
 
-test('consulta normaliza número e e-mail sem colocar e-mail na URL', () => {
-  assert.match(edge, /corpo\.numero\.trim\(\)\.toUpperCase\(\)/)
-  assert.match(edge, /corpo\.email\.trim\(\)\.toLowerCase\(\)/)
-  assert.match(edge, /NUMERO_PATTERN/)
+test('consulta normaliza código seguro e número sem colocar dados na URL', () => {
+  assert.match(edge, /entradaCodigo/)
+  assert.match(edge, /CODIGO_SEGURO_PATTERN/)
   assert.doesNotMatch(edge, /searchParams\.set\([^\n]*email/)
 })
 
-test('erros de correspondência não diferenciam pedido e e-mail', () => {
-  assert.match(edge, /Pedido não encontrado ou dados inválidos\./)
-  assert.doesNotMatch(edge, /E-mail não corresponde|Pedido inexistente/)
+test('erros de correspondência são genéricos para proteger pedidos', () => {
+  assert.match(edge, /Pedido não encontrado ou código inválido\./)
 })
 
 test('rate limit persistente cobre IP, hora e combinação da consulta', () => {
@@ -38,7 +36,6 @@ test('RPC pública retorna apenas o recorte permitido', () => {
       new RegExp(proibido),
     )
   }
-  assert.match(migration, /grant execute on function public\.consultar_pedido_publico\(text, text\)\s+to service_role/)
 })
 
 test('produto inativo fica fora do catálogo e bloqueado no checkout', () => {

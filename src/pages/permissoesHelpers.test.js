@@ -109,23 +109,23 @@ test('USUÁRIO INATIVO: bloqueado completamente mesmo se tiver papel de admin', 
 
 test('MENU POR PERFIL: monta apenas os itens permitidos para cada papel', () => {
   const menuAdmin = obterMenuPermitido('admin')
-  assert.equal(menuAdmin.length, 8)
+  assert.equal(menuAdmin.length, 10)
   assert.deepEqual(
     menuAdmin.map((i) => i.id),
-    ['dashboard', 'produtos', 'estoque', 'pedidos', 'clientes', 'revendas', 'relatorios', 'usuarios']
+    ['dashboard', 'venda_direta', 'produtos', 'estoque', 'pedidos', 'clientes', 'revendas', 'financeiro', 'relatorios', 'usuarios']
   )
 
   const menuSocio = obterMenuPermitido('socio')
-  assert.equal(menuSocio.length, 7)
+  assert.equal(menuSocio.length, 9)
   assert.deepEqual(
     menuSocio.map((i) => i.id),
-    ['dashboard', 'produtos', 'estoque', 'pedidos', 'clientes', 'revendas', 'relatorios']
+    ['dashboard', 'venda_direta', 'produtos', 'estoque', 'pedidos', 'clientes', 'revendas', 'financeiro', 'relatorios']
   )
 
   const menuOperador = obterMenuPermitido('operador')
-  assert.equal(menuOperador.length, 4)
+  assert.equal(menuOperador.length, 5)
   assert.deepEqual(
     menuOperador.map((i) => i.id),
-    ['dashboard', 'produtos', 'estoque', 'pedidos']
+    ['dashboard', 'venda_direta', 'produtos', 'estoque', 'pedidos']
   )
 })

@@ -1,0 +1,1439 @@
+/* =========================================================
+   PORTAL DA REVENDEDORA - BAZAR ENCANTO FEMININO
+   DESIGN SYSTEM MOBILE-FIRST & DESKTOP
+   ========================================================= */
+
+.portal-root {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--background, #F7F3EB);
+  color: var(--text, #25352A);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  padding-bottom: 74px; /* Espaço para a barra de navegação móvel inferior */
+}
+
+@media (min-width: 900px) {
+  .portal-root {
+    padding-bottom: 0;
+  }
+}
+
+/* SIDEBAR DESKTOP */
+.portal-sidebar {
+  display: none;
+  width: 260px;
+  background: var(--surface, #FFFDF8);
+  border-right: 1px solid var(--border, #E5DDCF);
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  z-index: 50;
+}
+
+@media (min-width: 900px) {
+  .portal-sidebar {
+    display: flex;
+  }
+}
+
+.portal-sidebar-header {
+  padding: 24px 20px 16px;
+  border-bottom: 1px solid var(--border, #E5DDCF);
+}
+
+.portal-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portal-brand-symbol {
+  font-size: 24px;
+  color: var(--accent, #C9A35A);
+}
+
+.portal-brand-title {
+  display: flex;
+  flex-direction: column;
+}
+
+.portal-brand-name {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-secondary, #6E746B);
+  font-weight: 600;
+}
+
+.portal-brand-sub {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary, #234B36);
+  font-family: serif;
+}
+
+.portal-badge-portal {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 10px;
+  background: var(--primary-light, #E8E2D4);
+  color: var(--primary-dark, #173626);
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.portal-sidebar-nav {
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.portal-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  color: var(--text, #25352A);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.portal-nav-btn:hover {
+  background: rgba(35, 75, 54, 0.06);
+  color: var(--primary, #234B36);
+}
+
+.portal-nav-btn.active {
+  background: var(--primary, #234B36);
+  color: #fff;
+  font-weight: 600;
+}
+
+.portal-nav-btn.highlight {
+  background: var(--accent, #C9A35A);
+  color: #fff;
+  font-weight: 600;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.portal-nav-btn.highlight:hover {
+  background: #b5924d;
+}
+
+.portal-nav-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+}
+
+.portal-sidebar-footer {
+  padding: 16px;
+  border-top: 1px solid var(--border, #E5DDCF);
+  background: var(--surface, #FFFDF8);
+}
+
+.portal-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.portal-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary-light, #E8E2D4);
+  color: var(--primary, #234B36);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.portal-user-meta {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.portal-user-meta strong {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.portal-user-meta span {
+  font-size: 11px;
+  color: var(--text-secondary, #6E746B);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ÁREA PRINCIPAL */
+.portal-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* TOPBAR MOBILE */
+.portal-topbar-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--surface, #FFFDF8);
+  border-bottom: 1px solid var(--border, #E5DDCF);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+@media (min-width: 900px) {
+  .portal-topbar-mobile {
+    display: none;
+  }
+}
+
+.portal-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.portal-topbar-brand strong {
+  font-size: 15px;
+  color: var(--primary, #234B36);
+  font-family: serif;
+}
+
+.portal-topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* CONTAINER DE CONTEÚDO */
+.portal-content {
+  padding: 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .portal-content {
+    padding: 24px 32px;
+  }
+}
+
+/* CARDS DE RESUMO / DASHBOARD */
+.portal-header-greeting {
+  margin-bottom: 20px;
+}
+
+.portal-header-greeting h1 {
+  font-size: 22px;
+  font-family: serif;
+  color: var(--primary-dark, #173626);
+  margin: 0 0 4px 0;
+}
+
+@media (min-width: 768px) {
+  .portal-header-greeting h1 {
+    font-size: 28px;
+  }
+}
+
+.portal-header-greeting p {
+  font-size: 13px;
+  color: var(--text-secondary, #6E746B);
+  margin: 0;
+}
+
+.portal-alert-pendencias {
+  background: var(--warning-light, #F5EAD2);
+  border: 1px solid var(--warning, #B8893F);
+  color: #724e16;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.portal-alert-pendencias button {
+  background: var(--warning, #B8893F);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.portal-grid-resumo {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 600px) {
+  .portal-grid-resumo {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+.portal-card-metric {
+  background: var(--surface, #FFFDF8);
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
+}
+
+.portal-card-metric.highlight-primary {
+  border-left: 4px solid var(--primary, #234B36);
+}
+
+.portal-card-metric.highlight-accent {
+  border-left: 4px solid var(--accent, #C9A35A);
+}
+
+.portal-card-metric.highlight-success {
+  border-left: 4px solid var(--success, #56745A);
+}
+
+.portal-card-metric.highlight-warning {
+  border-left: 4px solid var(--warning, #B8893F);
+}
+
+.portal-card-metric .metric-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #6E746B);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.portal-card-metric .metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text, #25352A);
+}
+
+@media (min-width: 768px) {
+  .portal-card-metric .metric-value {
+    font-size: 24px;
+  }
+}
+
+.portal-card-metric .metric-sub {
+  font-size: 11px;
+  color: var(--text-secondary, #6E746B);
+  margin-top: 4px;
+}
+
+/* AÇÕES RÁPIDAS */
+.portal-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary, #234B36);
+  margin: 24px 0 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.portal-quick-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+@media (min-width: 600px) {
+  .portal-quick-actions {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.portal-btn-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--surface, #FFFDF8);
+  border: 1px solid var(--border, #E5DDCF);
+  padding: 14px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary, #234B36);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.portal-btn-action:hover {
+  border-color: var(--primary, #234B36);
+  background: var(--primary-light, #E8E2D4);
+}
+
+.portal-btn-action.primary {
+  background: var(--primary, #234B36);
+  color: #fff;
+  border-color: var(--primary, #234B36);
+}
+
+.portal-btn-action.primary:hover {
+  background: var(--primary-dark, #173626);
+}
+
+/* CARDS DE ITENS / PEÇAS (MOBILE-FIRST) */
+.portal-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.portal-item-card {
+  background: var(--surface, #FFFDF8);
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  gap: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  align-items: center;
+}
+
+.portal-item-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #f0f0f0;
+  flex-shrink: 0;
+}
+
+.portal-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.portal-item-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #25352A);
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.portal-item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.portal-tag {
+  font-size: 11px;
+  background: #f0ede6;
+  color: var(--text-secondary, #6E746B);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.portal-tag-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(0,0,0,0.2);
+}
+
+.portal-item-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-secondary, #6E746B);
+}
+
+.portal-item-stats strong {
+  color: var(--text, #25352A);
+}
+
+.portal-badge-disp {
+  background: var(--success-light, #E8EEE2);
+  color: var(--success, #56745A);
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.portal-badge-disp.zerado {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+/* CARDS AGRUPADOS POR PRODUTO/COR/REMESSA */
+.portal-item-card-agrupado {
+  padding: 16px;
+  display: block;
+}
+
+.portal-card-corpo {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.portal-card-foto-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portal-card-foto-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.portal-card-foto-placeholder {
+  font-size: 32px;
+}
+
+.portal-grade-container {
+  margin-top: 10px;
+  background: #fafaf9;
+  border: 1px solid #f0eee6;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.portal-grade-titulo {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #78716c;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.portal-grade-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 8px;
+}
+
+.portal-tam-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e7e5e4;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.portal-tam-card.tem-disp {
+  border-left: 3px solid #16a34a;
+}
+
+.portal-tam-card.sem-disp {
+  border-left: 3px solid #cbd5e1;
+  opacity: 0.75;
+}
+
+.portal-tam-card .tam-badge {
+  font-weight: 800;
+  font-size: 13px;
+  color: #1c1917;
+  background: #f5f5f4;
+  border-radius: 4px;
+  padding: 2px 6px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.portal-tam-card .tam-metricas {
+  display: flex;
+  flex-direction: column;
+}
+
+.portal-tam-card .tam-disp-destaque {
+  font-size: 12px;
+  font-weight: 700;
+  color: #166534;
+}
+
+.portal-tam-card.sem-disp .tam-disp-destaque {
+  color: #64748b;
+}
+
+.portal-tam-card .tam-detalhes {
+  font-size: 10px;
+  color: #78716c;
+}
+
+@media (max-width: 600px) {
+  .portal-card-corpo {
+    flex-direction: column;
+  }
+  .portal-card-foto-wrap {
+    width: 60px;
+    height: 60px;
+  }
+  .portal-grade-cards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  }
+}
+
+/* FORMULÁRIO DE NOVA VENDA */
+.portal-form-card {
+  background: var(--surface, #FFFDF8);
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.portal-form-group {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.portal-form-group label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-secondary, #6E746B);
+  margin-bottom: 6px;
+}
+
+.portal-form-input,
+.portal-form-select,
+.portal-form-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 15px;
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text, #25352A);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.portal-form-input:focus,
+.portal-form-select:focus,
+.portal-form-textarea:focus {
+  border-color: var(--primary, #234B36);
+  box-shadow: 0 0 0 3px rgba(35, 75, 54, 0.1);
+}
+
+.portal-search-box {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.portal-search-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 60;
+  margin-top: 4px;
+}
+
+.portal-search-item {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f2ede4;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  transition: background 0.15s ease;
+}
+
+.portal-search-item:hover {
+  background: #faf6ef;
+}
+
+.portal-preview-box {
+  background: #FAF7F0;
+  border: 1px dashed var(--border, #E5DDCF);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.portal-preview-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 4px 0;
+  color: var(--text-secondary, #6E746B);
+}
+
+.portal-preview-row.total {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary, #234B36);
+  border-top: 1px solid var(--border, #E5DDCF);
+  margin-top: 8px;
+  padding-top: 8px;
+}
+
+.portal-btn-submit {
+  width: 100%;
+  background: var(--primary, #234B36);
+  color: #fff;
+  border: none;
+  padding: 14px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.portal-btn-submit:hover:not(:disabled) {
+  background: var(--primary-dark, #173626);
+}
+
+.portal-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* STATUS BADGES */
+.portal-badge-status {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.portal-badge-status.pendente {
+  background: var(--warning-light, #F5EAD2);
+  color: #8c5b16;
+}
+
+.portal-badge-status.confirmada {
+  background: var(--success-light, #E8EEE2);
+  color: var(--success, #56745A);
+}
+
+.portal-badge-status.recusada {
+  background: var(--danger-light, #F5E3DE);
+  color: var(--danger, #B85F4A);
+}
+
+/* EXTRATO DE CONTA CORRENTE */
+.portal-extrato-card {
+  background: var(--surface, #FFFDF8);
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.portal-extrato-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border, #E5DDCF);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.portal-extrato-item:last-child {
+  border-bottom: none;
+}
+
+.portal-extrato-desc strong {
+  font-size: 13px;
+  display: block;
+  color: var(--text, #25352A);
+}
+
+.portal-extrato-desc span {
+  font-size: 11px;
+  color: var(--text-secondary, #6E746B);
+}
+
+.portal-extrato-valores {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.portal-extrato-valor {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.portal-extrato-valor.credito {
+  color: var(--danger, #B85F4A); /* Valor devido ao Bazar */
+}
+
+.portal-extrato-valor.debito {
+  color: var(--success, #56745A); /* Repasse efetuado */
+}
+
+.portal-extrato-saldo {
+  font-size: 11px;
+  color: var(--text-secondary, #6E746B);
+}
+
+/* BOTTOM NAVIGATION (MOBILE) */
+.portal-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--surface, #FFFDF8);
+  border-top: 1px solid var(--border, #E5DDCF);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  z-index: 100;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+}
+
+@media (min-width: 900px) {
+  .portal-bottom-nav {
+    display: none;
+  }
+}
+
+.portal-bottom-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary, #6E746B);
+  font-size: 10px;
+  font-weight: 600;
+  gap: 2px;
+  padding: 6px;
+  cursor: pointer;
+  flex: 1;
+  transition: color 0.15s ease;
+}
+
+.portal-bottom-btn.active {
+  color: var(--primary, #234B36);
+}
+
+.portal-bottom-btn .nav-icon {
+  font-size: 20px;
+}
+
+.portal-bottom-btn.vender-destaque {
+  transform: translateY(-8px);
+}
+
+.portal-bottom-btn.vender-destaque .nav-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary, #234B36);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 10px rgba(35, 75, 54, 0.3);
+}
+
+/* TELA DE LOGIN DA REVENDEDORA */
+.portal-login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--background, #F7F3EB);
+}
+
+.portal-login-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface, #FFFDF8);
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 14px;
+  padding: 32px 24px;
+  box-shadow: 0 10px 30px rgba(37, 53, 42, 0.08);
+  text-align: center;
+}
+
+.portal-login-brand-symbol {
+  font-size: 32px;
+  color: var(--accent, #C9A35A);
+  margin-bottom: 4px;
+}
+
+.portal-login-title {
+  font-family: serif;
+  font-size: 22px;
+  color: var(--primary, #234B36);
+  margin: 0 0 6px 0;
+}
+
+.portal-login-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary, #6E746B);
+  margin: 0 0 24px 0;
+}
+
+/* MODAL DO PORTAL DA REVENDEDORA */
+.portal-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(23, 54, 38, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  backdrop-filter: blur(3px);
+}
+
+.portal-modal {
+  background: #FFFDF8;
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 14px;
+  padding: 24px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 16px 36px rgba(35, 75, 54, 0.18);
+}
+
+.portal-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.portal-modal-title {
+  font-family: serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary, #234B36);
+  margin: 0;
+}
+
+.portal-modal-sub {
+  font-size: 12px;
+  color: var(--text-secondary, #6E746B);
+  margin-top: 4px;
+}
+
+.portal-modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: var(--text-secondary, #6E746B);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.portal-modal-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text, #25352A);
+}
+
+.portal-readonly-field {
+  background: #F2EDE4;
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text, #25352A);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.portal-readonly-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  background: #E5DDCF;
+  color: #4A5043;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* =========================================================
+   CONSOLIDAÇÃO FINANCEIRA (RESUMO & ACERTOS) - DESIGN LIMPO
+   ========================================================= */
+
+.portal-resumo-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.portal-resumo-banner {
+  background: #FAF7F0;
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 12px;
+  padding: 18px 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.portal-resumo-banner-titulo {
+  font-family: serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary, #234B36);
+  margin: 0;
+}
+
+.portal-resumo-banner-sub {
+  font-size: 12px;
+  color: var(--text-secondary, #6E746B);
+  margin-top: 4px;
+}
+
+.portal-resumo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.portal-resumo-card {
+  background: var(--surface, #FFFDF8);
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 12px;
+  padding: 22px 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 6px rgba(35, 75, 54, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.portal-resumo-card:hover {
+  box-shadow: 0 4px 12px rgba(35, 75, 54, 0.06);
+}
+
+.portal-resumo-card-titulo {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  font-weight: 700;
+  color: var(--text-secondary, #6E746B);
+  margin-bottom: 12px;
+}
+
+.portal-resumo-card-valor {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text, #25352A);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+.portal-resumo-card.lucro {
+  background: #FAF7F0;
+  border-color: rgba(35, 75, 54, 0.3);
+}
+
+.portal-resumo-card.lucro .portal-resumo-card-valor {
+  color: var(--primary, #234B36);
+}
+
+.portal-resumo-card.comissao .portal-resumo-card-valor {
+  color: var(--accent, #C9A35A);
+}
+
+/* BLOCO DE DIVISÃO ESPECIAL */
+.portal-bloco-divisao {
+  background: var(--surface, #FFFDF8);
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 14px;
+  padding: 22px 24px;
+}
+
+.portal-bloco-divisao-header {
+  margin-bottom: 16px;
+}
+
+.portal-bloco-divisao-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary, #234B36);
+  margin: 0;
+}
+
+.portal-bloco-divisao-sub {
+  font-size: 12px;
+  color: var(--text-secondary, #6E746B);
+  margin-top: 3px;
+}
+
+.portal-bloco-divisao-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+}
+
+.portal-divisao-item {
+  background: #FAF7F0;
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.portal-divisao-item-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.7px;
+  font-weight: 700;
+  color: var(--text-secondary, #6E746B);
+  margin-bottom: 10px;
+}
+
+.portal-divisao-item-valor {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+/* BLOCOS FINAIS (TOTAL REVENDEDORA & VALOR A SER PAGO AO BAZAR) */
+.portal-bloco-finais {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.portal-card-ganho-rev {
+  background: #FAF7F0;
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.portal-card-ganho-rev-titulo {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.9px;
+  font-weight: 700;
+  color: var(--text-secondary, #6E746B);
+  margin-bottom: 12px;
+}
+
+.portal-card-ganho-rev-valor {
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--accent, #C9A35A);
+  margin-bottom: 14px;
+  line-height: 1.1;
+}
+
+.portal-card-pago-bazar {
+  background: linear-gradient(135deg, #234B36 0%, #153223 100%);
+  color: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 28px rgba(35, 75, 54, 0.22);
+}
+
+.portal-card-pago-bazar-titulo {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  font-weight: 800;
+  color: #E8E2D4;
+  margin-bottom: 12px;
+}
+
+.portal-card-pago-bazar-valor {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 14px;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+}
+
+.portal-fechamento-box {
+  background: var(--surface, #FFFDF8);
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 10px;
+  padding: 14px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-secondary, #6E746B);
+}
+
+/* BARRA DE FILTROS NA ABA ACERTOS */
+.portal-filtros-acertos {
+  background: var(--surface, #FFFDF8);
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.portal-filtro-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 170px;
+}
+
+.portal-filtro-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-secondary, #6E746B);
+}
+
+.portal-filtro-select,
+.portal-filtro-input {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #E5DDCF);
+  background: #ffffff;
+  font-size: 13px;
+  color: var(--text, #25352A);
+  font-family: inherit;
+  outline: none;
+}
+
+.portal-filtro-select:focus,
+.portal-filtro-input:focus {
+  border-color: var(--primary, #234B36);
+}
+
+/* ===================================================
+   BUSCA COM FOTO & SELEÇÃO DE TAMANHO NA VENDA
+=================================================== */
+.portal-search-item-foto {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.portal-search-item-foto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.portal-produto-selecionado-box {
+  background: #FAF7F0;
+  border: 1px solid var(--border, #E5DDCF);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.portal-prod-sel-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px dashed var(--border, #E5DDCF);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.portal-prod-sel-info-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.portal-btn-trocar-prod {
+  background: transparent;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.portal-btn-trocar-prod:hover {
+  background: #fee2e2;
+}
+
+.portal-seletor-tamanhos-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.portal-seletor-tamanhos-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #44403c;
+}
+
+.portal-tamanhos-chips-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.portal-tam-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1.5px solid #d6d3d1;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #1c1917;
+  font-family: inherit;
+}
+
+.portal-tam-chip-btn:hover:not(:disabled) {
+  border-color: var(--primary, #234B36);
+  background: #fdfbf7;
+}
+
+.portal-tam-chip-btn.selecionado {
+  background: var(--primary, #234B36);
+  border-color: var(--primary, #234B36);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(35, 75, 54, 0.25);
+}
+
+.portal-tam-chip-btn.selecionado .tam-chip-qtd {
+  color: #d1fae5;
+}
+
+.portal-tam-chip-btn.indisponivel {
+  background: #f5f5f4;
+  border-color: #e7e5e4;
+  color: #a8a29e;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.tam-chip-letra {
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.tam-chip-qtd {
+  font-size: 11px;
+  font-weight: 600;
+  color: #166534;
+}
+
+.portal-tam-chip-btn.indisponivel .tam-chip-qtd {
+  color: #9ca3af;
+}
+

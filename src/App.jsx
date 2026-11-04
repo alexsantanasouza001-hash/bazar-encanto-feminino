@@ -5,7 +5,7 @@ import Loja from './pages/Loja'
 import AdminAuth from './components/AdminAuth'
 import AcompanharPedido from './pages/AcompanharPedido'
 import { supabase } from './lib/supabase'
-import { carregarPerfilAdmin } from './storage'
+import { carregarPerfilAdmin, carregarPerfilRevendedoraLogada } from './storage'
 import {
   normalizarPapel,
   obterTituloPapel,
@@ -14,17 +14,21 @@ import {
 } from './pages/permissoesHelpers'
 
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+const VendaDireta = lazy(() => import('./pages/VendaDireta'))
 const Produtos = lazy(() => import('./pages/Produtos'))
 const Estoque = lazy(() => import('./pages/Estoque'))
 const Pedidos = lazy(() => import('./pages/Pedidos'))
 const Clientes = lazy(() => import('./pages/Clientes'))
 const Relatorios = lazy(() => import('./pages/Relatorios'))
 const Revendas = lazy(() => import('./pages/Revendas'))
+const Financeiro = lazy(() => import('./pages/Financeiro'))
 const Usuarios = lazy(() => import('./pages/Usuarios'))
 const Sobre = lazy(() => import('./pages/Sobre'))
 const PoliticaPrivacidade = lazy(() => import('./pages/PoliticaPrivacidade'))
 const Termos = lazy(() => import('./pages/Termos'))
 const TrocasDevolucoes = lazy(() => import('./pages/TrocasDevolucoes'))
+const PortalRevendedora = lazy(() => import('./pages/portal-revendedora/PortalRevendedora'))
+const RevendedoraLogin = lazy(() => import('./pages/portal-revendedora/RevendedoraLogin'))
 
 function LoadingFallback() {
   return (
@@ -61,6 +65,7 @@ function App() {
 
   const lojaPublica = caminhoAtual === '/' || caminhoAtual === ''
   const rotaAdministrativa = caminhoAtual === '/admin' || caminhoAtual.startsWith('/admin/')
+  const rotaRevendedora = caminhoAtual === '/revendedora' || caminhoAtual.startsWith('/revendedora/')
   const rotaAcompanhamento = caminhoAtual === '/acompanhar-pedido'
   const rotaSobre = caminhoAtual === '/sobre'
   const rotaPrivacidade = caminhoAtual === '/politica-de-privacidade'
@@ -76,10 +81,227 @@ function App() {
       {rotaTrocas && <TrocasDevolucoes onNavegar={navegar} />}
       {lojaPublica && <Loja onNavegar={navegar} />}
       {rotaAdministrativa && <PainelAdministrativoProtegido onNavegar={navegar} />}
-      {!rotaAcompanhamento && !rotaSobre && !rotaPrivacidade && !rotaTermos && !rotaTrocas && !lojaPublica && !rotaAdministrativa && (
+      {rotaRevendedora && <PortalRevendedoraProtegido onNavegar={navegar} caminhoAtual={caminhoAtual} />}
+      {!rotaAcompanhamento && !rotaSobre && !rotaPrivacidade && !rotaTermos && !rotaTrocas && !lojaPublica && !rotaAdministrativa && !rotaRevendedora && (
         <Loja onNavegar={navegar} />
       )}
     </Suspense>
+  )
+}
+
+function PortalRevendedoraProtegido({ onNavegar, caminhoAtual }) {
+  const [sessao, setSessao] = useState(null)
+  const [perfilRevendedora, setPerfilRevendedora] = useState(null)
+  const [carregandoSessao, setCarregandoSessao] = useState(true)
+
+  useEffect(() => {
+    let componenteAtivo = true
+
+    const carregarSessaoEPerfil = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession()
+
+        if (!componenteAtivo) return
+
+        if (error || !data?.session) {
+          setSessao(null)
+          setPerfilRevendedora(null)
+          setCarregandoSessao(false)
+          return
+        }
+
+        const user = data.session.user
+        setSessao(data.session)
+
+        const perfil = await carregarPerfilRevendedoraLogada(user.id)
+        if (componenteAtivo) {
+          setPerfilRevendedora(perfil)
+        }
+      } catch (e) {
+        console.error('Erro ao verificar sessão da revendedora:', e)
+      } finally {
+        if (componenteAtivo) {
+          setCarregandoSessao(false)
+        }
+      }
+    }
+
+    carregarSessaoEPerfil()
+
+    const {
+      data: { subscription }
+    } = supabase.auth.onAuthStateChange(async (_evento, proximaSessao) => {
+      if (componenteAtivo) {
+        setSessao(proximaSessao)
+        if (proximaSessao?.user) {
+          const perfil = await carregarPerfilRevendedoraLogada(proximaSessao.user.id)
+          if (componenteAtivo) {
+            setPerfilRevendedora(perfil)
+          }
+        } else {
+          setPerfilRevendedora(null)
+        }
+        setCarregandoSessao(false)
+      }
+    })
+
+    return () => {
+      componenteAtivo = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  if (carregandoSessao) {
+    return <LoadingFallback />
+  }
+
+  // Não autenticada: redireciona para a tela de login da revendedora
+  if (!sessao) {
+    return (
+      <RevendedoraLogin
+        onNavegar={onNavegar}
+        onLoginSucesso={(perfil) => setPerfilRevendedora(perfil)}
+      />
+    )
+  }
+
+  // Usuário autenticado mas sem cadastro de revendedora associado
+  if (!perfilRevendedora) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        backgroundColor: 'var(--background, #F7F3EB)',
+        fontFamily: 'sans-serif'
+      }}>
+        <div style={{
+          maxWidth: '460px',
+          background: 'var(--surface, #FFFDF8)',
+          border: '1px solid var(--border, #E5DDCF)',
+          borderRadius: '12px',
+          padding: '32px 24px',
+          textAlign: 'center',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '12px', color: 'var(--warning, #B8893F)' }}>⚠️</div>
+          <h2 style={{ fontSize: '18px', color: 'var(--primary, #234B36)', margin: '0 0 8px' }}>
+            Acesso Restrito ao Portal
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary, #6E746B)', lineHeight: 1.5, margin: '0 0 24px' }}>
+            A conta <strong>{sessao.user.email}</strong> está autenticada, porém não está vinculada a nenhuma revendedora ativa cadastrada no Bazar Encanto Feminino.
+          </p>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button
+              type="button"
+              style={{
+                background: 'var(--primary, #234B36)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '10px 18px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+              onClick={() => (onNavegar ? onNavegar('/') : (window.location.href = '/'))}
+            >
+              Ir para a Loja
+            </button>
+            <button
+              type="button"
+              style={{
+                background: 'transparent',
+                color: 'var(--danger, #B85F4A)',
+                border: '1px solid var(--border, #E5DDCF)',
+                borderRadius: '8px',
+                padding: '10px 18px',
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+              onClick={async () => {
+                await supabase.auth.signOut()
+                setSessao(null)
+                setPerfilRevendedora(null)
+                if (onNavegar) onNavegar('/revendedora/login')
+              }}
+            >
+              Trocar de Conta
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Revendedora com acesso bloqueado
+  if (perfilRevendedora.status_acesso === 'BLOQUEADO') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px',
+        backgroundColor: 'var(--background, #F7F3EB)'
+      }}>
+        <div style={{
+          maxWidth: '460px',
+          background: 'var(--surface, #FFFDF8)',
+          border: '1px solid var(--danger, #B85F4A)',
+          borderRadius: '12px',
+          padding: '32px 24px',
+          textAlign: 'center',
+          boxShadow: '0 4px 15px rgba(0,0,0,0.05)'
+        }}>
+          <div style={{ fontSize: '32px', marginBottom: '12px', color: 'var(--danger, #B85F4A)' }}>🚫</div>
+          <h2 style={{ fontSize: '18px', color: 'var(--danger, #B85F4A)', margin: '0 0 8px' }}>
+            Acesso ao Portal Bloqueado
+          </h2>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary, #6E746B)', lineHeight: 1.5, margin: '0 0 24px' }}>
+            Olá, <strong>{perfilRevendedora.nome}</strong>. O seu acesso ao Portal da Revendedora foi temporariamente suspenso pela administração do Bazar. Entre em contato com a gerência para regularização.
+          </p>
+          <button
+            type="button"
+            style={{
+              background: 'var(--primary, #234B36)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '10px 20px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+            onClick={async () => {
+              await supabase.auth.signOut()
+              setSessao(null)
+              setPerfilRevendedora(null)
+              if (onNavegar) onNavegar('/revendedora/login')
+            }}
+          >
+            Sair da Conta
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Se estiver na rota de login mas já autenticada com perfil válido, exibe o portal
+  return (
+    <PortalRevendedora
+      usuario={sessao.user}
+      revendedora={perfilRevendedora}
+      caminhoAtual={caminhoAtual === '/revendedora/login' ? '/revendedora' : caminhoAtual}
+      onNavegar={onNavegar}
+      onLogout={() => {
+        setSessao(null)
+        setPerfilRevendedora(null)
+      }}
+    />
   )
 }
 
@@ -190,6 +412,15 @@ function PainelAdministrativoProtegido({ onNavegar }) {
 function PainelAdministrativo({ usuario, perfil, papel, onNavegar }) {
   const [pagina, setPagina] = useState('dashboard')
   const [saindo, setSaindo] = useState(false)
+  const [pedidosNovosCount, setPedidosNovosCount] = useState(0)
+
+  useEffect(() => {
+    const handler = (e) => {
+      setPedidosNovosCount(Number(e?.detail ?? 0))
+    }
+    window.addEventListener('bazar_pedidos_novos_count', handler)
+    return () => window.removeEventListener('bazar_pedidos_novos_count', handler)
+  }, [])
 
   // Monta menu dinâmico de acordo com o papel do usuário
   const menuPrincipal = obterMenuPermitido(papel)
@@ -240,6 +471,11 @@ function PainelAdministrativo({ usuario, perfil, papel, onNavegar }) {
             >
               <span className="menu-icon">{item.icone}</span>
               <span className="menu-name">{item.label || item.nome}</span>
+              {item.id === 'pedidos' && pedidosNovosCount > 0 && (
+                <span className="menu-badge-novos" title={`${pedidosNovosCount} novos pedidos recebidos`}>
+                  ● {pedidosNovosCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>
@@ -281,11 +517,13 @@ function PainelAdministrativo({ usuario, perfil, papel, onNavegar }) {
       <main className="main">
         <Suspense fallback={<LoadingFallback />}>
           {pagina === 'dashboard' && <Dashboard setPagina={setPagina} papelUsuario={papel} />}
+          {pagina === 'venda_direta' && <VendaDireta usuarioLogado={usuario} papelUsuario={papel} setPagina={setPagina} />}
           {pagina === 'produtos' && <Produtos papelUsuario={papel} />}
           {pagina === 'estoque' && <Estoque papelUsuario={papel} />}
-          {pagina === 'pedidos' && <Pedidos papelUsuario={papel} />}
+          {pagina === 'pedidos' && <Pedidos papelUsuario={papel} usuarioLogado={usuario} />}
           {pagina === 'clientes' && podeAcessarPagina(papel, 'clientes') && <Clientes />}
           {pagina === 'revendas' && podeAcessarPagina(papel, 'revendas') && <Revendas />}
+          {pagina === 'financeiro' && podeAcessarPagina(papel, 'financeiro') && <Financeiro papelUsuario={papel} usuarioLogado={usuario} />}
           {pagina === 'relatorios' && podeAcessarPagina(papel, 'relatorios') && <Relatorios />}
           {pagina === 'usuarios' && podeAcessarPagina(papel, 'usuarios') && <Usuarios usuarioLogado={usuario} />}
         </Suspense>

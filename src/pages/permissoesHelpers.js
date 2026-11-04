@@ -17,11 +17,13 @@ export const TITULOS_PAPEIS = {
 
 export const PERMISSOES_PAGINAS = {
   dashboard: ['admin', 'socio', 'operador'],
+  venda_direta: ['admin', 'socio', 'operador'],
   produtos: ['admin', 'socio', 'operador'],
   estoque: ['admin', 'socio', 'operador'],
   pedidos: ['admin', 'socio', 'operador'],
   clientes: ['admin', 'socio'],
   revendas: ['admin', 'socio'],
+  financeiro: ['admin', 'socio'],
   relatorios: ['admin', 'socio'],
   usuarios: ['admin']
 }
@@ -33,18 +35,22 @@ export const PERMISSOES_ACOES = {
   remover_usuario: ['admin'],
   excluir_produto: ['admin', 'socio'],
   acessar_relatorios_financeiros: ['admin', 'socio'],
+  acessar_financeiro: ['admin', 'socio'],
   acessar_revendas: ['admin', 'socio'],
   operar_estoque: ['admin', 'socio', 'operador'],
-  operar_pedidos: ['admin', 'socio', 'operador']
+  operar_pedidos: ['admin', 'socio', 'operador'],
+  operar_venda_direta: ['admin', 'socio', 'operador']
 }
 
 export const MENU_ADMIN_COMPLETO = [
   { id: 'dashboard', label: 'Dashboard', icone: '▦' },
+  { id: 'venda_direta', label: 'Venda Direta', icone: '💬' },
   { id: 'produtos', label: 'Produtos', icone: '👗' },
   { id: 'estoque', label: 'Estoque', icone: '📦' },
   { id: 'pedidos', label: 'Pedidos', icone: '🛍️' },
   { id: 'clientes', label: 'Clientes', icone: '👥' },
   { id: 'revendas', label: 'Revendas', icone: '🤝' },
+  { id: 'financeiro', label: 'Financeiro', icone: '💰' },
   { id: 'relatorios', label: 'Relatórios', icone: '📊' },
   { id: 'usuarios', label: 'Usuários & Acessos', icone: '🛡️' }
 ]

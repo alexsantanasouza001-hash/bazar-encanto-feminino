@@ -6,6 +6,7 @@ import {
   carregarRevendedoras,
   carregarVendasRevendas
 } from '../storage'
+import { obterDataLocalHoje } from '../lib/dataLocal.js'
 import {
   calcularMetricasRelatorio,
   calcularMetricasRevendas,
@@ -132,7 +133,7 @@ function Relatorios() {
     link.href = url
     link.setAttribute(
       'download',
-      `relatorio-bazar-${tipoPeriodo}-${new Date().toISOString().slice(0, 10)}.csv`
+      `relatorio-bazar-${tipoPeriodo}-${obterDataLocalHoje()}.csv`
     )
     document.body.appendChild(link)
     link.click()

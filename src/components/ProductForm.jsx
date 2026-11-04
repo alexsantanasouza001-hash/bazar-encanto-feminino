@@ -340,7 +340,7 @@ function ProductForm({
   }
 
   return (
-    <div className="product-form-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="product-form-overlay">
       <div className="product-form-modal">
         <div className="product-form-header">
           <h2>{produtoEditando ? 'Editar Produto' : 'Novo Produto'}</h2>

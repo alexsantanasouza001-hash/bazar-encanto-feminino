@@ -1,6 +1,7 @@
 import { supabase } from './lib/supabase.js'
 import { produtosIniciais } from './data/products.js'
 import { agruparClientesDosPedidos } from './pages/clientesHelpers.js'
+import { obterDataLocalHoje } from './lib/dataLocal.js'
 
 const CHAVE_PRODUTOS =
   'meu_bazar_produtos'
@@ -1789,6 +1790,11 @@ export async function carregarPedidos() {
           pedido.observacao_envio ||
           '',
 
+        observacao_interna:
+          pedido.observacao_interna ||
+          pedido.observacao_envio ||
+          '',
+
         total:
           Number(
             pedido.total || 0
@@ -2091,9 +2097,9 @@ export async function registrarPagamento({
       cor_hex: item.cor_hex || null,
 
       tamanho:
-        item.tamanhoSelecionado ||
-        item.tamanho ||
-        null,
+        (item.tamanhoSelecionado || item.tamanho)
+          ? String(item.tamanhoSelecionado || item.tamanho).trim().toUpperCase()
+          : null,
 
       quantidade:
         Number(
@@ -2294,14 +2300,15 @@ export async function consultarPagamento({
   }
 }
 
-export async function consultarPedidoPublico({ numero, email }) {
+export async function consultarPedidoPublico({ codigo, numero, email }) {
   try {
     const { data, error } = await supabase.functions.invoke(
       'consultar-pedido-publico',
       {
         body: {
-          numero: String(numero || '').trim().toUpperCase(),
-          email: String(email || '').trim().toLowerCase()
+          codigo: codigo ? String(codigo).trim().toUpperCase() : undefined,
+          numero: numero ? String(numero).trim().toUpperCase() : undefined,
+          email: email ? String(email).trim().toLowerCase() : undefined
         }
       }
     )
@@ -2309,7 +2316,7 @@ export async function consultarPedidoPublico({ numero, email }) {
     if (error || !data?.sucesso || !data?.pedido) {
       return {
         sucesso: false,
-        mensagem: data?.mensagem || 'Pedido não encontrado ou dados inválidos.'
+        mensagem: data?.mensagem || 'Pedido não encontrado ou código inválido.'
       }
     }
 
@@ -2337,9 +2344,11 @@ export async function atualizarStatusPedido(
       p_pedido_id: Number(pedidoId),
       p_novo_status: novoStatus,
       p_transportadora: dadosEnvio.transportadora || null,
-      p_codigo_rastreio: dadosEnvio.codigoRastreio || null,
-      p_url_rastreio: dadosEnvio.urlRastreio || null,
-      p_observacao_envio: dadosEnvio.observacao || null
+      p_codigo_rastreio: dadosEnvio.codigoRastreio || dadosEnvio.codigo_rastreio || null,
+      p_url_rastreio: dadosEnvio.urlRastreio || dadosEnvio.url_rastreio || null,
+      p_observacao_envio: dadosEnvio.observacao || dadosEnvio.observacao_envio || null,
+      p_observacao_interna: dadosEnvio.observacaoInterna || dadosEnvio.observacao_interna || dadosEnvio.observacao || null,
+      p_usuario_responsavel: dadosEnvio.usuarioResponsavel || dadosEnvio.usuario_responsavel || 'Admin'
     })
 
     if (error) {
@@ -2451,9 +2460,11 @@ export async function salvarRevendedora(dados) {
       endereco: dados.endereco?.trim() || null,
       comissao_padrao: Number(dados.comissao_padrao ?? 20),
       periodicidade_acerto_dias: Number(dados.periodicidade_acerto_dias ?? 15),
-      data_inicio: dados.data_inicio || new Date().toISOString().slice(0, 10),
+      data_inicio: dados.data_inicio || obterDataLocalHoje(),
       observacoes: dados.observacoes?.trim() || null,
       status: dados.status || 'Ativa',
+      usa_divisao_lucro: Boolean(dados.usa_divisao_lucro),
+      percentual_lucro_revendedora: dados.usa_divisao_lucro ? Number(dados.percentual_lucro_revendedora ?? 0) : 0,
       atualizado_em: new Date().toISOString()
     }
 
@@ -2480,6 +2491,119 @@ export async function salvarRevendedora(dados) {
   } catch (erro) {
     console.error('Erro ao salvar revendedora:', erro)
     return { sucesso: false, mensagem: erro.message || 'Não foi possível salvar a revendedora.' }
+  }
+}
+
+export function obterUrlFotoPublica(caminhoOuUrl) {
+  if (!caminhoOuUrl || typeof caminhoOuUrl !== 'string') return null
+  const limpo = caminhoOuUrl.trim()
+  if (!limpo) return null
+  if (
+    limpo.startsWith('http://') ||
+    limpo.startsWith('https://') ||
+    limpo.startsWith('data:') ||
+    limpo.startsWith('blob:')
+  ) {
+    return limpo
+  }
+  const path = limpo.startsWith('produtos/') ? limpo.substring('produtos/'.length) : limpo
+  try {
+    const { data } = supabase.storage.from('produtos').getPublicUrl(path)
+    return data?.publicUrl || `https://vqfqqxzzdaqkbwtgzarh.supabase.co/storage/v1/object/public/produtos/${path.replace(/^\/+/, '')}`
+  } catch {
+    return `https://vqfqqxzzdaqkbwtgzarh.supabase.co/storage/v1/object/public/produtos/${path.replace(/^\/+/, '')}`
+  }
+}
+
+async function enriquecerItensComFotos(itens) {
+  if (!Array.isArray(itens) || itens.length === 0) return []
+  try {
+    const prodIds = [...new Set(itens.map((i) => Number(i.produto_id)).filter((id) => Boolean(id) && !isNaN(id)))]
+    if (prodIds.length === 0) return itens
+
+    const [resProds, resFotos, resVariacoes] = await Promise.all([
+      supabase.from('produtos').select('id, nome, foto, cor').in('id', prodIds),
+      supabase.from('produto_fotos').select('produto_id, foto, ordem').in('produto_id', prodIds).order('ordem', { ascending: true }),
+      supabase.from('produto_variacoes').select('id, produto_id, cor_nome, cor_hex, fotos, ordem').in('produto_id', prodIds).order('ordem', { ascending: true })
+    ])
+
+    const prods = Array.isArray(resProds.data) ? resProds.data : []
+    const fotos = Array.isArray(resFotos.data) ? resFotos.data : []
+    const variacoes = Array.isArray(resVariacoes.data) ? resVariacoes.data : []
+
+    const prodMap = new Map()
+    for (const p of prods) {
+      prodMap.set(Number(p.id), p)
+    }
+
+    const fotosPorProdMap = new Map()
+    for (const f of fotos) {
+      const pId = Number(f.produto_id)
+      if (!fotosPorProdMap.has(pId)) {
+        fotosPorProdMap.set(pId, [])
+      }
+      fotosPorProdMap.get(pId).push(f)
+    }
+
+    const variacoesPorProdMap = new Map()
+    for (const v of variacoes) {
+      const pId = Number(v.produto_id)
+      if (!variacoesPorProdMap.has(pId)) {
+        variacoesPorProdMap.set(pId, [])
+      }
+      variacoesPorProdMap.get(pId).push(v)
+    }
+
+    return itens.map((item) => {
+      const pId = Number(item.produto_id)
+      const p = prodMap.get(pId)
+      const fotosDoProd = fotosPorProdMap.get(pId) || []
+      const variacoesDoProd = variacoesPorProdMap.get(pId) || []
+
+      // 1. Tentar encontrar a variação correspondente
+      let fotoVariacao = null
+      let varEncontrada = null
+
+      if (item.variacao_id) {
+        varEncontrada = variacoesDoProd.find((v) => Number(v.id) === Number(item.variacao_id))
+      }
+      if (!varEncontrada && item.cor) {
+        varEncontrada = variacoesDoProd.find(
+          (v) => String(v.cor_nome || '').trim().toLowerCase() === String(item.cor).trim().toLowerCase()
+        )
+      }
+
+      if (varEncontrada) {
+        if (Array.isArray(varEncontrada.fotos) && varEncontrada.fotos.length > 0) {
+          const primeiraFoto = varEncontrada.fotos[0]
+          const raw = typeof primeiraFoto === 'string' ? primeiraFoto : (primeiraFoto?.foto || primeiraFoto?.url)
+          fotoVariacao = obterUrlFotoPublica(raw)
+        } else if (varEncontrada.foto) {
+          fotoVariacao = obterUrlFotoPublica(varEncontrada.foto)
+        }
+      }
+
+      // 2. Foto principal do produto (primeira foto em produto_fotos ou campo produtos.foto)
+      let fotoProduto = null
+      if (fotosDoProd.length > 0) {
+        fotoProduto = obterUrlFotoPublica(fotosDoProd[0]?.foto)
+      }
+      if (!fotoProduto && p?.foto) {
+        fotoProduto = obterUrlFotoPublica(p.foto)
+      }
+
+      const fotoFinal = fotoVariacao || fotoProduto || null
+
+      return {
+        ...item,
+        foto_variacao: fotoVariacao,
+        foto_produto: fotoProduto,
+        foto: fotoFinal
+      }
+    })
+  } catch (err) {
+    console.error('Erro ao enriquecer itens com fotos:', err)
+    return itens
   }
 }
 
@@ -2513,10 +2637,12 @@ export async function carregarRemessas(revendedoraId = null) {
         console.error('Erro ao carregar itens da remessa:', errItens)
       }
 
+      const itensEnriquecidos = await enriquecerItensComFotos(itens || [])
+
       resultado.push({
         ...remessa,
         revendedora_nome: remessa.revendedoras?.nome || 'Revendedora',
-        itens: Array.isArray(itens) ? itens : []
+        itens: itensEnriquecidos
       })
     }
 
@@ -2531,14 +2657,16 @@ export async function criarRemessaConsignacao({
   revendedoraId,
   itens,
   observacao = '',
-  responsavel = ''
+  responsavel = '',
+  frete = 0
 }) {
   try {
     const { data, error } = await supabase.rpc('criar_remessa_consignacao', {
       p_revendedora_id: Number(revendedoraId),
       p_itens: itens,
       p_observacao: observacao || null,
-      p_responsavel: responsavel || null
+      p_responsavel: responsavel || null,
+      p_frete: Number(frete || 0)
     })
 
     if (error) {
@@ -2550,6 +2678,137 @@ export async function criarRemessaConsignacao({
   } catch (erro) {
     console.error('Erro inesperado ao criar remessa:', erro)
     return { sucesso: false, mensagem: erro.message || 'Erro inesperado ao criar remessa.' }
+  }
+}
+
+export async function editarRemessaConsignacao({
+  remessaId,
+  observacao = '',
+  responsavel = '',
+  itens = [],
+  frete = null
+}) {
+  try {
+    const params = {
+      p_remessa_id: Number(remessaId),
+      p_observacao: observacao || null,
+      p_responsavel: responsavel || null,
+      p_itens: itens
+    }
+    if (frete !== null && frete !== undefined && frete !== '') {
+      params.p_frete = Number(frete)
+    }
+    const { data, error } = await supabase.rpc('editar_remessa_consignacao', params)
+
+    if (error) {
+      console.error('Erro na RPC editar_remessa_consignacao:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao editar remessa.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao editar remessa:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado ao editar remessa.' }
+  }
+}
+
+export async function excluirRemessaConsignacao({ remessaId }) {
+  try {
+    const idNum = Number(remessaId)
+    if (!idNum || isNaN(idNum)) {
+      return { sucesso: false, mensagem: 'Identificador de remessa inválido.' }
+    }
+
+    // 1. Tentar executar via RPC segura se disponível
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('excluir_remessa_consignacao', {
+        p_remessa_id: idNum
+      })
+      if (!rpcError && rpcData) {
+        return rpcData
+      }
+    } catch {
+      // Continua para o fallback seguro no cliente
+    }
+
+    // 2. Validação A: Verificar se existem vendas vinculadas
+    const { data: vendas, error: errVendas } = await supabase
+      .from('revenda_vendas')
+      .select('id')
+      .eq('remessa_id', idNum)
+
+    if (errVendas) throw errVendas
+    if (Array.isArray(vendas) && vendas.length > 0) {
+      return { sucesso: false, mensagem: 'Esta remessa possui vendas vinculadas e não pode ser excluída.' }
+    }
+
+    // 3. Validação B: Verificar se existem pagamentos vinculados
+    const { data: pags, error: errPags } = await supabase
+      .from('revenda_pagamentos')
+      .select('id')
+      .eq('remessa_id', idNum)
+
+    if (errPags) throw errPags
+    if (Array.isArray(pags) && pags.length > 0) {
+      return { sucesso: false, mensagem: 'Esta remessa possui movimentações financeiras e não pode ser excluída.' }
+    }
+
+    // 4. Obter itens para devolver estoque
+    const { data: itens, error: errItens } = await supabase
+      .from('revenda_remessa_itens')
+      .select('*')
+      .eq('remessa_id', idNum)
+
+    if (errItens) throw errItens
+
+    if (Array.isArray(itens)) {
+      for (const item of itens) {
+        const qtd = Number(item.quantidade_enviada || 0)
+        if (qtd > 0) {
+          if (item.produto_tamanho_id) {
+            const { data: tamObj } = await supabase
+              .from('produto_tamanhos')
+              .select('quantidade')
+              .eq('id', Number(item.produto_tamanho_id))
+              .maybeSingle()
+
+            if (tamObj) {
+              await supabase
+                .from('produto_tamanhos')
+                .update({ quantidade: Number(tamObj.quantidade || 0) + qtd })
+                .eq('id', Number(item.produto_tamanho_id))
+            }
+          }
+
+          if (item.produto_id) {
+            const { data: prodObj } = await supabase
+              .from('produtos')
+              .select('quantidade')
+              .eq('id', Number(item.produto_id))
+              .maybeSingle()
+
+            if (prodObj) {
+              await supabase
+                .from('produtos')
+                .update({ quantidade: Number(prodObj.quantidade || 0) + qtd })
+                .eq('id', Number(item.produto_id))
+            }
+          }
+        }
+      }
+    }
+
+    // 5. Excluir itens da remessa
+    await supabase.from('revenda_remessa_itens').delete().eq('remessa_id', idNum)
+
+    // 6. Excluir a remessa
+    const { error: errDel } = await supabase.from('revenda_remessas').delete().eq('id', idNum)
+    if (errDel) throw errDel
+
+    return { sucesso: true, mensagem: 'Remessa excluída com sucesso e estoque devolvido.' }
+  } catch (erro) {
+    console.error('Erro ao excluir remessa:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Não foi possível excluir a remessa.' }
   }
 }
 
@@ -2581,6 +2840,41 @@ export async function registrarVendaConsignada({
   }
 }
 
+export async function registrarVendasConsignadasLote({
+  remessaItemId,
+  vendas,
+  dataVenda,
+  observacao = '',
+  percentualDesconto = 0
+}) {
+  try {
+    const payloadVendas = Array.isArray(vendas)
+      ? vendas.map((v) => ({
+          quantidade: Number(v.quantidade),
+          preco_unitario: Number(v.precoUnitario || v.preco_unitario)
+        }))
+      : []
+
+    const { data, error } = await supabase.rpc('registrar_vendas_consignadas_lote', {
+      p_remessa_item_id: Number(remessaItemId),
+      p_vendas: payloadVendas,
+      p_data_venda: dataVenda || new Date().toISOString(),
+      p_observacao: observacao || null,
+      p_percentual_desconto: Number(percentualDesconto || 0)
+    })
+
+    if (error) {
+      console.error('Erro na RPC registrar_vendas_consignadas_lote:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao registrar vendas.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao registrar vendas em lote:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado ao registrar vendas.' }
+  }
+}
+
 export async function registrarDevolucaoConsignada({
   remessaItemId,
   quantidade,
@@ -2609,7 +2903,7 @@ export async function carregarVendasRevendas(revendedoraId = null) {
   try {
     let query = supabase
       .from('revenda_vendas')
-      .select('*, revendedoras(nome)')
+      .select('*, revendedoras(nome), revenda_remessas(numero)')
       .order('data_venda', { ascending: false })
 
     if (revendedoraId) {
@@ -2618,7 +2912,12 @@ export async function carregarVendasRevendas(revendedoraId = null) {
 
     const { data, error } = await query
     if (error) throw error
-    return Array.isArray(data) ? data : []
+    return Array.isArray(data)
+      ? data.map((v) => ({
+          ...v,
+          numero_remessa: v.numero_remessa || v.revenda_remessas?.numero || (v.remessa_id ? `REM-${String(v.remessa_id).padStart(6, '0')}` : 'REM-000000')
+        }))
+      : []
   } catch (erro) {
     console.error('Erro ao carregar vendas de revendas:', erro)
     return []
@@ -2649,7 +2948,7 @@ export async function carregarPagamentosRevendas(revendedoraId = null) {
   try {
     let query = supabase
       .from('revenda_pagamentos')
-      .select('*, revendedoras(nome)')
+      .select('*, revendedoras(nome), revenda_remessas(numero)')
       .order('data_pagamento', { ascending: false })
 
     if (revendedoraId) {
@@ -2692,6 +2991,518 @@ export async function registrarPagamentoRevenda({
   } catch (erro) {
     console.error('Erro ao registrar pagamento:', erro)
     return { sucesso: false, mensagem: erro.message || 'Erro inesperado.' }
+  }
+}
+
+// =====================================================
+// PORTAL DA REVENDEDORA & CONFERÊNCIA ADMINISTRATIVA
+// =====================================================
+
+export async function carregarPerfilRevendedoraLogada(authUserId) {
+  try {
+    if (!authUserId) return null
+    const { data, error } = await supabase
+      .from('revendedoras')
+      .select('*')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle()
+
+    if (error) {
+      console.error('Erro ao carregar perfil da revendedora:', error)
+      return null
+    }
+    return data || null
+  } catch (erro) {
+    console.error('Erro inesperado ao carregar perfil da revendedora:', erro)
+    return null
+  }
+}
+
+export async function carregarDadosPortalRevendedora(revendedoraId) {
+  try {
+    if (!revendedoraId) return null
+
+    const [resRemessas, resVendas, resAcertos, resPagamentos, resDevolucoes, resRevendedora] = await Promise.all([
+      supabase
+        .from('revenda_remessas')
+        .select('*, revendedoras(nome, comissao_padrao, telefone, whatsapp, usa_divisao_lucro, percentual_lucro_revendedora)')
+        .eq('revendedora_id', Number(revendedoraId))
+        .order('criado_em', { ascending: false }),
+      supabase
+        .from('revenda_vendas')
+        .select('*')
+        .eq('revendedora_id', Number(revendedoraId))
+        .order('data_venda', { ascending: false }),
+      supabase
+        .from('revenda_acertos')
+        .select('*')
+        .eq('revendedora_id', Number(revendedoraId))
+        .order('data_vencimento', { ascending: false }),
+      supabase
+        .from('revenda_pagamentos')
+        .select('*')
+        .eq('revendedora_id', Number(revendedoraId))
+        .order('data_pagamento', { ascending: false }),
+      supabase
+        .from('revenda_devolucoes')
+        .select('*')
+        .eq('revendedora_id', Number(revendedoraId))
+        .order('data_devolucao', { ascending: false }),
+      supabase
+        .from('revendedoras')
+        .select('*')
+        .eq('id', Number(revendedoraId))
+        .single()
+    ])
+
+    const remessasRaw = Array.isArray(resRemessas.data) ? resRemessas.data : []
+    const remessasComItens = []
+
+    for (const rem of remessasRaw) {
+      const { data: itens, error: errItens } = await supabase
+        .from('revenda_remessa_itens')
+        .select('*')
+        .eq('remessa_id', rem.id)
+        .order('id', { ascending: true })
+
+      if (errItens) {
+        console.error('Erro ao carregar itens da remessa no portal:', errItens)
+      }
+
+      const itensEnriquecidos = await enriquecerItensComFotos(itens || [])
+
+      remessasComItens.push({
+        ...rem,
+        itens: itensEnriquecidos
+      })
+    }
+
+    return {
+      revendedora: resRevendedora.data || null,
+      remessas: remessasComItens,
+      vendas: Array.isArray(resVendas.data) ? resVendas.data : [],
+      acertos: Array.isArray(resAcertos.data) ? resAcertos.data : [],
+      pagamentos: Array.isArray(resPagamentos.data) ? resPagamentos.data : [],
+      devolucoes: Array.isArray(resDevolucoes.data) ? resDevolucoes.data : []
+    }
+  } catch (erro) {
+    console.error('Erro inesperado ao carregar dados do portal da revendedora:', erro)
+    return null
+  }
+}
+
+export async function registrarVendaPortal({
+  remessaItemId,
+  quantidade,
+  precoUnitario,
+  formaPagamento = 'Pix',
+  dataVenda = null,
+  observacao = '',
+  percentualDesconto = 0,
+  valorDesconto = 0,
+  idempotencyKey = null
+}) {
+  try {
+    const { data, error } = await supabase.rpc('registrar_venda_portal_revendedora', {
+      p_remessa_item_id: Number(remessaItemId),
+      p_quantidade: Number(quantidade),
+      p_preco_unitario: Number(precoUnitario),
+      p_forma_pagamento: formaPagamento,
+      p_data_venda: dataVenda || new Date().toISOString(),
+      p_observacao: observacao || null,
+      p_percentual_desconto: Number(percentualDesconto || 0),
+      p_idempotency_key: idempotencyKey || null,
+      p_valor_desconto: Number(valorDesconto || 0)
+    })
+
+    if (error) {
+      console.error('Erro na RPC registrar_venda_portal_revendedora:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao registrar venda.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao registrar venda no portal:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado ao registrar venda.' }
+  }
+}
+
+// Data em que o dinheiro da venda cai (marketplace etc.). null = recebe na hora.
+export async function definirDataRecebimentoVenda({ vendaId, dataRecebimento = null }) {
+  try {
+    const { data, error } = await supabase.rpc('definir_data_recebimento_venda', {
+      p_venda_id: Number(vendaId),
+      p_data_recebimento: dataRecebimento || null
+    })
+    if (error) {
+      console.error('Erro na RPC definir_data_recebimento_venda:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao salvar a data de recebimento.' }
+    }
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao salvar data de recebimento:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado ao salvar a data de recebimento.' }
+  }
+}
+
+export async function editarVendaPortal({
+  vendaId,
+  quantidade,
+  precoUnitario,
+  valorDesconto = 0,
+  formaPagamento = 'Pix',
+  dataVenda = null,
+  observacao = '',
+  percentualDesconto = 0
+}) {
+  try {
+    const { data, error } = await supabase.rpc('editar_venda_portal_revendedora', {
+      p_venda_id: Number(vendaId),
+      p_quantidade: Number(quantidade),
+      p_preco_unitario: Number(precoUnitario),
+      p_valor_desconto: Number(valorDesconto || 0),
+      p_forma_pagamento: formaPagamento,
+      p_data_venda: dataVenda || null,
+      p_observacao: observacao || null,
+      p_percentual_desconto: Number(percentualDesconto || 0)
+    })
+
+    if (error) {
+      console.error('Erro na RPC editar_venda_portal_revendedora:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao editar venda.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao editar venda no portal:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado ao editar venda.' }
+  }
+}
+
+export async function cancelarVendaPortal({ vendaId, motivo = '' }) {
+  try {
+    const { data, error } = await supabase.rpc('cancelar_venda_portal_revendedora', {
+      p_venda_id: Number(vendaId),
+      p_motivo: motivo || null
+    })
+
+    if (error) {
+      console.error('Erro na RPC cancelar_venda_portal_revendedora:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao cancelar venda.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao cancelar venda no portal:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado ao cancelar venda.' }
+  }
+}
+
+export async function informarPagamentoPortal({
+  valor,
+  dataPagamento = null,
+  formaPagamento = 'Pix',
+  remessaId = null,
+  observacao = '',
+  comprovanteRef = null,
+  idempotencyKey = null
+}) {
+  try {
+    const { data, error } = await supabase.rpc('informar_pagamento_portal_revendedora', {
+      p_valor: Number(valor),
+      p_data_pagamento: dataPagamento || new Date().toISOString(),
+      p_forma_pagamento: formaPagamento || 'Pix',
+      p_remessa_id: remessaId ? Number(remessaId) : null,
+      p_observacao: observacao || null,
+      p_comprovante_ref: comprovanteRef || null,
+      p_idempotency_key: idempotencyKey || null
+    })
+
+    if (error) {
+      console.error('Erro na RPC informar_pagamento_portal_revendedora:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao informar pagamento.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao informar pagamento no portal:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado ao informar pagamento.' }
+  }
+}
+
+export async function carregarPagamentosAguardandoConfirmacao() {
+  try {
+    const { data, error } = await supabase
+      .from('revenda_pagamentos')
+      .select('*, revendedoras(nome, telefone, whatsapp), revenda_remessas(numero)')
+      .eq('status', 'AGUARDANDO_CONFIRMACAO')
+      .order('data_pagamento', { ascending: false })
+
+    if (error) {
+      console.error('Erro ao carregar pagamentos aguardando confirmação:', error)
+      return []
+    }
+
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro inesperado ao carregar pagamentos pendentes:', erro)
+    return []
+  }
+}
+
+export async function confirmarPagamentoRevendedoraAdmin({
+  pagamentoId,
+  valorConfirmado = null,
+  observacao = null
+}) {
+  try {
+    const { data, error } = await supabase.rpc('confirmar_pagamento_revendedora_admin', {
+      p_pagamento_id: Number(pagamentoId),
+      p_valor_confirmado: valorConfirmado != null ? Number(valorConfirmado) : null,
+      p_observacao: observacao || null
+    })
+
+    if (error) {
+      console.error('Erro na RPC confirmar_pagamento_revendedora_admin:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao confirmar pagamento.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao confirmar pagamento:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado.' }
+  }
+}
+
+export async function recusarPagamentoRevendedoraAdmin({ pagamentoId, motivoRecusa }) {
+  try {
+    const { data, error } = await supabase.rpc('recusar_pagamento_revendedora_admin', {
+      p_pagamento_id: Number(pagamentoId),
+      p_motivo_recusa: motivoRecusa
+    })
+
+    if (error) {
+      console.error('Erro na RPC recusar_pagamento_revendedora_admin:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao recusar pagamento.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao recusar pagamento:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado.' }
+  }
+}
+
+export async function carregarVendasAguardandoConferencia() {
+  try {
+    const { data, error } = await supabase
+      .from('revenda_vendas')
+      .select('*, revendedoras(nome, telefone, whatsapp)')
+      .eq('status', 'AGUARDANDO_CONFERENCIA')
+      .order('data_venda', { ascending: false })
+
+    if (error) {
+      console.error('Erro ao carregar vendas aguardando conferência:', error)
+      return []
+    }
+
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro inesperado ao carregar vendas aguardando conferência:', erro)
+    return []
+  }
+}
+
+export async function confirmarVendaRevendedoraAdmin({
+  vendaId,
+  quantidade = null,
+  precoUnitario = null,
+  dataVenda = null,
+  formaPagamento = null,
+  observacao = null,
+  percentualDesconto = null
+}) {
+  try {
+    const payload = {
+      p_venda_id: Number(vendaId),
+      p_quantidade: quantidade != null ? Number(quantidade) : null,
+      p_preco_unitario: precoUnitario != null ? Number(precoUnitario) : null,
+      p_data_venda: dataVenda || null,
+      p_forma_pagamento: formaPagamento || null,
+      p_observacao: observacao || null,
+      p_percentual_desconto: percentualDesconto != null ? Number(percentualDesconto) : null
+    }
+
+    const { data, error } = await supabase.rpc('confirmar_venda_revendedora', payload)
+
+    if (error) {
+      console.error('Erro na RPC confirmar_venda_revendedora:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao confirmar venda.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao confirmar venda:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado.' }
+  }
+}
+
+export async function recusarVendaRevendedoraAdmin({ vendaId, motivo = '' }) {
+  try {
+    const { data, error } = await supabase.rpc('recusar_venda_revendedora', {
+      p_venda_id: Number(vendaId),
+      p_motivo: motivo || null
+    })
+
+    if (error) {
+      console.error('Erro na RPC recusar_venda_revendedora:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao recusar venda.' }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao recusar venda:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado.' }
+  }
+}
+
+export async function consultarAcessoRevendedora(revendedoraId) {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-gerenciar-usuarios', {
+      body: {
+        acao: 'revendedora_consultar_acesso',
+        revendedora_id: Number(revendedoraId)
+      }
+    })
+
+    if (error) {
+      console.error('Erro ao consultar acesso da revendedora:', error)
+      return {
+        sucesso: false,
+        erro: 'Não foi possível consultar os dados de acesso da revendedora.',
+        erroTecnico: error.message
+      }
+    }
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao consultar acesso da revendedora:', erro)
+    return {
+      sucesso: false,
+      erro: 'Não foi possível consultar os dados de acesso da revendedora.',
+      erroTecnico: erro?.message
+    }
+  }
+}
+
+export async function criarAcessoRevendedora({ revendedoraId, email, senha }) {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-gerenciar-usuarios', {
+      body: {
+        acao: 'revendedora_criar_acesso',
+        revendedora_id: Number(revendedoraId),
+        email,
+        senha
+      }
+    })
+
+    if (error) {
+      console.error('Erro técnico na Edge Function ao criar acesso:', error)
+      let mensagemAmigavel = 'Não foi possível criar o acesso da revendedora. Tente novamente.'
+      if (error.message && !error.message.includes('Failed to send a request') && !error.message.includes('non-2xx')) {
+        mensagemAmigavel = error.message
+      }
+      return { sucesso: false, erro: mensagemAmigavel, erroTecnico: error.message }
+    }
+
+    if (!data?.sucesso) {
+      return {
+        sucesso: false,
+        erro: data?.erro || 'Não foi possível criar o acesso da revendedora. Tente novamente.'
+      }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Exceção ao criar acesso da revendedora:', erro)
+    return {
+      sucesso: false,
+      erro: 'Não foi possível criar o acesso da revendedora. Tente novamente.',
+      erroTecnico: erro?.message
+    }
+  }
+}
+
+export async function redefinirSenhaRevendedora({ revendedoraId, novaSenha = '' }) {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-gerenciar-usuarios', {
+      body: {
+        acao: 'revendedora_redefinir_senha',
+        revendedora_id: Number(revendedoraId),
+        nova_senha: novaSenha || undefined
+      }
+    })
+
+    if (error) {
+      console.error('Erro ao redefinir senha da revendedora:', error)
+      return {
+        sucesso: false,
+        erro: 'Não foi possível redefinir a senha da revendedora. Tente novamente.',
+        erroTecnico: error.message
+      }
+    }
+
+    if (!data?.sucesso) {
+      return {
+        sucesso: false,
+        erro: data?.erro || 'Não foi possível redefinir a senha da revendedora.'
+      }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Exceção ao redefinir senha da revendedora:', erro)
+    return {
+      sucesso: false,
+      erro: 'Não foi possível redefinir a senha da revendedora. Tente novamente.',
+      erroTecnico: erro?.message
+    }
+  }
+}
+
+export async function alterarStatusAcessoRevendedora({ revendedoraId, statusAcesso }) {
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-gerenciar-usuarios', {
+      body: {
+        acao: 'revendedora_alterar_status_acesso',
+        revendedora_id: Number(revendedoraId),
+        status_acesso: statusAcesso
+      }
+    })
+
+    if (error) {
+      console.error('Erro ao alterar status de acesso da revendedora:', error)
+      return {
+        sucesso: false,
+        erro: 'Não foi possível alterar o status de acesso da revendedora. Tente novamente.',
+        erroTecnico: error.message
+      }
+    }
+
+    if (!data?.sucesso) {
+      return {
+        sucesso: false,
+        erro: data?.erro || 'Não foi possível alterar o status de acesso.'
+      }
+    }
+
+    return data
+  } catch (erro) {
+    console.error('Exceção ao alterar status de acesso da revendedora:', erro)
+    return {
+      sucesso: false,
+      erro: 'Não foi possível alterar o status de acesso da revendedora. Tente novamente.',
+      erroTecnico: erro?.message
+    }
   }
 }
 
@@ -2830,4 +3641,470 @@ export async function reenviarConviteUsuarioAdmin(email) {
     throw erro
   }
 }
+
+// =====================================================
+// MÓDULO VENDA DIRETA (PDV WHATSAPP)
+// =====================================================
+
+export async function criarVendaDireta({
+  cliente,
+  telefone,
+  email,
+  itens,
+  modalidadeEntrega,
+  dadosEntrega,
+  formaPagamento,
+  observacaoInterna,
+  atendente,
+  idempotencyKey
+}) {
+  try {
+    const { data, error } = await supabase.rpc('criar_venda_direta', {
+      p_cliente: cliente,
+      p_telefone: telefone,
+      p_email: email || null,
+      p_itens: itens,
+      p_modalidade_entrega: modalidadeEntrega || 'correios',
+      p_dados_entrega: dadosEntrega || {},
+      p_forma_pagamento: formaPagamento || 'Pix',
+      p_observacao_interna: observacaoInterna || null,
+      p_atendente: atendente || null,
+      p_idempotency_key: idempotencyKey || crypto.randomUUID()
+    })
+
+    if (error) {
+      console.error('Erro na RPC criar_venda_direta:', error)
+      return {
+        sucesso: false,
+        mensagem: error.message || 'Erro ao finalizar venda direta.'
+      }
+    }
+
+    return {
+      sucesso: true,
+      pedido: data
+    }
+  } catch (erro) {
+    console.error('Erro ao registrar venda direta:', erro)
+    return {
+      sucesso: false,
+      mensagem: erro.message || 'Erro inesperado ao finalizar venda direta.'
+    }
+  }
+}
+
+export async function confirmarPagamentoPixVendaDireta(pedidoId, confirmadoPor) {
+  try {
+    const { data, error } = await supabase.rpc('confirmar_pagamento_pix_venda_direta', {
+      p_pedido_id: Number(pedidoId),
+      p_confirmado_por: confirmadoPor || 'Admin'
+    })
+
+    if (error) {
+      console.error('Erro na RPC confirmar_pagamento_pix_venda_direta:', error)
+      return {
+        sucesso: false,
+        mensagem: error.message || 'Erro ao confirmar pagamento Pix.'
+      }
+    }
+
+    return {
+      sucesso: true,
+      ...data
+    }
+  } catch (erro) {
+    console.error('Erro ao confirmar Pix:', erro)
+    return {
+      sucesso: false,
+      mensagem: erro.message || 'Erro inesperado ao confirmar Pix.'
+    }
+  }
+}
+
+export async function gerarLinkPagamentoMercadoPago({ pedidoId, cliente, email, total, itens }) {
+  try {
+    const { data, error } = await supabase.functions.invoke('gerar-link-pagamento-mp', {
+      body: {
+        pedido_id: pedidoId,
+        cliente,
+        email,
+        total,
+        itens
+      }
+    })
+
+    if (error || !data?.sucesso || !data?.link) {
+      return {
+        sucesso: false,
+        mensagem: data?.mensagem || 'Não foi possível gerar o link do Mercado Pago.'
+      }
+    }
+
+    return {
+      sucesso: true,
+      link: data.link
+    }
+  } catch (erro) {
+    console.error('Erro ao gerar link de pagamento:', erro)
+    return {
+      sucesso: false,
+      mensagem: erro.message || 'Erro ao comunicar com Mercado Pago.'
+    }
+  }
+}
+
+export async function carregarConfiguracaoPix() {
+  try {
+    const { data, error } = await supabase
+      .from('configuracoes_loja')
+      .select('*')
+      .in('chave', ['pix_chave_fixa', 'pix_beneficiario', 'pix_cidade'])
+
+    if (error) throw error
+
+    const map = {}
+    if (Array.isArray(data)) {
+      data.forEach((row) => {
+        map[row.chave] = row.valor
+      })
+    }
+
+    return {
+      chavePix: map.pix_chave_fixa || 'bazarencanto610@gmail.com',
+      beneficiario: map.pix_beneficiario || 'Bazar Encanto Feminino',
+      cidade: map.pix_cidade || 'São Paulo'
+    }
+  } catch (erro) {
+    console.warn('Fallback configuracao Pix:', erro)
+    return {
+      chavePix: 'bazarencanto610@gmail.com',
+      beneficiario: 'Bazar Encanto Feminino',
+      cidade: 'São Paulo'
+    }
+  }
+}
+
+export async function salvarConfiguracaoLoja(chave, valor, descricao) {
+  try {
+    const { error } = await supabase
+      .from('configuracoes_loja')
+      .upsert({
+        chave,
+        valor,
+        descricao: descricao || null,
+        atualizado_em: new Date().toISOString()
+      })
+
+    if (error) throw error
+    return { sucesso: true }
+  } catch (erro) {
+    console.error('Erro ao salvar configuração da loja:', erro)
+    return { sucesso: false, mensagem: erro.message }
+  }
+}
+
+export async function salvarRascunhoVendaDireta(rascunho) {
+  try {
+    const payload = {
+      cliente: rascunho.cliente || '',
+      telefone: rascunho.telefone || '',
+      email: rascunho.email || null,
+      itens: Array.isArray(rascunho.itens) ? rascunho.itens : [],
+      entrega: rascunho.entrega || {},
+      forma_pagamento: rascunho.formaPagamento || 'Pix',
+      observacao: rascunho.observacao || null,
+      atualizado_em: new Date().toISOString()
+    }
+
+    let resultado
+    if (rascunho.id) {
+      resultado = await supabase
+        .from('vendas_diretas_rascunhos')
+        .update(payload)
+        .eq('id', rascunho.id)
+        .select()
+        .single()
+    } else {
+      resultado = await supabase
+        .from('vendas_diretas_rascunhos')
+        .insert({ ...payload, criado_em: new Date().toISOString() })
+        .select()
+        .single()
+    }
+
+    if (resultado.error) throw resultado.error
+    return { sucesso: true, rascunho: resultado.data }
+  } catch (erro) {
+    console.error('Erro ao salvar rascunho:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro ao salvar rascunho.' }
+  }
+}
+
+export async function carregarRascunhosVendaDireta() {
+  try {
+    const { data, error } = await supabase
+      .from('vendas_diretas_rascunhos')
+      .select('*')
+      .order('atualizado_em', { ascending: false })
+
+    if (error) throw error
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro ao carregar rascunhos:', erro)
+    return []
+  }
+}
+
+export async function excluirRascunhoVendaDireta(id) {
+  try {
+    const { error } = await supabase
+      .from('vendas_diretas_rascunhos')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+    return { sucesso: true }
+  } catch (erro) {
+    console.error('Erro ao excluir rascunho:', erro)
+    return { sucesso: false, mensagem: erro.message }
+  }
+}
+
+// =====================================================
+// MÓDULO FINANCEIRO
+// =====================================================
+
+export async function carregarSocios() {
+  try {
+    const { data, error } = await supabase
+      .from('financeiro_socios')
+      .select('*')
+      .order('nome', { ascending: true })
+
+    if (error) throw error
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro ao carregar sócios:', erro)
+    return []
+  }
+}
+
+export async function salvarSocio(dados) {
+  try {
+    const payload = {
+      nome: dados.nome?.trim(),
+      cpf: dados.cpf?.trim() || null,
+      email: dados.email?.trim()?.toLowerCase() || null,
+      telefone: dados.telefone?.trim() || null,
+      participacao_percentual: Number(dados.participacao_percentual ?? 0),
+      data_entrada: dados.data_entrada || obterDataLocalHoje(),
+      status: dados.status || 'Ativo',
+      observacao: dados.observacao?.trim() || null,
+      atualizado_em: new Date().toISOString()
+    }
+
+    if (dados.id) {
+      const { data, error } = await supabase
+        .from('financeiro_socios')
+        .update(payload)
+        .eq('id', Number(dados.id))
+        .select()
+        .single()
+
+      if (error) throw error
+      return { sucesso: true, socio: data }
+    } else {
+      const { data, error } = await supabase
+        .from('financeiro_socios')
+        .insert(payload)
+        .select()
+        .single()
+
+      if (error) throw error
+      return { sucesso: true, socio: data }
+    }
+  } catch (erro) {
+    console.error('Erro ao salvar sócio:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro ao salvar sócio.' }
+  }
+}
+
+export async function carregarAportes(socioId = null) {
+  try {
+    let query = supabase
+      .from('financeiro_aportes')
+      .select('*, financeiro_socios(nome, status)')
+      .order('data', { ascending: false })
+
+    if (socioId) {
+      query = query.eq('socio_id', Number(socioId))
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro ao carregar aportes:', erro)
+    return []
+  }
+}
+
+export async function salvarAporte(dados) {
+  try {
+    const rodadaNum = Number(dados.rodada_numero) || 1
+    const rodadaNome = dados.rodada_nome?.trim() || `Aporte ${rodadaNum}`
+    const payload = {
+      socio_id: Number(dados.socio_id),
+      valor: Number(dados.valor),
+      data: dados.data || obterDataLocalHoje(),
+      finalidade: dados.finalidade?.trim() || 'Compra de mercadoria',
+      forma_pagamento: dados.forma_pagamento || 'Pix',
+      observacao: dados.observacao?.trim() || null,
+      rodada_numero: rodadaNum,
+      rodada_nome: rodadaNome
+    }
+
+    const { data, error } = await supabase
+      .from('financeiro_aportes')
+      .insert(payload)
+      .select()
+      .single()
+
+    if (error) throw error
+    return { sucesso: true, aporte: data }
+  } catch (erro) {
+    console.error('Erro ao salvar aporte:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro ao registrar aporte.' }
+  }
+}
+
+export async function carregarRetiradas(socioId = null) {
+  try {
+    let query = supabase
+      .from('financeiro_retiradas')
+      .select('*, financeiro_socios(nome, status)')
+      .order('data', { ascending: false })
+
+    if (socioId) {
+      query = query.eq('socio_id', Number(socioId))
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro ao carregar retiradas:', erro)
+    return []
+  }
+}
+
+export async function salvarRetirada(dados) {
+  try {
+    const payload = {
+      socio_id: Number(dados.socio_id),
+      valor: Number(dados.valor),
+      data: dados.data || obterDataLocalHoje(),
+      tipo: dados.tipo || 'Distribuição de lucro',
+      forma_pagamento: dados.forma_pagamento || 'Pix',
+      observacao: dados.observacao?.trim() || null
+    }
+
+    const { data, error } = await supabase
+      .from('financeiro_retiradas')
+      .insert(payload)
+      .select()
+      .single()
+
+    if (error) throw error
+    return { sucesso: true, retirada: data }
+  } catch (erro) {
+    console.error('Erro ao salvar retirada:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro ao registrar retirada.' }
+  }
+}
+
+export async function carregarCategoriasDespesa() {
+  try {
+    const { data, error } = await supabase
+      .from('financeiro_categorias_despesa')
+      .select('*')
+      .eq('ativo', true)
+      .order('nome', { ascending: true })
+
+    if (error) throw error
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro ao carregar categorias:', erro)
+    return []
+  }
+}
+
+export async function carregarDespesas() {
+  try {
+    const { data, error } = await supabase
+      .from('financeiro_despesas')
+      .select('*')
+      .order('data', { ascending: false })
+
+    if (error) throw error
+    return Array.isArray(data) ? data : []
+  } catch (erro) {
+    console.error('Erro ao carregar despesas:', erro)
+    return []
+  }
+}
+
+export async function salvarDespesa(dados) {
+  try {
+    const payload = {
+      descricao: dados.descricao?.trim(),
+      categoria: dados.categoria?.trim() || 'Outros',
+      valor: Number(dados.valor),
+      data: dados.data || obterDataLocalHoje(),
+      forma_pagamento: dados.forma_pagamento || 'Pix',
+      observacao: dados.observacao?.trim() || null
+    }
+
+    if (dados.id) {
+      const { data, error } = await supabase
+        .from('financeiro_despesas')
+        .update(payload)
+        .eq('id', Number(dados.id))
+        .select()
+        .single()
+
+      if (error) throw error
+      return { sucesso: true, despesa: data }
+    } else {
+      const { data, error } = await supabase
+        .from('financeiro_despesas')
+        .insert(payload)
+        .select()
+        .single()
+
+      if (error) throw error
+      return { sucesso: true, despesa: data }
+    }
+  } catch (erro) {
+    console.error('Erro ao salvar despesa:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro ao salvar despesa.' }
+  }
+}
+
+export async function removerDespesa(id) {
+  try {
+    const { error } = await supabase
+      .from('financeiro_despesas')
+      .delete()
+      .eq('id', Number(id))
+
+    if (error) throw error
+    return { sucesso: true }
+  } catch (erro) {
+    console.error('Erro ao remover despesa:', erro)
+    return { sucesso: false, mensagem: erro.message }
+  }
+}
+
+
 

@@ -376,9 +376,6 @@ function Clientes() {
       {clienteSelecionado && (
         <div
           className="clientes-modal-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setClienteSelecionado(null)
-          }}
           role="dialog"
           aria-modal="true"
           aria-label={`Detalhes de ${clienteSelecionado.nome}`}

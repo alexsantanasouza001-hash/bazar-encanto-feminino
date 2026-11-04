@@ -12,7 +12,10 @@ function formatarPreco(valor) {
 }
 
 function formatarData(data) {
-  return new Date(data).toLocaleString('pt-BR', {
+  if (!data) return ''
+  const d = new Date(data)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString('pt-BR', {
     dateStyle: 'long',
     timeStyle: 'short'
   })
@@ -60,7 +63,7 @@ function PedidoCompleto({
     aprovado: statusPagamentoAprovado,
     pendente: statusPagamentoPendente,
     titulo: tituloPagamento,
-    resumo: _resumoPagamento
+    resumo: resumoPagamento
   } = obterStatusPagamento(
     pedidoPagamento.status_pagamento || (statusPedidoAprovado ? 'aprovado' : 'pendente')
   )
@@ -217,7 +220,7 @@ function PedidoCompleto({
           <span>{pagamentoAprovado ? 'PAGAMENTO CONFIRMADO' : 'PEDIDO REALIZADO'}</span>
           <h1>{tituloPagamento}</h1>
           <p>
-            Obrigada, {dados.nome}. Seu pedido foi registrado.
+            Obrigada, {dados.nome || pedido.nomeCliente || pedido.cliente || 'Cliente'}. Seu pedido foi registrado.
             {reservaAtiva &&
               ' O estoque ficará reservado durante o prazo informado para pagamento.'}
           </p>
@@ -228,7 +231,7 @@ function PedidoCompleto({
             <div className="checkout-order-number">
               <div>
                 <span>NÚMERO DO PEDIDO</span>
-                <strong>{pedido.numero}</strong>
+                <strong>{pedido.numero || pedido.id}</strong>
               </div>
               <div id="pedido-status">
                 <span>STATUS</span>
@@ -239,7 +242,7 @@ function PedidoCompleto({
             <dl className="checkout-customer-details">
               <div>
                 <dt>Cliente</dt>
-                <dd>{pedido.nomeCliente || pedido.cliente}</dd>
+                <dd>{pedido.nomeCliente || pedido.cliente || dados.nome || 'Cliente'}</dd>
               </div>
               <div>
                 <dt>Data</dt>
@@ -251,11 +254,11 @@ function PedidoCompleto({
               </div>
               <div>
                 <dt>Endereço de entrega</dt>
-                <dd>{endereco}</dd>
+                <dd>{endereco || 'Endereço não informado'}</dd>
               </div>
               <div>
                 <dt>CEP</dt>
-                <dd>{cepEntrega}</dd>
+                <dd>{cepEntrega || 'Não informado'}</dd>
               </div>
               {(pedidoPagamento.transportadora || pedidoPagamento.codigo_rastreio) && (
                 <div>
@@ -274,12 +277,14 @@ function PedidoCompleto({
 
             <div className="checkout-complete-items">
               <h2>Produtos</h2>
-              {pedido.itens.map((item) => (
-                <article key={`${item.produtoId || item.id}-${item.tamanho}`}>
+              {(pedido.itens || []).map((item, idx) => (
+                <article key={`${item.produtoId || item.id || idx}-${item.tamanho || ''}`}>
                   <div>
-                    <strong>{item.nome}</strong>
+                    <strong>{item.nome || 'Produto'}</strong>
                     <span>
-                      Tamanho {item.tamanho} · Quantidade {item.quantidade}
+                      {item.cor && item.cor !== 'Única' ? `${item.cor} · ` : ''}
+                      {item.tamanho ? `Tamanho ${item.tamanho} · ` : ''}
+                      Quantidade {item.quantidade || 1}
                     </span>
                   </div>
                   <strong>{formatarPreco(item.subtotal)}</strong>

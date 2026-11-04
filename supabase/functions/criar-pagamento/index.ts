@@ -240,7 +240,7 @@ function validarPayload(corpo: unknown): Payload | string {
     const produtoId = Number(valor.produto_id)
     const quantidade = Number(valor.quantidade)
     const tamanho = typeof valor.tamanho === 'string'
-      ? valor.tamanho.trim()
+      ? valor.tamanho.trim().toUpperCase()
       : ''
     const variacaoId = typeof valor.variacao_id === 'number' && Number.isSafeInteger(valor.variacao_id) && valor.variacao_id > 0
       ? valor.variacao_id
@@ -587,27 +587,38 @@ Deno.serve(async (request) => {
   )
 
   if (erroPedido || !eObjeto(pedido)) {
-    const mensagemPedido = erroPedido?.message?.toLowerCase() || ''
+    const mensagemOriginal = erroPedido?.message || ''
+    const mensagemPedido = mensagemOriginal.toLowerCase()
     const conflitoIdempotencia =
       mensagemPedido.includes('idempotency_context_mismatch') ||
       mensagemPedido.includes('idempotency_key')
 
     console.error('criar-pagamento: falha ao reservar pedido', {
       code: erroPedido?.code || 'invalid_response',
-      message: erroPedido?.message,
+      message: mensagemOriginal,
       details: erroPedido?.details,
       hint: erroPedido?.hint,
     })
+
+    let mensagemCliente = 'Não conseguimos concluir seu pedido. Tente novamente.'
+    if (mensagemPedido.includes('indisponível') || mensagemPedido.includes('esgotado') || mensagemPedido.includes('tamanho')) {
+      mensagemCliente = 'Este item ou tamanho não está mais disponível.'
+    } else if (mensagemPedido.includes('estoque') || mensagemPedido.includes('quantidade')) {
+      mensagemCliente = 'Não há estoque suficiente para esta quantidade.'
+    } else if (mensagemPedido.includes('frete') || mensagemPedido.includes('cep') || mensagemPedido.includes('entrega')) {
+      mensagemCliente = 'Consulte as opções de entrega para o seu CEP antes de finalizar.'
+    } else if (mensagemPedido.includes('cupom')) {
+      mensagemCliente = 'O cupom informado é inválido.'
+    } else if (conflitoIdempotencia) {
+      mensagemCliente = 'Os dados desta tentativa foram alterados. Tente finalizar novamente.'
+    }
+
     return responder(request, 409, {
       sucesso: false,
       codigo: conflitoIdempotencia
         ? 'idempotency_context_mismatch'
         : undefined,
-      mensagem: mensagemPedido.includes('estoque')
-        ? 'Estoque insuficiente para concluir o pedido.'
-        : conflitoIdempotencia
-          ? 'Os dados desta tentativa foram alterados. Tente finalizar novamente.'
-          : 'Não foi possível reservar o pedido.',
+      mensagem: mensagemCliente,
       requer_nova_tentativa: conflitoIdempotencia,
     })
   }

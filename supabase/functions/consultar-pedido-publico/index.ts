@@ -4,6 +4,7 @@ type JsonObject = Record<string, unknown>
 
 const MAX_BODY_BYTES = 4 * 1024
 const NUMERO_PATTERN = /^PED-[0-9]{1,20}$/
+const CODIGO_SEGURO_PATTERN = /^ENC-[0-9A-Z]{4,16}$/i
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const ORIGENS_PADRAO = [
   'https://bazar-encanto-feminino.vercel.app',
@@ -113,15 +114,33 @@ Deno.serve(async (request) => {
     return responder(request, 400, { sucesso: false, mensagem: 'Dados inválidos.' })
   }
 
-  const numero = eObjeto(corpo) && typeof corpo.numero === 'string'
+  const entradaCodigo = eObjeto(corpo) && typeof corpo.codigo === 'string'
+    ? corpo.codigo.trim().toUpperCase()
+    : ''
+  const entradaNumero = eObjeto(corpo) && typeof corpo.numero === 'string'
     ? corpo.numero.trim().toUpperCase()
     : ''
   const email = eObjeto(corpo) && typeof corpo.email === 'string'
     ? corpo.email.trim().toLowerCase()
     : ''
-  const mensagemGenerica = 'Pedido não encontrado ou dados inválidos.'
 
-  if (!NUMERO_PATTERN.test(numero) || email.length > 254 || !EMAIL_PATTERN.test(email)) {
+  const mensagemGenerica = 'Pedido não encontrado ou código inválido.'
+
+  const eCodigoSeguro = CODIGO_SEGURO_PATTERN.test(entradaCodigo) || CODIGO_SEGURO_PATTERN.test(entradaNumero)
+  const codigoFinal = CODIGO_SEGURO_PATTERN.test(entradaCodigo)
+    ? entradaCodigo
+    : CODIGO_SEGURO_PATTERN.test(entradaNumero)
+    ? entradaNumero
+    : ''
+
+  const eNumeroLegado = NUMERO_PATTERN.test(entradaNumero)
+
+  if (!eCodigoSeguro && !eNumeroLegado) {
+    return responder(request, 404, { sucesso: false, mensagem: mensagemGenerica })
+  }
+
+  // Se for consulta por número sequencial legado, exige e-mail
+  if (!eCodigoSeguro && eNumeroLegado && (!email || email.length > 254 || !EMAIL_PATTERN.test(email))) {
     return responder(request, 404, { sucesso: false, mensagem: mensagemGenerica })
   }
 
@@ -129,6 +148,7 @@ Deno.serve(async (request) => {
     auth: { autoRefreshToken: false, persistSession: false },
   })
   const evento = await hmacHex(serviceRoleKey, `tracking:event:${crypto.randomUUID()}`)
+  const lookupKey = eCodigoSeguro ? `code:${codigoFinal}` : `legacy:${entradaNumero}:${email}`
   const regras = [
     ...(obterIp(request)
       ? [
@@ -136,7 +156,7 @@ Deno.serve(async (request) => {
           ['tracking_ip_1h', obterIp(request)!],
         ]
       : []),
-    ['tracking_lookup_15m', `${numero}:${email}`],
+    ['tracking_lookup_15m', lookupKey],
   ]
 
   for (const [escopo, identidade] of regras) {
@@ -164,8 +184,9 @@ Deno.serve(async (request) => {
   }
 
   const { data: pedido, error } = await adminClient.rpc('consultar_pedido_publico', {
-    p_numero: numero,
-    p_email: email,
+    p_numero: eNumeroLegado ? entradaNumero : null,
+    p_email: email || null,
+    p_codigo: eCodigoSeguro ? codigoFinal : null,
   })
 
   if (error) {

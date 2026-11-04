@@ -25,3 +25,8 @@ dist-ssr
 .env 
 .vercel
 .env*
+
+# Dumps com dados de clientes — nunca enviar ao GitHub
+backup_pre_limpeza/
+snapshot_remessas_pre_migracao.json
+/=

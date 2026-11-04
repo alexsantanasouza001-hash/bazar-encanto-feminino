@@ -21,8 +21,7 @@ function formatarData(valor) {
 
 function AcompanharPedido({ onNavegar }) {
   const parametros = new URLSearchParams(window.location.search)
-  const [numero, setNumero] = useState(parametros.get('pedido') || '')
-  const [email, setEmail] = useState('')
+  const [codigo, setCodigo] = useState(parametros.get('codigo') || parametros.get('pedido') || '')
   const [pedido, setPedido] = useState(null)
   const [mensagem, setMensagem] = useState('')
   const [consultando, setConsultando] = useState(false)
@@ -37,14 +36,16 @@ function AcompanharPedido({ onNavegar }) {
     }
   }
 
-  const executarConsulta = async (numConsulta, emailConsulta, salvarSessao = true) => {
+  const executarConsulta = async (codConsulta, salvarSessao = true) => {
     setConsultando(true)
     setMensagem('')
     setPedido(null)
 
+    const codNormalizado = String(codConsulta || '').trim().toUpperCase()
+
     const resultado = await consultarPedidoPublico({
-      numero: numConsulta,
-      email: emailConsulta
+      codigo: codNormalizado,
+      numero: codNormalizado
     })
 
     setConsultando(false)
@@ -57,7 +58,7 @@ function AcompanharPedido({ onNavegar }) {
           // ignore
         }
       }
-      setMensagem(resultado.mensagem)
+      setMensagem(resultado.mensagem || 'Código de pedido não encontrado.')
       return
     }
 
@@ -66,8 +67,7 @@ function AcompanharPedido({ onNavegar }) {
         sessionStorage.setItem(
           STORAGE_KEY,
           JSON.stringify({
-            numero: String(numConsulta || '').trim().toUpperCase(),
-            email: String(emailConsulta || '').trim().toLowerCase()
+            codigo: codNormalizado
           })
         )
       } catch {
@@ -83,13 +83,20 @@ function AcompanharPedido({ onNavegar }) {
     autoRestauradoRef.current = true
 
     try {
+      const searchParams = new URLSearchParams(window.location.search)
+      const paramUrl = searchParams.get('codigo') || searchParams.get('pedido')
+      if (paramUrl) {
+        setCodigo(paramUrl)
+        executarConsulta(paramUrl, true)
+        return
+      }
+
       const salvoRaw = sessionStorage.getItem(STORAGE_KEY)
       if (salvoRaw) {
         const salvo = JSON.parse(salvoRaw)
-        if (salvo?.numero && salvo?.email) {
-          setNumero(salvo.numero)
-          setEmail(salvo.email)
-          executarConsulta(salvo.numero, salvo.email, false)
+        if (salvo?.codigo) {
+          setCodigo(salvo.codigo)
+          executarConsulta(salvo.codigo, false)
         }
       }
     } catch {
@@ -99,7 +106,7 @@ function AcompanharPedido({ onNavegar }) {
 
   const consultar = async (evento) => {
     evento.preventDefault()
-    await executarConsulta(numero, email, true)
+    await executarConsulta(codigo, true)
   }
 
   const consultarOutroPedido = () => {
@@ -110,15 +117,14 @@ function AcompanharPedido({ onNavegar }) {
     }
     setPedido(null)
     setMensagem('')
-    setNumero('')
-    setEmail('')
+    setCodigo('')
   }
 
   const statusPagamento = pedido
     ? obterStatusPagamento(pedido.status_pagamento)
     : null
   const timeline = pedido
-    ? montarTimelinePedido(pedido.status, pedido.status_pagamento)
+    ? montarTimelinePedido(pedido.status, pedido.status_pagamento, pedido.modalidade_entrega)
     : []
 
   return (
@@ -134,32 +140,23 @@ function AcompanharPedido({ onNavegar }) {
         <section className="tracking-intro">
           <span>ACOMPANHE SUA COMPRA</span>
           <h1>Acompanhar pedido</h1>
-          <p>Informe o número do pedido e o mesmo e-mail utilizado na compra.</p>
+          <p>Informe o código seguro do pedido recebido na confirmação da compra.</p>
         </section>
 
         {!pedido && (
           <form className="tracking-form" onSubmit={consultar} aria-describedby="tracking-message">
-            <label htmlFor="tracking-number">Número do pedido</label>
+            <label htmlFor="tracking-code">Código do pedido</label>
             <input
-              id="tracking-number"
-              value={numero}
-              onChange={(evento) => setNumero(evento.target.value.toUpperCase())}
-              placeholder="PED-000000"
+              id="tracking-code"
+              value={codigo}
+              onChange={(evento) => setCodigo(evento.target.value.toUpperCase())}
+              placeholder="Ex: ENC-7K4P9X2D"
               autoComplete="off"
-              maxLength="24"
-              required
-            />
-            <label htmlFor="tracking-email">E-mail da compra</label>
-            <input
-              id="tracking-email"
-              type="email"
-              value={email}
-              onChange={(evento) => setEmail(evento.target.value)}
-              autoComplete="email"
+              maxLength="32"
               required
             />
             <button type="submit" disabled={consultando}>
-              {consultando ? 'Consultando...' : 'Acompanhar pedido'}
+              {consultando ? 'Consultando...' : 'Consultar pedido'}
             </button>
             <p id="tracking-message" className="tracking-message" role="status" aria-live="polite">
               {mensagem}
@@ -189,7 +186,30 @@ function AcompanharPedido({ onNavegar }) {
               <div className="tracking-shipping">
                 <span>RASTREAMENTO</span>
                 {pedido.transportadora && <strong>{pedido.transportadora}</strong>}
-                {pedido.codigo_rastreio && <code>{pedido.codigo_rastreio}</code>}
+                {pedido.codigo_rastreio && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                    <code>{pedido.codigo_rastreio}</code>
+                    <button
+                      type="button"
+                      className="tracking-btn-copiar"
+                      onClick={() => {
+                        navigator.clipboard.writeText(pedido.codigo_rastreio)
+                        alert('Código de rastreio copiado!')
+                      }}
+                      style={{
+                        background: '#f1f5f9',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '6px',
+                        padding: '4px 8px',
+                        fontSize: '0.75rem',
+                        cursor: 'pointer',
+                        fontWeight: '600'
+                      }}
+                    >
+                      📋 Copiar Código
+                    </button>
+                  </div>
+                )}
                 {pedido.url_rastreio && (
                   <a href={pedido.url_rastreio} target="_blank" rel="noreferrer">
                     Abrir rastreamento
@@ -202,7 +222,13 @@ function AcompanharPedido({ onNavegar }) {
               <h2>Itens do pedido</h2>
               {pedido.itens.map((item, indice) => (
                 <article key={`${item.nome}-${item.tamanho}-${indice}`}>
-                  <div><strong>{item.nome}</strong><span>Tamanho {item.tamanho || '—'} · {item.quantidade} un.</span></div>
+                  <div>
+                    <strong>{item.nome}</strong>
+                    <span>
+                      {item.cor && item.cor !== 'Única' ? `Cor: ${item.cor} · ` : ''}
+                      Tamanho {item.tamanho || '—'} · {item.quantidade} un.
+                    </span>
+                  </div>
                   <strong>{formatarPreco(item.subtotal)}</strong>
                 </article>
               ))}

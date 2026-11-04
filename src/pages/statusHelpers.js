@@ -105,80 +105,63 @@ export function obterStatusPagamento(valor) {
 
 export function obterStatusPedido(valor) {
   if (typeof valor !== 'string' || !valor.trim()) {
-    return 'Status não informado'
+    return 'Pedido recebido'
   }
 
   const status = valor.trim().toLowerCase()
 
-  if (status === 'novo') return 'Confirmado'
+  if (status === 'pedido recebido' || status === 'recebido') return 'Pedido recebido'
+  if (status === 'novo' || status === 'confirmado' || status === 'confirmada') return 'Pedido recebido'
   if (status === 'aguardando pagamento') return 'Aguardando pagamento'
-  if (status === 'confirmado' || status === 'confirmada') return 'Confirmado'
-  if (status === 'em preparação' || status === 'em preparacao') {
-    return 'Em preparação'
-  }
+  if (status === 'em preparação' || status === 'em preparacao') return 'Em preparação'
   if (status === 'enviado') return 'Enviado'
+  if (status === 'pronto para retirada' || status === 'pronto_retirada' || status === 'pronto') return 'Pronto para retirada'
   if (status === 'entregue') return 'Entregue'
-  if (status === 'concluído' || status === 'concluido') return 'Concluído'
+  if (status === 'concluído' || status === 'concluido') return 'Entregue'
   if (status === 'cancelado') return 'Cancelado'
 
-  return 'Status não informado'
+  return 'Pedido recebido'
 }
 
-export const FLUXO_PEDIDO = [
-  'Aguardando pagamento',
-  'Confirmado',
+export const FLUXO_PEDIDO_ENTREGA = [
+  'Pedido recebido',
   'Em preparação',
   'Enviado',
-  'Entregue',
-  'Concluído'
+  'Entregue'
 ]
 
-const TRANSICOES_PEDIDO = {
-  'Aguardando pagamento': ['Confirmado', 'Cancelado'],
-  Confirmado: ['Em preparação', 'Cancelado'],
-  'Em preparação': ['Enviado', 'Cancelado'],
-  Enviado: ['Entregue'],
-  Entregue: ['Concluído'],
-  Concluído: [],
-  Cancelado: []
-}
+export const FLUXO_PEDIDO_RETIRADA = [
+  'Pedido recebido',
+  'Em preparação',
+  'Pronto para retirada',
+  'Entregue'
+]
 
-export function obterTransicoesPedido(valor) {
-  return TRANSICOES_PEDIDO[obterStatusPedido(valor)] || []
-}
-
-export function montarTimelinePedido(statusPedido, statusPagamento) {
+export function montarTimelinePedido(statusPedido, statusPagamento, modalidadeEntrega = 'correios') {
   const status = obterStatusPedido(statusPedido)
-  const pagamento = obterStatusPagamento(statusPagamento)
+  const isRetirada = String(modalidadeEntrega || '').toLowerCase().includes('retirada')
 
   if (status === 'Cancelado') {
     return [{ titulo: 'Pedido cancelado', estado: 'cancelado' }]
   }
 
-  if (pagamento.status && !pagamento.aprovado) {
-    return [{
-      titulo: pagamento.pendente ? 'Aguardando pagamento' : pagamento.titulo,
-      estado: pagamento.pendente ? 'atual' : 'cancelado'
-    }]
-  }
+  const fluxo = isRetirada ? FLUXO_PEDIDO_RETIRADA : FLUXO_PEDIDO_ENTREGA
+  const indice = fluxo.indexOf(status)
+  const indexEfetivo = indice >= 0 ? indice : 0
 
-  if (!pagamento.status) {
-    return [{ titulo: pagamento.titulo, estado: 'neutro' }]
-  }
+  return fluxo.map((titulo, idx) => {
+    let estado = 'futuro'
+    if (idx < indexEfetivo) {
+      estado = 'concluido'
+    } else if (idx === indexEfetivo) {
+      estado = 'atual'
+    }
 
-  const indice = FLUXO_PEDIDO.indexOf(status)
-  return [
-    { titulo: 'Pagamento aprovado', estado: 'concluido' },
-    ...FLUXO_PEDIDO.slice(1).map((titulo, itemIndice) => {
-      const etapaIndex = itemIndice + 1
-      return {
-        titulo,
-        estado: etapaIndex <= indice
-          ? (etapaIndex === indice ? 'atual' : 'concluido')
-          : 'futuro'
-      }
-    })
-  ]
+    return {
+      titulo,
+      estado
+    }
+  })
 }
 
 export function ehPedidoDeTeste(pedido) {

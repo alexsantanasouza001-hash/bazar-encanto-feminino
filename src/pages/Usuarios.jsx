@@ -450,8 +450,8 @@ function Usuarios({ usuarioLogado }) {
 
       {/* MODAL ADICIONAR NOVO USUÁRIO */}
       {mostrarModalNovo && (
-        <div className="modal-overlay" onClick={() => setMostrarModalNovo(false)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal-card">
             <div className="modal-header">
               <h2>Adicionar Usuário</h2>
               <button
@@ -553,8 +553,8 @@ function Usuarios({ usuarioLogado }) {
 
       {/* MODAL ALTERAR PERFIL */}
       {modalPapelUsuario && (
-        <div className="modal-overlay" onClick={() => setModalPapelUsuario(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal-card">
             <div className="modal-header">
               <h2>Alterar Perfil de Acesso</h2>
               <button

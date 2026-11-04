@@ -5,6 +5,7 @@ import './Loja.css'
 import Carrinho from './Carrinho'
 import Checkout from './Checkout'
 import PedidoCompleto from './PedidoCompleto'
+import PedidoErrorBoundary from '../components/PedidoErrorBoundary'
 import ClienteAuth from '../components/ClienteAuth'
 import Footer from '../components/Footer'
 import ModalDetalheProduto from '../components/ModalDetalheProduto'
@@ -752,6 +753,12 @@ function Loja({ onNavegar }) {
 
     const fotoFinal = fotoPersonalizada || (corObj.fotoPrincipal || produto.foto || null)
 
+    const variacaoObj = Array.isArray(produto.variacoes)
+      ? produto.variacoes.find((v) => v.cor_nome === corFinal || v.id === corObj.id)
+      : null
+    const variacaoIdFinal = variacaoObj?.id || (typeof corObj.id === 'number' ? corObj.id : null)
+    const tamanhoNormalizado = tamanhoFinal ? String(tamanhoFinal).trim().toUpperCase() : null
+
     setCarrinho((carrinhoAtual) => {
       const existe = carrinhoAtual.some(
         (item) => gerarChaveCarrinho(item.id, item.cor, item.tamanho) === chaveItem
@@ -769,9 +776,10 @@ function Loja({ onNavegar }) {
         ...carrinhoAtual,
         {
           ...produto,
+          variacao_id: variacaoIdFinal,
           cor: corFinal,
           cor_hex: corObj.hex,
-          tamanho: tamanhoFinal,
+          tamanho: tamanhoNormalizado,
           foto: fotoFinal,
           quantidade: 1
         }
@@ -1298,23 +1306,24 @@ function Loja({ onNavegar }) {
       }
 
       const itensConfirmacao =
-        resultado.pedido.itens.map(
+        (resultado.pedido?.itens || []).map(
           (itemPedido) => {
             const itemCarrinho =
               itensAntesDoPedido.find(
                 (item) =>
-                  String(item.id) ===
+                  String(item.produto_id || item.id) ===
                     String(
-                      itemPedido.produtoId
+                      itemPedido.produtoId || itemPedido.produto_id
                     ) &&
-                  item.tamanho ===
-                    itemPedido.tamanho
+                  String(item.tamanho || '').toUpperCase() ===
+                    String(itemPedido.tamanho || '').toUpperCase()
               )
 
             return {
               ...itemPedido,
               cor:
                 itemCarrinho?.cor ||
+                itemPedido.cor ||
                 null,
               foto:
                 itemCarrinho?.foto ||
@@ -1328,8 +1337,9 @@ function Loja({ onNavegar }) {
 
       setPedidoFinalizado({
         ...resultado.pedido,
+        dadosCliente,
         itens:
-          itensConfirmacao,
+          itensConfirmacao.length > 0 ? itensConfirmacao : resultado.pedido?.itens || [],
         pagamento:
           resultado.pagamento ||
           resultado.pedido?.pagamento ||
@@ -1568,19 +1578,24 @@ function Loja({ onNavegar }) {
   ) {
     return (
       <>
-        <PedidoCompleto
-          pedido={
-            pedidoFinalizado
-          }
-          onVoltarLoja={
-            voltarParaLoja
-          }
-          onWhatsApp={() =>
-            abrirWhatsAppPedido(
+        <PedidoErrorBoundary
+          pedido={pedidoFinalizado}
+          onVoltarLoja={voltarParaLoja}
+        >
+          <PedidoCompleto
+            pedido={
               pedidoFinalizado
-            )
-          }
-        />
+            }
+            onVoltarLoja={
+              voltarParaLoja
+            }
+            onWhatsApp={() =>
+              abrirWhatsAppPedido(
+                pedidoFinalizado
+              )
+            }
+          />
+        </PedidoErrorBoundary>
         {modalCliente}
       </>
     )

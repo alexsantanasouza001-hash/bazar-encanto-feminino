@@ -576,3 +576,473 @@
     justify-content: space-between;
   }
 }
+
+/* ===================================================
+   MODAL DE DISTRIBUIÇÃO DE ESTOQUE (LOJA & REVENDEDORAS)
+=================================================== */
+.estoque-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: estoqueFadeIn 0.2s ease-out;
+}
+
+@keyframes estoqueFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.estoque-modal-distribuicao {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 640px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  animation: estoqueSlideUp 0.25s ease-out;
+}
+
+@keyframes estoqueSlideUp {
+  from { transform: translateY(12px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.distribuicao-modal-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fdfdfd;
+}
+
+.distribuicao-modal-titulo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.distribuicao-modal-icone {
+  font-size: 1.8rem;
+  width: 44px;
+  height: 44px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.distribuicao-modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.distribuicao-modal-sub {
+  margin: 2px 0 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.distribuicao-btn-fechar {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.distribuicao-btn-fechar:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.distribuicao-modal-corpo {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* CARDS DE TOTAIS */
+.distribuicao-totais-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.distribuicao-total-card {
+  padding: 14px 16px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.distribuicao-total-card.loja {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.distribuicao-total-card.loja .dist-tot-label {
+  color: #166534;
+}
+
+.distribuicao-total-card.loja .dist-tot-valor {
+  color: #15803d;
+}
+
+.distribuicao-total-card.consignado {
+  background: #fefce8;
+  border: 1px solid #fef08a;
+}
+
+.distribuicao-total-card.consignado .dist-tot-label {
+  color: #854d0e;
+}
+
+.distribuicao-total-card.consignado .dist-tot-valor {
+  color: #a16207;
+}
+
+.distribuicao-total-card.empresa {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.distribuicao-total-card.empresa .dist-tot-label {
+  color: #334155;
+}
+
+.distribuicao-total-card.empresa .dist-tot-valor {
+  color: #0f172a;
+}
+
+.dist-tot-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dist-tot-valor {
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.dist-tot-sub {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+/* SEÇÃO */
+.distribuicao-secao {
+  background: #ffffff;
+}
+
+.distribuicao-secao-titulo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.distribuicao-secao-titulo-esq {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.distribuicao-secao-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.05em;
+}
+
+.distribuicao-secao-tag.loja {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.distribuicao-secao-tag.consignado {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.distribuicao-secao-titulo h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.distribuicao-secao-total {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+/* BLOCO DE COR NA LOJA */
+.distribuicao-cores-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.distribuicao-cor-bloco {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.distribuicao-cor-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.distribuicao-cor-identificacao {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.distribuicao-cor-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  display: inline-block;
+}
+
+.distribuicao-cor-identificacao strong {
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.distribuicao-cor-total {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.distribuicao-tamanhos-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.distribuicao-tam-chip {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+}
+
+.distribuicao-tam-chip .tam-label {
+  font-weight: 700;
+  color: #475569;
+}
+
+.distribuicao-tam-chip .tam-num {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.distribuicao-tam-chip.zerado {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  border-style: dashed;
+  opacity: 0.6;
+}
+
+.distribuicao-tam-chip.zerado .tam-num {
+  color: #94a3b8;
+}
+
+/* REVENDEDORAS */
+.distribuicao-revendedoras-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.distribuicao-revendedora-card {
+  background: #fffdf5;
+  border: 1px solid #fef08a;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.distribuicao-revendedora-topo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #fef08a;
+}
+
+.distribuicao-rev-nome-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.distribuicao-rev-avatar {
+  font-size: 1rem;
+}
+
+.distribuicao-rev-nome-wrap strong {
+  font-size: 0.95rem;
+  color: #713f12;
+}
+
+.distribuicao-rev-total {
+  font-size: 0.82rem;
+  color: #854d0e;
+}
+
+.distribuicao-rev-cores {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.distribuicao-rev-cor-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #fef3c7;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.distribuicao-rev-cor-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.distribuicao-cor-dot-sm {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  display: inline-block;
+}
+
+.distribuicao-rev-cor-nome {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.distribuicao-rev-cor-subtotal {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.distribuicao-rev-tam-lista {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.distribuicao-rev-tam-badge {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.distribuicao-vazio-box {
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.88rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.distribuicao-vazio-icone {
+  font-size: 1.5rem;
+}
+
+.distribuicao-vazio-box p {
+  margin: 0;
+}
+
+.distribuicao-vazio {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin: 6px 0;
+}
+
+/* FOOTER */
+.distribuicao-modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+  background: #fdfdfd;
+}
+
+.distribuicao-btn-fechar-footer {
+  background: #25352a;
+  color: #ffffff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.distribuicao-btn-fechar-footer:hover {
+  background: #18231c;
+}
+
+@media (max-width: 640px) {
+  .distribuicao-totais-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
