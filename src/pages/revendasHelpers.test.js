@@ -1462,13 +1462,13 @@ test('1) Revendedora com 40% de divisão de lucro calcula corretamente a partilh
   assert.equal(res.custoReal, 55.00)
   assert.equal(res.comissao, 9.90)
   assert.equal(res.lucroOperacionalReal, 34.10)
-  // Regra 04/11/2026: acerto sobre o CUSTO REAL (55), não sobre o repasse (65)
-  assert.equal(res.lucroComercial, 34.10) // 99 - 55 - 9.90 = 34.10
-  assert.equal(res.parteRevendedoraLucro, 13.64) // 40% de 34.10
-  assert.equal(res.parteBazarLucro, 20.46) // 99 - 55 - 9.90 - 13.64 = 20.46
-  assert.equal(res.totalEconomicoRevendedora, 23.54) // 9.90 + 13.64
-  assert.equal(res.resultadoEconomicoBazar, 75.46) // 55.00 + 20.46
-  assert.equal(res.valorDevidoAoBazar, 75.46)
+  // Regra 21/11/2026: acerto sobre o REPASSE (65 = custo + frete), não sobre o custo real (55)
+  assert.equal(res.lucroComercial, 24.10) // 99 - 65 - 9.90 = 24.10
+  assert.equal(res.parteRevendedoraLucro, 9.64) // 40% de 24.10
+  assert.equal(res.parteBazarLucro, 24.46) // resíduo real: 99 - 55 - 9.90 - 9.64 = 24.46
+  assert.equal(res.totalEconomicoRevendedora, 19.54) // 9.90 + 9.64
+  assert.equal(res.resultadoEconomicoBazar, 79.46) // 55.00 + 24.46
+  assert.equal(res.valorDevidoAoBazar, 79.46) // 65 + 60% de 24.10 (14.46)
 })
 
 test('2) Revendedora com 35% de divisão de lucro calcula 35% / 65%', () => {
@@ -1997,9 +1997,9 @@ test('30) Snapshot Histórico: venda realizada mantém repasse efetivo históric
   assert.equal(detalhe.vendaLiquida, 99.00)
   assert.equal(detalhe.lucroOperacionalReal, 51.10) // 99 - 35 - 3 - 9.90 = 51.10
   assert.equal(detalhe.valorRepasseUnitario, 68.00) // repasse histórico preservado como referência
-  assert.equal(detalhe.lucroComercial, 54.10) // 99 - 35 (custo real, sem frete) - 9.90 = 54.10
-  assert.equal(detalhe.parteRevendedoraLucroReal, 21.64) // 40% de 54.10
-  assert.equal(detalhe.parteBazarLucroReal, 29.46) // 99 - 35 - 3 - 9.90 - 21.64 = 29.46
+  assert.equal(detalhe.lucroComercial, 21.10) // 99 - 68 (repasse histórico = custo + frete) - 9.90 = 21.10
+  assert.equal(detalhe.parteRevendedoraLucroReal, 8.44) // 40% de 21.10
+  assert.equal(detalhe.parteBazarLucroReal, 42.66) // 99 - 35 - 3 - 9.90 - 8.44 = 42.66
 })
 
 test('31) Custo Real de Aquisição (35.00) é estritamente separado de Repasse Base (65.00) e Frete (3.00)', () => {
@@ -2271,7 +2271,7 @@ test('42) Validação final: Total Econômico Revendedora (102.00) + Total Retid
   assert.equal(Number((totalRevendedora + resultadoBazar).toFixed(2)), vendaLiquida)
 })
 
-test('43) Exemplo Oficial 1: Consolidado da Revendedora (Custo R$ 350, Repasse R$ 500, Venda R$ 1.000, Comissão R$ 100, 40/60) => Devido R$ 680,00, Status PAGO', () => {
+test('43) Exemplo Oficial 1: Consolidado da Revendedora (Custo R$ 350, Repasse R$ 500, Venda R$ 1.000, Comissão R$ 100, 40/60) => Devido R$ 740,00, Status PAGO', () => {
   const rev = { id: 1, usa_divisao_lucro: true, percentual_lucro_revendedora: 40 }
   const remessas = [{
     id: 1,
@@ -2292,7 +2292,7 @@ test('43) Exemplo Oficial 1: Consolidado da Revendedora (Custo R$ 350, Repasse R
     id: 1,
     revendedora_id: 1,
     remessa_id: 1,
-    valor: 680.00,
+    valor: 740.00,
     status: 'CONFIRMADO'
   }]
 
@@ -2307,18 +2307,18 @@ test('43) Exemplo Oficial 1: Consolidado da Revendedora (Custo R$ 350, Repasse R
   const cons = painel.resultadoConsolidado
   assert.equal(cons.totalVendas, 1000.00)
   assert.equal(cons.totalComissao, 100.00)
-  assert.equal(cons.custoRepasse, 350.00) // regra 04/11/2026: USA CUSTO REAL (350), NÃO O REPASSE (500)
-  assert.equal(cons.lucroLiquido, 550.00) // 1000 - 350 - 100 = 550
-  assert.equal(cons.parteRevendedora, 220.00) // 40% de 550
-  assert.equal(cons.parteBazar, 330.00) // 60% de 550
-  assert.equal(cons.totalEconomicoRevendedora, 320.00) // 100 + 220
-  assert.equal(cons.valorDevidoAoBazar, 680.00) // 350 + 330
-  assert.equal(cons.valorPago, 680.00)
+  assert.equal(cons.custoRepasse, 500.00) // regra 21/11/2026: USA O REPASSE (500), NÃO O CUSTO REAL (350)
+  assert.equal(cons.lucroLiquido, 400.00) // 1000 - 500 - 100 = 400
+  assert.equal(cons.parteRevendedora, 160.00) // 40% de 400
+  assert.equal(cons.parteBazar, 240.00) // 60% de 400
+  assert.equal(cons.totalEconomicoRevendedora, 260.00) // 100 + 160
+  assert.equal(cons.valorDevidoAoBazar, 740.00) // 500 + 240
+  assert.equal(cons.valorPago, 740.00)
   assert.equal(cons.saldo, 0.00)
   assert.equal(cons.status, 'PAGO')
 })
 
-test('44) Exemplo Oficial 2: Divisão do Resultado Econômico Real (Custo Real R$ 350, Frete R$ 50, Venda R$ 1.000, Comissão R$ 100, 40/60) => Lucro Real Bazar R$ 280', () => {
+test('44) Exemplo Oficial 2: Divisão do Resultado Econômico Real (Custo Real R$ 350, Frete R$ 50, Venda R$ 1.000, Comissão R$ 100, 40/60) => Lucro Real Bazar R$ 340', () => {
   const rev = { id: 1, usa_divisao_lucro: true, percentual_lucro_revendedora: 40 }
   const remessas = [{
     id: 1,
@@ -2349,13 +2349,13 @@ test('44) Exemplo Oficial 2: Divisão do Resultado Econômico Real (Custo Real R
   assert.equal(eco.freteOperacional, 50.00)
   assert.equal(eco.comissao, 100.00)
   assert.equal(eco.lucroOperacionalReal, 500.00) // 1000 - 350 - 100 - 50 = 500
-  // Parte da revendedora vem do acerto sobre custo real (40% de 1000 - 350 - 100 = 550 => 220.00)
-  assert.equal(eco.parteRevendedora, 220.00)
-  // Lucro Real do Bazar é por RESÍDUO (frete fica com o bazar): 1000 - 350 - 50 - 100 - 220 = 280.00
-  assert.equal(eco.lucroRealBazar, 280.00)
-  assert.equal(Number(eco.margemRealBazar.toFixed(2)), 28.00)
+  // Parte da revendedora vem do acerto sobre o repasse (40% de 1000 - 500 - 100 = 400 => 160.00)
+  assert.equal(eco.parteRevendedora, 160.00)
+  // Lucro Real do Bazar é por RESÍDUO: 1000 - 350 - 50 - 100 - 160 = 340.00
+  assert.equal(eco.lucroRealBazar, 340.00)
+  assert.equal(Number(eco.margemRealBazar.toFixed(2)), 34.00)
   assert.equal(eco.custoRecuperado, 350.00)
-  assert.equal(eco.totalRetidoBazar, 680.00) // 350 (custo) + 50 (frete) + 280 (lucro bazar)
+  assert.equal(eco.totalRetidoBazar, 740.00) // 350 (custo) + 50 (frete) + 340 (lucro bazar)
 })
 
 test('45) Divisão 35% / 65% no Consolidado e no Econômico', () => {
@@ -2383,18 +2383,18 @@ test('45) Divisão 35% / 65% no Consolidado e no Econômico', () => {
     filtroRevendedoraId: 1
   })
 
-  // Consolidado (custo real 40): Lucro = 100 - 40 - 10 = 50 => Rev 35% = 17.50, Bazar 65% = 32.50, Devido = 40 + 32.50 = 72.50
-  assert.equal(painel.resultadoConsolidado.custoRepasse, 40.00)
-  assert.equal(painel.resultadoConsolidado.lucroLiquido, 50.00)
-  assert.equal(painel.resultadoConsolidado.parteRevendedora, 17.50)
-  assert.equal(painel.resultadoConsolidado.parteBazar, 32.50)
-  assert.equal(painel.resultadoConsolidado.valorDevidoAoBazar, 72.50)
+  // Consolidado (repasse 60): Lucro = 100 - 60 - 10 = 30 => Rev 35% = 10.50, Bazar 65% = 19.50, Devido = 60 + 19.50 = 79.50
+  assert.equal(painel.resultadoConsolidado.custoRepasse, 60.00)
+  assert.equal(painel.resultadoConsolidado.lucroLiquido, 30.00)
+  assert.equal(painel.resultadoConsolidado.parteRevendedora, 10.50)
+  assert.equal(painel.resultadoConsolidado.parteBazar, 19.50)
+  assert.equal(painel.resultadoConsolidado.valorDevidoAoBazar, 79.50)
 
-  // Econômico: Lucro Real por RESÍDUO = 100 - 40 - 10 - 17.50 = 32.50
+  // Econômico: Lucro Real por RESÍDUO = 100 - 40 - 10 - 10.50 = 39.50
   assert.equal(painel.divisaoEconomicaReal.custoReal, 40.00)
   assert.equal(painel.divisaoEconomicaReal.lucroOperacionalReal, 50.00)
-  assert.equal(painel.divisaoEconomicaReal.parteRevendedora, 17.50) // EXATAMENTE O MESMO DO CONSOLIDADO
-  assert.equal(painel.divisaoEconomicaReal.lucroRealBazar, 32.50)
+  assert.equal(painel.divisaoEconomicaReal.parteRevendedora, 10.50) // EXATAMENTE O MESMO DO CONSOLIDADO
+  assert.equal(painel.divisaoEconomicaReal.lucroRealBazar, 39.50)
 })
 
 // ====================================================================
@@ -2556,7 +2556,7 @@ test('49) CASO D - Consolidado 100/0: Vendas 1000, Custo 500, Comissao 100 => Lu
   assert.equal(Number((cons.totalEconomicoRevendedora + cons.valorDevidoAoBazar).toFixed(2)), cons.totalVendas)
 })
 
-test('50) Resultado Econômico Real 40/60: Venda 1000, Repasse 600, Custo Real 350, Comissao 100, Frete 50 => Lucro Real Bazar 280, Rev 220 (igual consolidado)', () => {
+test('50) Resultado Econômico Real 40/60: Venda 1000, Repasse 600, Custo Real 350, Comissao 100, Frete 50 => Lucro Real Bazar 380, Rev 120 (igual consolidado)', () => {
   const rev = { id: 5, percentual_lucro_revendedora: 40 }
   const remessas = [{
     id: 1,
@@ -2581,8 +2581,8 @@ test('50) Resultado Econômico Real 40/60: Venda 1000, Repasse 600, Custo Real 3
     filtroRevendedoraId: 5
   })
 
-  // Consolidado (custo real 350, repasse 600 não entra): Lucro = 1000 - 350 - 100 = 550 => Rev 40% = 220.00
-  assert.equal(painel.resultadoConsolidado.parteRevendedora, 220.00)
+  // Consolidado (repasse 600): Lucro = 1000 - 600 - 100 = 300 => Rev 40% = 120.00
+  assert.equal(painel.resultadoConsolidado.parteRevendedora, 120.00)
 
   const eco = painel.divisaoEconomicaReal
   assert.equal(eco.vendaLiquida, 1000.00)
@@ -2592,13 +2592,13 @@ test('50) Resultado Econômico Real 40/60: Venda 1000, Repasse 600, Custo Real 3
   assert.equal(eco.lucroOperacionalReal, 500.00) // 1000 - 350 - 50 - 100 = 500
   assert.equal(eco.percRevendedora, 40)
   assert.equal(eco.percBazar, 60)
-  // Parte Revendedora no Econômico é EXATAMENTE a mesma do Consolidado: 220.00
-  assert.equal(eco.parteRevendedora, 220.00)
-  // Lucro Real do Bazar é por RESÍDUO: 1000 - 350 - 50 - 100 - 220 = 280.00
-  assert.equal(eco.lucroRealBazar, 280.00)
-  assert.equal(Number(eco.margemRealBazar.toFixed(2)), 28.00)
+  // Parte Revendedora no Econômico é EXATAMENTE a mesma do Consolidado: 120.00
+  assert.equal(eco.parteRevendedora, 120.00)
+  // Lucro Real do Bazar é por RESÍDUO: 1000 - 350 - 50 - 100 - 120 = 380.00
+  assert.equal(eco.lucroRealBazar, 380.00)
+  assert.equal(Number(eco.margemRealBazar.toFixed(2)), 38.00)
   assert.equal(eco.custoRecuperado, 350.00)
-  assert.equal(eco.totalRetidoBazar, 680.00) // 350 (custo) + 50 (frete) + 280 (lucro bazar)
+  assert.equal(eco.totalRetidoBazar, 780.00) // 350 (custo) + 50 (frete) + 380 (lucro bazar)
 })
 
 test('51) Proteção Anti-Erro de Percentual: percentual 40% não multiplica por 40 sem /100 e não aplica /100 duas vezes', () => {
@@ -2693,7 +2693,7 @@ test('53) Consolidado com Base R$ 207,40 exibe rigorosamente R$ 82,96 (Revendedo
   assert.equal(Number((cons.totalEconomicoRevendedora + cons.valorDevidoAoBazar).toFixed(2)), cons.totalVendas)
 })
 
-test('54) Resultado Econômico Real (custo 652,60, frete 40) exibe R$ 98,96 (Revendedora) e Lucro Real Bazar por resíduo', () => {
+test('54) Resultado Econômico Real (custo 652,60, frete 40) exibe R$ 82,96 (Revendedora) e Lucro Real Bazar por resíduo', () => {
   const rev = { id: 8, percentual_lucro_revendedora: 40 }
   const remessas = [{
     id: 1,
@@ -2718,10 +2718,10 @@ test('54) Resultado Econômico Real (custo 652,60, frete 40) exibe R$ 98,96 (Rev
     filtroRevendedoraId: 8
   })
 
-  // Consolidado (custo real 652.60): Lucro = 1000 - 652.60 - 100 = 247.40 => Parte Revendedora = 98.96
-  assert.equal(painel.resultadoConsolidado.parteRevendedora, 98.96)
+  // Consolidado (repasse 692.60): Lucro = 1000 - 692.60 - 100 = 207.40 => Parte Revendedora = 82.96
+  assert.equal(painel.resultadoConsolidado.parteRevendedora, 82.96)
 
-  // Lucro Real Bazar = 1000 - 652.60 - 40 - 100 - 98.96 = 108.44
+  // Lucro Real Bazar = 1000 - 652.60 - 40 - 100 - 82.96 = 124.44
   const eco = painel.divisaoEconomicaReal
   assert.equal(eco.vendaLiquida, 1000.00)
   assert.equal(eco.custoReal, 652.60)
@@ -2730,9 +2730,9 @@ test('54) Resultado Econômico Real (custo 652,60, frete 40) exibe R$ 98,96 (Rev
   assert.equal(eco.lucroOperacionalReal, 207.40)
   assert.equal(eco.percRevendedora, 40)
   assert.equal(eco.percBazar, 60)
-  assert.equal(eco.parteRevendedora, 98.96) // EXATAMENTE A MESMA DO CONSOLIDADO
-  assert.equal(eco.lucroRealBazar, 108.44)
-  assert.equal(eco.totalRetidoBazar, 801.04) // 652.60 + 40 + 108.44
+  assert.equal(eco.parteRevendedora, 82.96) // EXATAMENTE A MESMA DO CONSOLIDADO
+  assert.equal(eco.lucroRealBazar, 124.44)
+  assert.equal(eco.totalRetidoBazar, 817.04) // 652.60 + 40 + 124.44
 })
 
 test('55) TESTE OBRIGATÓRIO SEÇÃO 17: parteRevendedoraResultadoEconomico === parteRevendedoraConsolidado', () => {
@@ -2760,49 +2760,50 @@ test('55) TESTE OBRIGATÓRIO SEÇÃO 17: parteRevendedoraResultadoEconomico === 
     filtroRevendedoraId: 9
   })
 
-  // Consolidado (custo real 200): Base = 1000 - 200 - 100 = 700 => Rev 40% = 280.00
-  assert.equal(painel.resultadoConsolidado.parteRevendedora, 280.00)
+  // Consolidado (repasse 692.60): Base = 1000 - 692.60 - 100 = 207.40 => Rev 40% = 82.96
+  assert.equal(painel.resultadoConsolidado.parteRevendedora, 82.96)
   // Econômico: a parte da revendedora é a mesma do consolidado
-  assert.equal(painel.divisaoEconomicaReal.parteRevendedora, 280.00)
+  assert.equal(painel.divisaoEconomicaReal.parteRevendedora, 82.96)
   assert.equal(painel.divisaoEconomicaReal.parteRevendedora, painel.resultadoConsolidado.parteRevendedora)
-  // Lucro Real do Bazar é por resíduo: 1000 - 200 - 30 - 100 - 280 = 390.00
-  assert.equal(painel.divisaoEconomicaReal.lucroRealBazar, 390.00)
+  // Lucro Real do Bazar é por resíduo: 1000 - 200 - 30 - 100 - 82.96 = 587.04
+  assert.equal(painel.divisaoEconomicaReal.lucroRealBazar, 587.04)
 })
 
-test('56) Regra 04/11/2026: a Parte da Revendedora acompanha o Custo Real nos 3 Cenários (A, B, C)', () => {
+test('56) Regra 21/11/2026: a Parte da Revendedora usa o Repasse; o Custo Real só muda o lucro real do Bazar (A, B, C)', () => {
   const rev = { id: 10, percentual_lucro_revendedora: 40 }
   const repasseBase = 242.60
   const vendaTotal = 500.00
   const comissao = 50.00
   const frete = 20.00
-  // Lucro do acerto = 500 - CUSTO REAL - 50 (o repasse 242.60 não entra mais na conta)
+  // Lucro do acerto = 500 - REPASSE 242.60 - 50 = 207.40 => Rev 40% = 82.96 em todos os cenários;
+  // o custo real só muda o lucro real (residual) do Bazar.
 
   // Cenário A: Custo Real R$ 100
   const remessaA = [{ id: 1, itens: [{ id: 10, custo_unitario: 100.00, frete_rateado_unitario: frete, preco_venda_sugerido: repasseBase, valor_repasse_base: repasseBase }] }]
   const vendasA = [{ id: 1, revendedora_id: 10, remessa_id: 1, remessa_item_id: 10, quantidade: 1, total_venda: vendaTotal, valor_comissao: comissao, valor_repasse_unitario: repasseBase, status: 'CONFIRMADA' }]
   const painelA = calcularPainelFinanceiroAdmin({ vendas: vendasA, revendedoras: [rev], remessas: remessaA, filtroRevendedoraId: 10 })
 
-  assert.equal(painelA.resultadoConsolidado.parteRevendedora, 140.00) // 40% de (500 - 100 - 50)
-  assert.equal(painelA.divisaoEconomicaReal.parteRevendedora, 140.00)
-  assert.equal(painelA.divisaoEconomicaReal.lucroRealBazar, 190.00) // 500 - 100 - 20 - 50 - 140 = 190
+  assert.equal(painelA.resultadoConsolidado.parteRevendedora, 82.96)
+  assert.equal(painelA.divisaoEconomicaReal.parteRevendedora, 82.96)
+  assert.equal(painelA.divisaoEconomicaReal.lucroRealBazar, 247.04) // 500 - 100 - 20 - 50 - 82.96
 
   // Cenário B: Custo Real R$ 150 (Exemplo exato da Seção 13)
   const remessaB = [{ id: 1, itens: [{ id: 10, custo_unitario: 150.00, frete_rateado_unitario: frete, preco_venda_sugerido: repasseBase, valor_repasse_base: repasseBase }] }]
   const vendasB = [{ id: 1, revendedora_id: 10, remessa_id: 1, remessa_item_id: 10, quantidade: 1, total_venda: vendaTotal, valor_comissao: comissao, valor_repasse_unitario: repasseBase, status: 'CONFIRMADA' }]
   const painelB = calcularPainelFinanceiroAdmin({ vendas: vendasB, revendedoras: [rev], remessas: remessaB, filtroRevendedoraId: 10 })
 
-  assert.equal(painelB.resultadoConsolidado.parteRevendedora, 120.00) // 40% de (500 - 150 - 50)
-  assert.equal(painelB.divisaoEconomicaReal.parteRevendedora, 120.00)
-  assert.equal(painelB.divisaoEconomicaReal.lucroRealBazar, 160.00) // 500 - 150 - 20 - 50 - 120 = 160
+  assert.equal(painelB.resultadoConsolidado.parteRevendedora, 82.96)
+  assert.equal(painelB.divisaoEconomicaReal.parteRevendedora, 82.96)
+  assert.equal(painelB.divisaoEconomicaReal.lucroRealBazar, 197.04) // 500 - 150 - 20 - 50 - 82.96
 
   // Cenário C: Custo Real R$ 200
   const remessaC = [{ id: 1, itens: [{ id: 10, custo_unitario: 200.00, frete_rateado_unitario: frete, preco_venda_sugerido: repasseBase, valor_repasse_base: repasseBase }] }]
   const vendasC = [{ id: 1, revendedora_id: 10, remessa_id: 1, remessa_item_id: 10, quantidade: 1, total_venda: vendaTotal, valor_comissao: comissao, valor_repasse_unitario: repasseBase, status: 'CONFIRMADA' }]
   const painelC = calcularPainelFinanceiroAdmin({ vendas: vendasC, revendedoras: [rev], remessas: remessaC, filtroRevendedoraId: 10 })
 
-  assert.equal(painelC.resultadoConsolidado.parteRevendedora, 100.00) // 40% de (500 - 200 - 50)
-  assert.equal(painelC.divisaoEconomicaReal.parteRevendedora, 100.00)
-  assert.equal(painelC.divisaoEconomicaReal.lucroRealBazar, 130.00) // 500 - 200 - 20 - 50 - 100 = 130
+  assert.equal(painelC.resultadoConsolidado.parteRevendedora, 82.96)
+  assert.equal(painelC.divisaoEconomicaReal.parteRevendedora, 82.96)
+  assert.equal(painelC.divisaoEconomicaReal.lucroRealBazar, 147.04) // 500 - 200 - 20 - 50 - 82.96
 })
 
 // =====================================================
