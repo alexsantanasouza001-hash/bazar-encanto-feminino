@@ -317,6 +317,40 @@ export function simularTaxaCartao(valorVenda, parcelas) {
   }
 }
 
+/**
+ * Prévia do acerto de UMA venda (tela Registrar Venda), com a MESMA regra de calcularConsolidacaoFinanceira:
+ * lucro = venda - comissão - custo real - taxa do cartão → dividido pelo percentual da revendedora.
+ * Devido ao Bazar = custo + parte do Bazar no lucro. Sem divisão de lucro: venda - comissão.
+ */
+export function simularAcertoVenda({ totalVenda, comissao, custoTotal, taxaCartao = 0, revendedora }) {
+  const venda = Number(Number(totalVenda || 0).toFixed(2))
+  const com = Number(Number(comissao || 0).toFixed(2))
+  const custo = Number(Number(custoTotal || 0).toFixed(2))
+  const taxa = Number(Number(taxaCartao || 0).toFixed(2))
+  const usaDivisao = Boolean(revendedora?.usa_divisao_lucro)
+  if (!usaDivisao) {
+    return { usaDivisao, venda, comissao: com, custo, taxa, lucro: 0, percRevendedora: 0, percBazar: 0, parteRevendedora: 0, parteBazar: 0, totalRevendedora: com, devidoBazar: Number((venda - com).toFixed(2)) }
+  }
+  const percRev = Math.min(100, Math.max(0, Number(revendedora?.percentual_lucro_revendedora || 0)))
+  const lucro = Number(Math.max(0, venda - custo - com - taxa).toFixed(2))
+  const parteRevendedora = Number(((lucro * percRev) / 100).toFixed(2))
+  const parteBazar = Number((lucro - parteRevendedora).toFixed(2))
+  return {
+    usaDivisao,
+    venda,
+    comissao: com,
+    custo,
+    taxa,
+    lucro,
+    percRevendedora: percRev,
+    percBazar: Number((100 - percRev).toFixed(2)),
+    parteRevendedora,
+    parteBazar,
+    totalRevendedora: Number((com + parteRevendedora).toFixed(2)),
+    devidoBazar: Number((custo + parteBazar).toFixed(2))
+  }
+}
+
 export function valorTaxaCartaoVenda(venda) {
   return Math.max(0, Number(venda?.valor_taxa_cartao || 0))
 }
