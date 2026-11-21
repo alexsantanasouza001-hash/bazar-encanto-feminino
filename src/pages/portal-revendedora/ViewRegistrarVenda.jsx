@@ -89,11 +89,8 @@ export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSuces
   const valorFinalVenda = simulacao ? simulacao.totalVenda : 0
   const simulacaoCartao = ehCartao ? simularTaxaCartao(valorFinalVenda, parcelasCartao) : null
 
-  // Custo real da peça (mesma regra do acerto): custo_unitario do item da remessa; sem ele, o valor de repasse.
-  const custoUnitarioPeca = (() => {
-    const c = Number(pecaSelecionada?.itemOriginal?.custo_unitario || 0)
-    return c > 0 ? c : repasseUnitario
-  })()
+  // Custo do acerto = valor de repasse da peça (custo + frete), mesma regra de Meus Acertos.
+  const custoUnitarioPeca = repasseUnitario
   const previaAcerto = simulacao
     ? simularAcertoVenda({
         totalVenda: simulacao.totalVenda,
@@ -628,7 +625,7 @@ export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSuces
               {previaAcerto?.usaDivisao && (
                 <>
                   <div className="portal-preview-row">
-                    <span>Custo da Peça:</span>
+                    <span>Repasse da Peça (custo + frete):</span>
                     <span>- {formatarMoeda(previaAcerto.custo)}</span>
                   </div>
                   <div className="portal-preview-row">
