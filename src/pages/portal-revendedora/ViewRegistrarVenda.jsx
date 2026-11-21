@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
-import { registrarVendaPortal, definirDataRecebimentoVenda } from '../../storage'
-import { formatarMoeda, agruparProdutosParaVenda, simularValoresVenda, resolverImagemProdutoRevenda } from './portalHelpers'
+import { registrarVendaPortal, definirDataRecebimentoVenda, definirParcelasCartaoVenda } from '../../storage'
+import { formatarMoeda, agruparProdutosParaVenda, simularValoresVenda, resolverImagemProdutoRevenda, TAXAS_CARTAO_REVENDA, simularTaxaCartao } from './portalHelpers'
 import { obterDataLocalHoje } from '../../lib/dataLocal.js'
 
 export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSucesso }) {
@@ -12,6 +12,7 @@ export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSuces
   const [precoUnitario, setPrecoUnitario] = useState('')
   const [descontoMonetario, setDescontoMonetario] = useState('')
   const [formaPagamento, setFormaPagamento] = useState('Pix')
+  const [parcelasCartao, setParcelasCartao] = useState(1)
   const [dataVenda, setDataVenda] = useState(obterDataLocalHoje())
   const [recebeDepois, setRecebeDepois] = useState(false)
   const [dataRecebimento, setDataRecebimento] = useState('')
@@ -83,6 +84,10 @@ export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSuces
       valorDesconto: Number(descontoMonetario || 0)
     })
   }, [pecaSelecionada, quantidade, precoUnitario, repasseUnitario, descontoMonetario, revendedora])
+
+  const ehCartao = formaPagamento === 'Cartão'
+  const valorFinalVenda = simulacao ? simulacao.totalVenda : 0
+  const simulacaoCartao = ehCartao ? simularTaxaCartao(valorFinalVenda, parcelasCartao) : null
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -156,6 +161,16 @@ export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSuces
       if (!res?.sucesso) {
         setErroForm(res?.mensagem || 'Erro ao registrar venda.')
         return
+      }
+
+      if (ehCartao) {
+        const resCartao = await definirParcelasCartaoVenda({ vendaId: res.venda_id, parcelas: parcelasCartao })
+        if (!resCartao?.sucesso) {
+          if (onVendaSucesso) {
+            onVendaSucesso(`Venda registrada, mas as parcelas do cartão não foram salvas (${resCartao?.mensagem || 'erro'}). Abra a venda em "Minhas Vendas" e edite as parcelas.`)
+          }
+          return
+        }
       }
 
       if (recebeDepois && dataRecebimento) {
@@ -478,6 +493,47 @@ export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSuces
             </div>
           </div>
 
+          {ehCartao && (
+            <div className="portal-form-group">
+              <label htmlFor="pv-parcelas">Parcelas no Cartão</label>
+              <select
+                id="pv-parcelas"
+                className="portal-form-select"
+                value={parcelasCartao}
+                onChange={(e) => setParcelasCartao(Number(e.target.value))}
+                disabled={enviando}
+              >
+                {TAXAS_CARTAO_REVENDA.map((t) => {
+                  const sim = simularTaxaCartao(valorFinalVenda, t.parcelas)
+                  return (
+                    <option key={t.parcelas} value={t.parcelas}>
+                      {t.parcelas}x{valorFinalVenda > 0 ? ` de ${formatarMoeda(sim.valorParcela)}` : ''} — taxa {String(t.percentual.toFixed(2)).replace('.', ',')}%
+                    </option>
+                  )
+                })}
+              </select>
+              {simulacaoCartao && valorFinalVenda > 0 && (
+                <div className="portal-readonly-field" style={{ marginTop: '8px', flexDirection: 'column', alignItems: 'stretch', gap: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                    <span>{simulacaoCartao.parcelas}x de {formatarMoeda(simulacaoCartao.valorParcela)}</span>
+                    <strong>{formatarMoeda(valorFinalVenda)}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--danger, #B85F4A)' }}>
+                    <span>Taxa da maquininha ({String(simulacaoCartao.percentual.toFixed(2)).replace('.', ',')}%)</span>
+                    <span>- {formatarMoeda(simulacaoCartao.valorTaxa)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                    <span>Cai na maquininha</span>
+                    <strong>{formatarMoeda(simulacaoCartao.valorLiquido)}</strong>
+                  </div>
+                </div>
+              )}
+              <small style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+                A taxa do cartão sai do lucro antes da divisão entre você e o Bazar.
+              </small>
+            </div>
+          )}
+
           <div className="portal-form-group">
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 'normal' }}>
               <input
@@ -542,6 +598,12 @@ export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSuces
                 <span>Valor Final da Venda:</span>
                 <span>{formatarMoeda(simulacao.totalVenda)}</span>
               </div>
+              {simulacaoCartao && simulacaoCartao.valorTaxa > 0 && (
+                <div className="portal-preview-row">
+                  <span>Taxa do Cartão ({simulacaoCartao.parcelas}x · {String(simulacaoCartao.percentual.toFixed(2)).replace('.', ',')}%):</span>
+                  <span style={{ color: 'var(--danger, #B85F4A)' }}>- {formatarMoeda(simulacaoCartao.valorTaxa)}</span>
+                </div>
+              )}
               <div className="portal-preview-row">
                 <span>Minha Comissão Estimada:</span>
                 <span style={{ color: 'var(--accent, #C9A35A)', fontWeight: 600 }}>
