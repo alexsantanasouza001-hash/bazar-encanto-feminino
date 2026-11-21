@@ -3549,3 +3549,17 @@ test('97) BUG REAL: "Todas as Revendedoras" com percentuais de divisão de lucro
 
 
 
+
+test('detalharVendaFinanceiraAdmin e consolidarResumoRevendedora descontam a taxa do cartão do lucro', async () => {
+  const { detalharVendaFinanceiraAdmin, consolidarResumoRevendedora } = await import('./revendasHelpers.js')
+  const remessas = [{ id: 1, revendedora_id: 1, itens: [{ id: 10, custo_unitario: 50, preco_venda_sugerido: 50 }] }]
+  const venda = { id: 1, revendedora_id: 1, status: 'CONFIRMADA', remessa_id: 1, remessa_item_id: 10, quantidade: 1,
+    total_venda: 100, valor_total_bruto: 100, valor_comissao: 10, valor_taxa_cartao: 7.01, data_venda: '2026-11-20' }
+  const rev = { id: 1, nome: 'R', usa_divisao_lucro: true, percentual_lucro_revendedora: 40 }
+  const d = detalharVendaFinanceiraAdmin(venda, rev, remessas, [])
+  assert.equal(d.taxaCartao, 7.01)
+  assert.equal(d.lucroComercial, 32.99)
+  assert.equal(d.valorDevidoAoBazarComercial, 69.79)
+  const r = consolidarResumoRevendedora(rev, remessas, [venda], [])
+  assert.equal(r.totalDevidoLoja, 69.79)
+})
