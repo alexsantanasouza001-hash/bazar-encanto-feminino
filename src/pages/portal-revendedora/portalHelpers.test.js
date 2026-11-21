@@ -894,3 +894,30 @@ test('Nova Metodologia: Fluxo de Pagamento, Pagamento Parcial, Confirmação e S
 
 
 
+
+test('simularTaxaCartao usa a tabela 1x 4,20% | 2x 6,09% | 3x 7,01%', async () => {
+  const { simularTaxaCartao } = await import('./portalHelpers.js')
+  assert.deepEqual(simularTaxaCartao(100, 1), { parcelas: 1, percentual: 4.2, valorTaxa: 4.2, valorParcela: 100, valorLiquido: 95.8 })
+  assert.equal(simularTaxaCartao(100, 2).valorTaxa, 6.09)
+  assert.equal(simularTaxaCartao(100, 2).valorParcela, 50)
+  assert.equal(simularTaxaCartao(200, 3).valorTaxa, 14.02)
+})
+
+test('calcularConsolidacaoFinanceira desconta a taxa do cartão do lucro antes da divisão 60/40', () => {
+  // Exemplo do Bazar: venda 100, comissão 10, custo 50, cartão 3x (7,01%) → lucro 40 - 7,01 = 32,99
+  const remessas = [{ id: 1, itens: [{ id: 10, custo_unitario: 50 }] }]
+  const vendas = [{
+    id: 1, status: 'CONFIRMADA', remessa_id: 1, remessa_item_id: 10, quantidade: 1,
+    total_venda: 100, valor_comissao: 10, forma_pagamento: 'Cartão', parcelas_cartao: 3, valor_taxa_cartao: 7.01
+  }]
+  const rev = { usa_divisao_lucro: true, percentual_lucro_revendedora: 40 }
+  const c = calcularConsolidacaoFinanceira(vendas, rev, remessas)
+  assert.equal(c.taxaCartaoTotal, 7.01)
+  assert.equal(c.lucroLiquido, 32.99)
+  assert.equal(c.parteLucroRevendedora, 13.2)
+  assert.equal(c.parteLucroBazar, 19.79)
+  assert.equal(c.valorDevidoBazar, 69.79)
+  assert.equal(c.totalRevendedora, 23.2)
+  // fecha centavo a centavo: bazar + revendedora + taxa = venda
+  assert.equal(Number((c.valorDevidoBazar + c.totalRevendedora + c.taxaCartaoTotal).toFixed(2)), 100)
+})
