@@ -3564,3 +3564,19 @@ test('detalharVendaFinanceiraAdmin e consolidarResumoRevendedora descontam a tax
   const r = consolidarResumoRevendedora(rev, remessas, [venda], [])
   assert.equal(r.totalDevidoLoja, 69.79)
 })
+
+test('Admin: venda abaixo do repasse mantém a comissão e o prejuízo fica com o Bazar', async () => {
+  const { consolidarResumoRevendedora, calcularPainelFinanceiroAdmin } = await import('./revendasHelpers.js')
+  const rev = { id: 1, nome: 'R', usa_divisao_lucro: true, percentual_lucro_revendedora: 40 }
+  const remessas = [{ id: 1, revendedora_id: 1, itens: [{ id: 10, custo_unitario: 90, preco_venda_sugerido: 95.78 }, { id: 11, custo_unitario: 50, preco_venda_sugerido: 50 }] }]
+  const vendas = [
+    { id: 1, revendedora_id: 1, status: 'CONFIRMADA', remessa_id: 1, remessa_item_id: 10, quantidade: 1, total_venda: 99, valor_comissao: 9.9, data_venda: '2026-11-20' },
+    { id: 2, revendedora_id: 1, status: 'CONFIRMADA', remessa_id: 1, remessa_item_id: 11, quantidade: 1, total_venda: 100, valor_comissao: 10, data_venda: '2026-11-20' }
+  ]
+  const r = consolidarResumoRevendedora(rev, remessas, vendas, [])
+  assert.equal(r.totalDevidoLoja, 163.1)
+  const painel = calcularPainelFinanceiroAdmin({ vendas, revendedoras: [rev], remessas, filtroRevendedoraId: 1 })
+  assert.equal(painel.resultadoConsolidado.valorDevidoAoBazar, 163.1)
+  assert.equal(painel.resultadoConsolidado.parteRevendedora, 16)
+  assert.equal(painel.resultadoConsolidado.totalEconomicoRevendedora, 35.9)
+})
