@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { registrarVendaPortal, definirDataRecebimentoVenda, definirParcelasCartaoVenda } from '../../storage'
-import { formatarMoeda, agruparProdutosParaVenda, simularValoresVenda, resolverImagemProdutoRevenda, TAXAS_CARTAO_REVENDA, simularTaxaCartao } from './portalHelpers'
+import { formatarMoeda, agruparProdutosParaVenda, simularValoresVenda, resolverImagemProdutoRevenda, TAXAS_CARTAO_REVENDA, simularTaxaCartao, simularAcertoVenda } from './portalHelpers'
 import { obterDataLocalHoje } from '../../lib/dataLocal.js'
 
 export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSucesso }) {
@@ -88,6 +88,21 @@ export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSuces
   const ehCartao = formaPagamento === 'Cartão'
   const valorFinalVenda = simulacao ? simulacao.totalVenda : 0
   const simulacaoCartao = ehCartao ? simularTaxaCartao(valorFinalVenda, parcelasCartao) : null
+
+  // Custo real da peça (mesma regra do acerto): custo_unitario do item da remessa; sem ele, o valor de repasse.
+  const custoUnitarioPeca = (() => {
+    const c = Number(pecaSelecionada?.itemOriginal?.custo_unitario || 0)
+    return c > 0 ? c : repasseUnitario
+  })()
+  const previaAcerto = simulacao
+    ? simularAcertoVenda({
+        totalVenda: simulacao.totalVenda,
+        comissao: simulacao.comissao,
+        custoTotal: Number((custoUnitarioPeca * Number(simulacao.quantidade || 0)).toFixed(2)),
+        taxaCartao: simulacaoCartao ? simulacaoCartao.valorTaxa : 0,
+        revendedora
+      })
+    : null
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -610,9 +625,33 @@ export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSuces
                   {formatarMoeda(simulacao.comissao)}
                 </span>
               </div>
-              <div className="portal-preview-row">
+              {previaAcerto?.usaDivisao && (
+                <>
+                  <div className="portal-preview-row">
+                    <span>Custo da Peça:</span>
+                    <span>- {formatarMoeda(previaAcerto.custo)}</span>
+                  </div>
+                  <div className="portal-preview-row">
+                    <span>Lucro para Divisão:</span>
+                    <span>{formatarMoeda(previaAcerto.lucro)}</span>
+                  </div>
+                  <div className="portal-preview-row">
+                    <span>Minha Parte do Lucro ({previaAcerto.percRevendedora}%):</span>
+                    <span style={{ color: 'var(--accent, #C9A35A)', fontWeight: 600 }}>
+                      {formatarMoeda(previaAcerto.parteRevendedora)}
+                    </span>
+                  </div>
+                  <div className="portal-preview-row">
+                    <span>Total que Fica Comigo:</span>
+                    <span style={{ color: 'var(--accent, #C9A35A)', fontWeight: 600 }}>
+                      {formatarMoeda(previaAcerto.totalRevendedora)}
+                    </span>
+                  </div>
+                </>
+              )}
+              <div className="portal-preview-row total">
                 <span>Valor Devido ao Bazar:</span>
-                <span>{formatarMoeda(simulacao.valorLoja)}</span>
+                <span>{formatarMoeda(previaAcerto ? previaAcerto.devidoBazar : simulacao.valorLoja)}</span>
               </div>
             </div>
           )}
