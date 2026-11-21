@@ -291,6 +291,8 @@ export function consolidarResumoRevendedora(revendedora, remessas = [], vendas =
   let totalDevidoLoja = 0
   let custoTotal = 0
   let totalTaxaCartao = 0
+  let lucroPositivo = 0
+  let prejuizoBazar = 0
 
   for (const venda of vendasRev) {
     const totalVenda = Number(venda.total_venda != null ? venda.total_venda : venda.valor_total_bruto || 0)
@@ -303,6 +305,10 @@ export function consolidarResumoRevendedora(revendedora, remessas = [], vendas =
     custoTotal += custo
     totalTaxaCartao += valorTaxaCartaoVenda(venda)
     totalDevidoLoja += Number(venda.valor_loja || 0)
+    // Lucro venda a venda: abaixo do repasse, a comissão é mantida e o prejuízo fica com o Bazar.
+    const lucroVenda = Number((totalVenda - Number(custo.toFixed(2)) - comissao - valorTaxaCartaoVenda(venda)).toFixed(2))
+    if (lucroVenda >= 0) lucroPositivo += lucroVenda
+    else prejuizoBazar += lucroVenda
   }
 
   // Se a revendedora tem divisão de lucro ativa, o valor devido ao Bazar é:
@@ -310,10 +316,13 @@ export function consolidarResumoRevendedora(revendedora, remessas = [], vendas =
   if (revendedora.usa_divisao_lucro) {
     const percRev = Number(revendedora.percentual_lucro_revendedora ?? 40.00)
     const percBazar = Number((100 - percRev).toFixed(2))
-    // A taxa do cartão sai do lucro antes da divisão.
-    const lucroLiquido = Math.max(0, Number((totalVendidoBruto - custoTotal - totalComissao - totalTaxaCartao).toFixed(2)))
-    const parteLucroBazar = Number((lucroLiquido * (percBazar / 100.0)).toFixed(2))
-    totalDevidoLoja = Number((custoTotal + parteLucroBazar).toFixed(2))
+    void percBazar
+    // A taxa do cartão sai do lucro antes da divisão. Só o lucro das vendas com lucro é dividido;
+    // o prejuízo das vendas abaixo do repasse fica com o Bazar (mesma regra do Portal).
+    const lucroLiquido = Number(lucroPositivo.toFixed(2))
+    const parteLucroRevendedora = Number(((lucroLiquido * percRev) / 100).toFixed(2))
+    const parteLucroBazar = Number((lucroLiquido - parteLucroRevendedora).toFixed(2))
+    totalDevidoLoja = Number((custoTotal + parteLucroBazar + Number(prejuizoBazar.toFixed(2))).toFixed(2))
   }
 
   const pagamentosRev = Array.isArray(pagamentos)
@@ -1115,6 +1124,8 @@ export function calcularPainelFinanceiroAdmin({
         taxaCartao: 0,
         custoReal: 0,
         freteOperacional: 0,
+        lucroPositivo: 0,
+        prejuizoBazar: 0,
         percRevendedora: v.percRevendedora
       })
     }
@@ -1125,14 +1136,18 @@ export function calcularPainelFinanceiroAdmin({
     g.taxaCartao += v.taxaCartao
     g.custoReal += v.custoReal
     g.freteOperacional += v.freteOperacional
+    // Venda abaixo do repasse: comissão mantida, prejuízo fica com o Bazar (não reduz a parte
+    // da revendedora nas outras vendas).
+    if (v.lucroComercial >= 0) g.lucroPositivo += v.lucroComercial
+    else g.prejuizoBazar += v.lucroComercial
   }
 
   for (const g of gruposPorRevendedora.values()) {
-    const lucroComercialRev = Number((g.vendaLiquida - g.custoAcerto - g.comissao - g.taxaCartao).toFixed(2))
-    const divisaoRev = calcularDivisaoLucro(lucroComercialRev, g.percRevendedora)
+    const divisaoRev = calcularDivisaoLucro(Number(g.lucroPositivo.toFixed(2)), g.percRevendedora)
+    const prejuizoRev = Number(g.prejuizoBazar.toFixed(2))
     totalParteRevendedoraLucro += divisaoRev.parteRevendedora
-    totalParteBazarLucro += divisaoRev.parteBazar
-    totalDevidoBazar += Number((g.custoAcerto + divisaoRev.parteBazar).toFixed(2))
+    totalParteBazarLucro += divisaoRev.parteBazar + prejuizoRev
+    totalDevidoBazar += Number((g.custoAcerto + divisaoRev.parteBazar + prejuizoRev).toFixed(2))
 
     const lucroOperacionalRealRev = Number((g.vendaLiquida - g.custoReal - g.freteOperacional - g.comissao - g.taxaCartao).toFixed(2))
     const parteBazarLucroRealRev = Number((lucroOperacionalRealRev - divisaoRev.parteRevendedora).toFixed(2))
