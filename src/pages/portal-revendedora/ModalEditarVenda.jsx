@@ -1,6 +1,6 @@
-﻿import React, { useState, useMemo } from 'react'
-import { editarVendaPortal, definirDataRecebimentoVenda } from '../../storage'
-import { formatarMoeda, calcularSaldoItemConsignado, simularValoresVenda } from './portalHelpers'
+import React, { useState, useMemo } from 'react'
+import { editarVendaPortal, definirDataRecebimentoVenda, definirParcelasCartaoVenda } from '../../storage'
+import { formatarMoeda, calcularSaldoItemConsignado, simularValoresVenda, TAXAS_CARTAO_REVENDA, simularTaxaCartao } from './portalHelpers'
 import { obterDataLocalHoje } from '../../lib/dataLocal.js'
 
 export default function ModalEditarVenda({ venda, remessas = [], revendedora, onSalvarSucesso, onFechar }) {
@@ -38,6 +38,8 @@ export default function ModalEditarVenda({ venda, remessas = [], revendedora, on
   const [precoUnitario, setPrecoUnitario] = useState(venda?.preco_unitario_vendido || '')
   const [desconto, setDesconto] = useState(venda?.valor_desconto > 0 ? String(venda.valor_desconto) : '')
   const [formaPagamento, setFormaPagamento] = useState(venda?.forma_pagamento || 'Pix')
+  const parcelasOriginais = venda?.parcelas_cartao ? Number(venda.parcelas_cartao) : null
+  const [parcelasCartao, setParcelasCartao] = useState(parcelasOriginais || 1)
   const [dataVenda, setDataVenda] = useState(
     venda?.data_venda ? venda.data_venda.slice(0, 10) : obterDataLocalHoje()
   )
@@ -131,6 +133,14 @@ export default function ModalEditarVenda({ venda, remessas = [], revendedora, on
       if (!res?.sucesso) {
         setErro(res?.mensagem || 'Erro ao atualizar a venda.')
         return
+      }
+
+      if (formaPagamento === 'Cartão' && parcelasCartao !== parcelasOriginais) {
+        const resCartao = await definirParcelasCartaoVenda({ vendaId: venda.id, parcelas: parcelasCartao })
+        if (!resCartao?.sucesso) {
+          setErro(`A venda foi salva, mas as parcelas do cartão não: ${resCartao?.mensagem || 'erro'}`)
+          return
+        }
       }
 
       if (dataRecebimento !== dataRecebimentoOriginal) {
@@ -348,6 +358,34 @@ export default function ModalEditarVenda({ venda, remessas = [], revendedora, on
                 />
               </div>
             </div>
+
+            {formaPagamento === 'Cartão' && (() => {
+              const valorFinal = simulacao ? simulacao.totalVenda : 0
+              const simCartao = simularTaxaCartao(valorFinal, parcelasCartao)
+              return (
+                <div className="portal-form-group">
+                  <label htmlFor="pv-edit-parcelas">Parcelas no Cartão</label>
+                  <select
+                    id="pv-edit-parcelas"
+                    className="portal-form-select"
+                    value={parcelasCartao}
+                    onChange={(e) => setParcelasCartao(Number(e.target.value))}
+                    disabled={salvando}
+                  >
+                    {TAXAS_CARTAO_REVENDA.map((t) => (
+                      <option key={t.parcelas} value={t.parcelas}>
+                        {t.parcelas}x{valorFinal > 0 ? ` de ${formatarMoeda(simularTaxaCartao(valorFinal, t.parcelas).valorParcela)}` : ''} — taxa {String(t.percentual.toFixed(2)).replace('.', ',')}%
+                      </option>
+                    ))}
+                  </select>
+                  {valorFinal > 0 && (
+                    <small style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px', display: 'block' }}>
+                      Taxa da maquininha: <strong style={{ color: 'var(--danger, #B85F4A)' }}>- {formatarMoeda(simCartao.valorTaxa)}</strong> · cai na maquininha {formatarMoeda(simCartao.valorLiquido)}
+                    </small>
+                  )}
+                </div>
+              )
+            })()}
 
             <div className="portal-form-group">
               <label htmlFor="pv-edit-recebimento">Dia em que o dinheiro cai (opcional)</label>
