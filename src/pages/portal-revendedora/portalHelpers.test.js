@@ -921,3 +921,14 @@ test('calcularConsolidacaoFinanceira desconta a taxa do cartão do lucro antes d
   // fecha centavo a centavo: bazar + revendedora + taxa = venda
   assert.equal(Number((c.valorDevidoBazar + c.totalRevendedora + c.taxaCartaoTotal).toFixed(2)), 100)
 })
+
+test('simularAcertoVenda: prévia da Regata Patch 3x (venda 99, comissão 9,90, custo 70, taxa 6,94)', async () => {
+  const { simularAcertoVenda } = await import('./portalHelpers.js')
+  const r = simularAcertoVenda({ totalVenda: 99, comissao: 9.9, custoTotal: 70, taxaCartao: 6.94, revendedora: { usa_divisao_lucro: true, percentual_lucro_revendedora: 40 } })
+  assert.equal(r.lucro, 12.16)
+  assert.equal(r.parteRevendedora, 4.86)
+  assert.equal(r.parteBazar, 7.3)
+  assert.equal(r.devidoBazar, 77.3)
+  assert.equal(r.totalRevendedora, 14.76)
+  assert.equal(Number((r.devidoBazar + r.totalRevendedora + r.taxa).toFixed(2)), 99)
+})
