@@ -335,10 +335,14 @@ export function simularAcertoVenda({ totalVenda, comissao, custoTotal, taxaCarta
     return { usaDivisao, venda, comissao: com, custo, taxa, lucro: 0, percRevendedora: 0, percBazar: 0, parteRevendedora: 0, parteBazar: 0, totalRevendedora: com, devidoBazar: Number((venda - com).toFixed(2)) }
   }
   const percRev = Math.min(100, Math.max(0, Number(revendedora?.percentual_lucro_revendedora || 0)))
-  const lucro = Number(Math.max(0, venda - custo - com - taxa).toFixed(2))
+  const lucroBruto = Number((venda - custo - com - taxa).toFixed(2))
+  // Venda abaixo do repasse: a comissão da revendedora é mantida e o prejuízo fica com o Bazar.
+  const prejuizoBazar = lucroBruto < 0 ? lucroBruto : 0
+  const lucro = Math.max(0, lucroBruto)
   const parteRevendedora = Number(((lucro * percRev) / 100).toFixed(2))
   const parteBazar = Number((lucro - parteRevendedora).toFixed(2))
   return {
+    prejuizoBazar,
     usaDivisao,
     venda,
     comissao: com,
@@ -350,7 +354,7 @@ export function simularAcertoVenda({ totalVenda, comissao, custoTotal, taxaCarta
     parteRevendedora,
     parteBazar,
     totalRevendedora: Number((com + parteRevendedora).toFixed(2)),
-    devidoBazar: Number((custo + parteBazar).toFixed(2))
+    devidoBazar: Number((custo + parteBazar + prejuizoBazar).toFixed(2))
   }
 }
 
@@ -369,6 +373,8 @@ export function calcularConsolidacaoFinanceira(vendas, revendedora, remessas = [
   let comissaoTotal = 0
   let custoTotal = 0
   let taxaCartaoTotal = 0
+  let lucroPositivo = 0
+  let prejuizoBazar = 0
 
   for (const v of vendasConfirmadas) {
     const qtd = Math.max(0, Number(v.quantidade || 0))
@@ -381,6 +387,11 @@ export function calcularConsolidacaoFinanceira(vendas, revendedora, remessas = [
     comissaoTotal += comissao
     custoTotal += Number((qtd * custoUnit).toFixed(2))
     taxaCartaoTotal += valorTaxaCartaoVenda(v)
+    // Lucro venda a venda: venda abaixo do repasse não desconta da parte da revendedora
+    // nas outras vendas — a comissão dela é mantida e o prejuízo fica com o Bazar.
+    const lucroVenda = Number((valorFinal - Number((qtd * custoUnit).toFixed(2)) - comissao - valorTaxaCartaoVenda(v)).toFixed(2))
+    if (lucroVenda >= 0) lucroPositivo += lucroVenda
+    else prejuizoBazar += lucroVenda
   }
 
   totalVendas = Number(totalVendas.toFixed(2))
@@ -390,7 +401,9 @@ export function calcularConsolidacaoFinanceira(vendas, revendedora, remessas = [
 
   // LUCRO LÍQUIDO = TOTAL DE VENDAS - CUSTO TOTAL - COMISSÃO TOTAL - TAXA DO CARTÃO
   // (a taxa da maquininha sai do lucro antes da divisão entre Bazar e revendedora)
-  const lucroLiquido = Number(Math.max(0, totalVendas - custoTotal - comissaoTotal - taxaCartaoTotal).toFixed(2))
+  // Só o lucro das vendas com lucro é dividido; o prejuízo das vendas abaixo do repasse fica com o Bazar.
+  const lucroLiquido = Number(lucroPositivo.toFixed(2))
+  prejuizoBazar = Number(prejuizoBazar.toFixed(2))
 
   const usaDivisao = Boolean(revendedora?.usa_divisao_lucro)
   const percRev = usaDivisao ? Math.min(100, Math.max(0, Number(revendedora?.percentual_lucro_revendedora || 0))) : 0
@@ -411,7 +424,7 @@ export function calcularConsolidacaoFinanceira(vendas, revendedora, remessas = [
   // VALOR A SER PAGO AO BAZAR = CUSTO TOTAL + PARTICIPAÇÃO DO BAZAR NO LUCRO LÍQUIDO
   let valorDevidoBazar = 0
   if (usaDivisao) {
-    valorDevidoBazar = Number((custoTotal + parteLucroBazar).toFixed(2))
+    valorDevidoBazar = Number((custoTotal + parteLucroBazar + prejuizoBazar).toFixed(2))
   } else {
     // Se não usa divisão especial, mantém a regra atual de consignação
     valorDevidoBazar = Number((totalVendas - comissaoTotal).toFixed(2))
@@ -423,6 +436,7 @@ export function calcularConsolidacaoFinanceira(vendas, revendedora, remessas = [
     comissaoTotal,
     custoTotal,
     taxaCartaoTotal,
+    prejuizoBazar,
     lucroLiquido,
     usaDivisao,
     percentualRevendedora: percRev,
