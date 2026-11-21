@@ -244,6 +244,11 @@ export function validarLinhasVenda(linhasVenda = [], saldoDisponivel = 0) {
  * MESMA regra do Portal da Revendedora (portalHelpers.custoRealUnitarioVenda) — os dois precisam
  * fechar centavo a centavo.
  */
+/** Taxa da maquininha gravada na venda (venda no cartão). Calculada no banco por trigger. */
+export function valorTaxaCartaoVenda(venda) {
+  return Math.max(0, Number(venda?.valor_taxa_cartao || 0))
+}
+
 export function obterCustoRealUnitarioVenda(venda, remessas = []) {
   const remessa = (Array.isArray(remessas) ? remessas : []).find((r) => Number(r.id) === Number(venda?.remessa_id))
   const item = remessa?.itens?.find((i) => Number(i.id) === Number(venda?.remessa_item_id))
@@ -281,6 +286,7 @@ export function consolidarResumoRevendedora(revendedora, remessas = [], vendas =
   let totalComissao = 0
   let totalDevidoLoja = 0
   let custoTotal = 0
+  let totalTaxaCartao = 0
 
   for (const venda of vendasRev) {
     const totalVenda = Number(venda.total_venda != null ? venda.total_venda : venda.valor_total_bruto || 0)
@@ -291,6 +297,7 @@ export function consolidarResumoRevendedora(revendedora, remessas = [], vendas =
     totalVendidoBruto += totalVenda
     totalComissao += comissao
     custoTotal += custo
+    totalTaxaCartao += valorTaxaCartaoVenda(venda)
     totalDevidoLoja += Number(venda.valor_loja || 0)
   }
 
@@ -299,7 +306,8 @@ export function consolidarResumoRevendedora(revendedora, remessas = [], vendas =
   if (revendedora.usa_divisao_lucro) {
     const percRev = Number(revendedora.percentual_lucro_revendedora ?? 40.00)
     const percBazar = Number((100 - percRev).toFixed(2))
-    const lucroLiquido = Math.max(0, Number((totalVendidoBruto - custoTotal - totalComissao).toFixed(2)))
+    // A taxa do cartão sai do lucro antes da divisão.
+    const lucroLiquido = Math.max(0, Number((totalVendidoBruto - custoTotal - totalComissao - totalTaxaCartao).toFixed(2)))
     const parteLucroBazar = Number((lucroLiquido * (percBazar / 100.0)).toFixed(2))
     totalDevidoLoja = Number((custoTotal + parteLucroBazar).toFixed(2))
   }
@@ -894,7 +902,9 @@ export function detalharVendaFinanceiraAdmin(venda, revendedora, remessas = [], 
   // ====================================================================
   // A) RESULTADO CONSOLIDADO / ACERTO COM A REVENDEDORA (Baseado no CUSTO REAL, sem frete)
   // ====================================================================
-  const lucroComercial = Number((vendaLiquida - custoAcerto - comissao).toFixed(2))
+  // Taxa da maquininha (venda no cartão): sai do lucro antes da divisão Bazar x revendedora.
+  const taxaCartao = valorTaxaCartaoVenda(venda)
+  const lucroComercial = Number((vendaLiquida - custoAcerto - comissao - taxaCartao).toFixed(2))
   const divisaoComercial = calcularDivisaoLucro(lucroComercial, percRevendedora)
   const parteRevendedoraLucroComercial = divisaoComercial.parteRevendedora
   const parteBazarLucroComercial = divisaoComercial.parteBazar
@@ -908,8 +918,8 @@ export function detalharVendaFinanceiraAdmin(venda, revendedora, remessas = [], 
   // O Lucro Real do Bazar é obtido por RESÍDUO: Venda - Custo - Frete - Comissão - ParteRevendedora
   // ====================================================================
   const parteRevendedoraLucroReal = parteRevendedoraLucroComercial
-  const lucroOperacionalReal = Number((vendaLiquida - custoReal - freteOperacional - comissao).toFixed(2))
-  const lucroRealBazar = Number((vendaLiquida - custoReal - freteOperacional - comissao - parteRevendedoraLucroReal).toFixed(2))
+  const lucroOperacionalReal = Number((vendaLiquida - custoReal - freteOperacional - comissao - taxaCartao).toFixed(2))
+  const lucroRealBazar = Number((vendaLiquida - custoReal - freteOperacional - comissao - taxaCartao - parteRevendedoraLucroReal).toFixed(2))
   const parteBazarLucroReal = lucroRealBazar
 
   const custoRecuperadoBazar = custoReal
@@ -928,6 +938,7 @@ export function detalharVendaFinanceiraAdmin(venda, revendedora, remessas = [], 
     vendaLiquida,
     quantidade,
     comissao,
+    taxaCartao,
     custoUnitario,
     custoReal,
     valorRepasseUnitario,
@@ -1051,6 +1062,7 @@ export function calcularPainelFinanceiroAdmin({
   let totalVendaLiquida = 0
   let totalPecasVendidas = 0
   let totalComissao = 0
+  let totalTaxaCartao = 0
 
   // Consolidado Comercial / Acerto (Custo Real, sem frete)
   let totalCustoRepasse = 0
@@ -1073,6 +1085,7 @@ export function calcularPainelFinanceiroAdmin({
     totalVendaLiquida += v.vendaLiquida
     totalPecasVendidas += v.quantidade
     totalComissao += v.comissao
+    totalTaxaCartao += v.taxaCartao
     totalCustoRepasse += v.custoRepasse
     totalCustoAcerto += v.custoAcerto
     totalCustoReal += v.custoReal
@@ -1095,6 +1108,7 @@ export function calcularPainelFinanceiroAdmin({
         vendaLiquida: 0,
         custoAcerto: 0,
         comissao: 0,
+        taxaCartao: 0,
         custoReal: 0,
         freteOperacional: 0,
         percRevendedora: v.percRevendedora
@@ -1104,18 +1118,19 @@ export function calcularPainelFinanceiroAdmin({
     g.vendaLiquida += v.vendaLiquida
     g.custoAcerto += v.custoAcerto
     g.comissao += v.comissao
+    g.taxaCartao += v.taxaCartao
     g.custoReal += v.custoReal
     g.freteOperacional += v.freteOperacional
   }
 
   for (const g of gruposPorRevendedora.values()) {
-    const lucroComercialRev = Number((g.vendaLiquida - g.custoAcerto - g.comissao).toFixed(2))
+    const lucroComercialRev = Number((g.vendaLiquida - g.custoAcerto - g.comissao - g.taxaCartao).toFixed(2))
     const divisaoRev = calcularDivisaoLucro(lucroComercialRev, g.percRevendedora)
     totalParteRevendedoraLucro += divisaoRev.parteRevendedora
     totalParteBazarLucro += divisaoRev.parteBazar
     totalDevidoBazar += Number((g.custoAcerto + divisaoRev.parteBazar).toFixed(2))
 
-    const lucroOperacionalRealRev = Number((g.vendaLiquida - g.custoReal - g.freteOperacional - g.comissao).toFixed(2))
+    const lucroOperacionalRealRev = Number((g.vendaLiquida - g.custoReal - g.freteOperacional - g.comissao - g.taxaCartao).toFixed(2))
     const parteBazarLucroRealRev = Number((lucroOperacionalRealRev - divisaoRev.parteRevendedora).toFixed(2))
     totalParteRevendedoraLucroReal += divisaoRev.parteRevendedora
     totalParteBazarLucroReal += parteBazarLucroRealRev
@@ -1125,6 +1140,7 @@ export function calcularPainelFinanceiroAdmin({
   totalDescontos = Number(totalDescontos.toFixed(2))
   totalVendaLiquida = Number(totalVendaLiquida.toFixed(2))
   totalComissao = Number(totalComissao.toFixed(2))
+  totalTaxaCartao = Number(totalTaxaCartao.toFixed(2))
   totalCustoRepasse = Number(totalCustoRepasse.toFixed(2))
   totalCustoAcerto = Number(totalCustoAcerto.toFixed(2))
   totalCustoReal = Number(totalCustoReal.toFixed(2))
@@ -1158,14 +1174,14 @@ export function calcularPainelFinanceiroAdmin({
   // acumulado no loop acima). NUNCA recalcular a divisão sobre o agregado com um único percentual "geral":
   // com o filtro "todas as revendedoras" e percentuais de divisão de lucro diferentes entre elas, isso
   // aplicaria o percentual de uma revendedora só sobre o lucro de todas, dando um total errado.
-  const totalLucroComercial = Number((totalVendaLiquida - totalCustoAcerto - totalComissao).toFixed(2))
+  const totalLucroComercial = Number((totalVendaLiquida - totalCustoAcerto - totalComissao - totalTaxaCartao).toFixed(2))
   const totalParteRevendedoraLucroComercial = Number(totalParteRevendedoraLucro.toFixed(2))
   const totalParteBazarLucroComercial = Number(totalParteBazarLucro.toFixed(2))
   totalDevidoBazar = Number(totalDevidoBazar.toFixed(2))
 
   // 2. Divisão Econômica Real (Custo Real): idem, soma das participações já calculadas venda a venda.
   totalParteRevendedoraLucroReal = Number(totalParteRevendedoraLucroReal.toFixed(2))
-  totalLucroOperacionalReal = Number((totalVendaLiquida - totalCustoReal - totalFreteOperacional - totalComissao).toFixed(2))
+  totalLucroOperacionalReal = Number((totalVendaLiquida - totalCustoReal - totalFreteOperacional - totalComissao - totalTaxaCartao).toFixed(2))
   totalParteBazarLucroReal = Number(totalParteBazarLucroReal.toFixed(2))
 
   totalLucroLiquido = totalParteBazarLucroReal
@@ -1254,6 +1270,7 @@ export function calcularPainelFinanceiroAdmin({
   const resultadoConsolidado = {
     totalVendas: totalVendaLiquida,
     totalComissao,
+    totalTaxaCartao,
     // Custo usado no acerto (custo real das mercadorias, sem frete). Nome mantido por compatibilidade com a tela.
     custoRepasse: totalCustoAcerto,
     custoMercadorias: totalCustoAcerto,
@@ -1278,6 +1295,7 @@ export function calcularPainelFinanceiroAdmin({
     custoReal: totalCustoReal,
     freteOperacional: totalFreteOperacional,
     comissao: totalComissao,
+    taxaCartao: totalTaxaCartao,
     lucroOperacionalReal: totalLucroOperacionalReal,
     margemOperacional: margemOperacionalReal,
     usaDivisao: usaDivisaoGeral,
@@ -1300,6 +1318,7 @@ export function calcularPainelFinanceiroAdmin({
     totalCustoRepasse,
     totalFreteOperacional,
     totalComissao,
+    totalTaxaCartao,
     totalLucroLiquido,
     totalLucroOperacionalReal,
     totalParteRevendedoraLucro,
@@ -1373,6 +1392,7 @@ export function detalharResultadoPorRemessaAdmin({
     let vendaLiquida = 0
     let custoReal = 0
     let comissao = 0
+    let taxaCartao = 0
     let lucroLiquido = 0
     let parteRevendedora = 0
     let parteBazar = 0
@@ -1385,6 +1405,7 @@ export function detalharResultadoPorRemessaAdmin({
       vendaLiquida += vd.vendaLiquida
       custoReal += vd.custoReal
       comissao += vd.comissao
+      taxaCartao += vd.taxaCartao
       lucroLiquido += vd.lucroOperacao
       parteRevendedora += vd.parteRevendedoraLucro
       parteBazar += vd.parteBazarLucro
@@ -1396,6 +1417,7 @@ export function detalharResultadoPorRemessaAdmin({
     vendaLiquida = Number(vendaLiquida.toFixed(2))
     custoReal = Number(custoReal.toFixed(2))
     comissao = Number(comissao.toFixed(2))
+    taxaCartao = Number(taxaCartao.toFixed(2))
     lucroLiquido = Number(lucroLiquido.toFixed(2))
     parteRevendedora = Number(parteRevendedora.toFixed(2))
     parteBazar = Number(parteBazar.toFixed(2))
@@ -1433,6 +1455,7 @@ export function detalharResultadoPorRemessaAdmin({
       vendaLiquida,
       custoReal,
       comissao,
+      taxaCartao,
       lucroLiquido,
       parteRevendedora,
       parteBazar,
