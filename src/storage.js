@@ -3145,6 +3145,23 @@ export async function definirDataRecebimentoVenda({ vendaId, dataRecebimento = n
   }
 }
 
+export async function definirParcelasCartaoVenda({ vendaId, parcelas = null }) {
+  try {
+    const { data, error } = await supabase.rpc('definir_parcelas_cartao_venda', {
+      p_venda_id: Number(vendaId),
+      p_parcelas: parcelas ? Number(parcelas) : null
+    })
+    if (error) {
+      console.error('Erro na RPC definir_parcelas_cartao_venda:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao salvar as parcelas do cartão.' }
+    }
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao salvar parcelas do cartão:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado ao salvar as parcelas do cartão.' }
+  }
+}
+
 export async function editarVendaPortal({
   vendaId,
   quantidade,
