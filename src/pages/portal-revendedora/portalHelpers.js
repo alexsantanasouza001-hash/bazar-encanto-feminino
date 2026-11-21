@@ -276,16 +276,19 @@ export function simularValoresVenda({
 }
 
 /**
- * Custo real unitário da venda: snapshot custo_unitario do item da remessa (sem frete).
- * Fallback: valor de repasse gravado na venda (quando as remessas não foram informadas).
+ * Custo unitário do ACERTO = VALOR DE REPASSE (custo + frete rateado). Regra desde 21/11/2026.
+ * Ordem: repasse gravado na venda → preço de repasse do item da remessa → custo do item.
+ * Mesma regra de revendasHelpers.obterCustoRealUnitarioVenda (nome mantido por compatibilidade).
  */
 function custoRealUnitarioVenda(venda, remessas) {
-  const remessa = (Array.isArray(remessas) ? remessas : []).find((r) => Number(r.id) === Number(venda.remessa_id))
-  const item = remessa?.itens?.find((i) => Number(i.id) === Number(venda.remessa_item_id))
-  if (item && item.custo_unitario != null && Number(item.custo_unitario) > 0) {
-    return Number(item.custo_unitario)
+  if (venda?.valor_repasse_unitario != null && Number(venda.valor_repasse_unitario) > 0) {
+    return Number(venda.valor_repasse_unitario)
   }
-  return Number(venda.valor_repasse_unitario != null ? venda.valor_repasse_unitario : 0)
+  const remessa = (Array.isArray(remessas) ? remessas : []).find((r) => Number(r.id) === Number(venda?.remessa_id))
+  const item = remessa?.itens?.find((i) => Number(i.id) === Number(venda?.remessa_item_id))
+  if (item && Number(item.preco_venda_sugerido) > 0) return Number(item.preco_venda_sugerido)
+  if (item && Number(item.custo_unitario) > 0) return Number(item.custo_unitario)
+  return 0
 }
 
 // =====================================================
@@ -319,7 +322,7 @@ export function simularTaxaCartao(valorVenda, parcelas) {
 
 /**
  * Prévia do acerto de UMA venda (tela Registrar Venda), com a MESMA regra de calcularConsolidacaoFinanceira:
- * lucro = venda - comissão - custo real - taxa do cartão → dividido pelo percentual da revendedora.
+ * lucro = venda - comissão - repasse (custo + frete) - taxa do cartão → dividido pelo percentual da revendedora.
  * Devido ao Bazar = custo + parte do Bazar no lucro. Sem divisão de lucro: venda - comissão.
  */
 export function simularAcertoVenda({ totalVenda, comissao, custoTotal, taxaCartao = 0, revendedora }) {
@@ -371,7 +374,7 @@ export function calcularConsolidacaoFinanceira(vendas, revendedora, remessas = [
     const qtd = Math.max(0, Number(v.quantidade || 0))
     const valorFinal = Number((v.total_venda != null ? v.total_venda : v.valor_total_bruto) || 0)
     const comissao = Number(v.valor_comissao || 0)
-    // Acerto usa o CUSTO REAL da mercadoria (sem frete) — regra desde 04/11/2026.
+    // Acerto usa o VALOR DE REPASSE da peça (custo + frete) — regra desde 21/11/2026.
     const custoUnit = custoRealUnitarioVenda(v, remessas)
 
     totalVendas += valorFinal
