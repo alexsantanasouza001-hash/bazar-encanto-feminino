@@ -632,6 +632,12 @@ export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSuces
                     <span>Lucro para Divisão:</span>
                     <span>{formatarMoeda(previaAcerto.lucro)}</span>
                   </div>
+                  {previaAcerto.prejuizoBazar < 0 && (
+                    <div className="portal-preview-row">
+                      <span>Venda abaixo do repasse (prejuízo fica com o Bazar):</span>
+                      <span style={{ color: 'var(--danger, #B85F4A)' }}>{formatarMoeda(previaAcerto.prejuizoBazar)}</span>
+                    </div>
+                  )}
                   <div className="portal-preview-row">
                     <span>Minha Parte do Lucro ({previaAcerto.percRevendedora}%):</span>
                     <span style={{ color: 'var(--accent, #C9A35A)', fontWeight: 600 }}>
