@@ -288,6 +288,39 @@ function custoRealUnitarioVenda(venda, remessas) {
   return Number(venda.valor_repasse_unitario != null ? venda.valor_repasse_unitario : 0)
 }
 
+// =====================================================
+// CARTÃO: PARCELAS E TAXA DA MAQUININHA
+// Mesma tabela do banco (trigger calcular_taxa_cartao_revenda_venda).
+// =====================================================
+export const TAXAS_CARTAO_REVENDA = [
+  { parcelas: 1, percentual: 4.2 },
+  { parcelas: 2, percentual: 6.09 },
+  { parcelas: 3, percentual: 7.01 }
+]
+
+export function obterTaxaCartaoPercentual(parcelas) {
+  const linha = TAXAS_CARTAO_REVENDA.find((t) => t.parcelas === Number(parcelas))
+  return linha ? linha.percentual : 0
+}
+
+export function simularTaxaCartao(valorVenda, parcelas) {
+  const valor = Math.max(0, Number(valorVenda || 0))
+  const qtdParcelas = Math.max(1, Number(parcelas || 1))
+  const percentual = obterTaxaCartaoPercentual(qtdParcelas)
+  const valorTaxa = Number(((valor * percentual) / 100).toFixed(2))
+  return {
+    parcelas: qtdParcelas,
+    percentual,
+    valorTaxa,
+    valorParcela: Number((valor / qtdParcelas).toFixed(2)),
+    valorLiquido: Number((valor - valorTaxa).toFixed(2))
+  }
+}
+
+export function valorTaxaCartaoVenda(venda) {
+  return Math.max(0, Number(venda?.valor_taxa_cartao || 0))
+}
+
 export function calcularConsolidacaoFinanceira(vendas, revendedora, remessas = []) {
   // Apenas vendas estritamente CONFIRMADAS
   // Vendas com recebimento futuro ainda não entram no acerto.
@@ -298,6 +331,7 @@ export function calcularConsolidacaoFinanceira(vendas, revendedora, remessas = [
   let totalVendas = 0
   let comissaoTotal = 0
   let custoTotal = 0
+  let taxaCartaoTotal = 0
 
   for (const v of vendasConfirmadas) {
     const qtd = Math.max(0, Number(v.quantidade || 0))
@@ -309,14 +343,17 @@ export function calcularConsolidacaoFinanceira(vendas, revendedora, remessas = [
     totalVendas += valorFinal
     comissaoTotal += comissao
     custoTotal += Number((qtd * custoUnit).toFixed(2))
+    taxaCartaoTotal += valorTaxaCartaoVenda(v)
   }
 
   totalVendas = Number(totalVendas.toFixed(2))
   comissaoTotal = Number(comissaoTotal.toFixed(2))
   custoTotal = Number(custoTotal.toFixed(2))
+  taxaCartaoTotal = Number(taxaCartaoTotal.toFixed(2))
 
-  // LUCRO LÍQUIDO = TOTAL DE VENDAS - CUSTO TOTAL - COMISSÃO TOTAL
-  const lucroLiquido = Number(Math.max(0, totalVendas - custoTotal - comissaoTotal).toFixed(2))
+  // LUCRO LÍQUIDO = TOTAL DE VENDAS - CUSTO TOTAL - COMISSÃO TOTAL - TAXA DO CARTÃO
+  // (a taxa da maquininha sai do lucro antes da divisão entre Bazar e revendedora)
+  const lucroLiquido = Number(Math.max(0, totalVendas - custoTotal - comissaoTotal - taxaCartaoTotal).toFixed(2))
 
   const usaDivisao = Boolean(revendedora?.usa_divisao_lucro)
   const percRev = usaDivisao ? Math.min(100, Math.max(0, Number(revendedora?.percentual_lucro_revendedora || 0))) : 0
@@ -348,6 +385,7 @@ export function calcularConsolidacaoFinanceira(vendas, revendedora, remessas = [
     totalVendas,
     comissaoTotal,
     custoTotal,
+    taxaCartaoTotal,
     lucroLiquido,
     usaDivisao,
     percentualRevendedora: percRev,
