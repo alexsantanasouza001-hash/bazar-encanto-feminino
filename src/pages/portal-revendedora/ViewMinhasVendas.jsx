@@ -170,6 +170,15 @@ export default function ViewMinhasVendas({ vendas = [], remessas = [], revendedo
               </span>
             </div>
 
+            {consolidacao.taxaCartaoTotal > 0 && (
+              <div className="portal-resumo-card">
+                <span className="portal-resumo-card-titulo">Taxa do Cartão</span>
+                <span className="portal-resumo-card-valor">
+                  {formatarMoeda(consolidacao.taxaCartaoTotal)}
+                </span>
+              </div>
+            )}
+
             <div className="portal-resumo-card lucro">
               <span className="portal-resumo-card-titulo">Lucro Líquido</span>
               <span className="portal-resumo-card-valor">
@@ -294,7 +303,15 @@ export default function ViewMinhasVendas({ vendas = [], remessas = [], revendedo
                         {v.cor && <span className="portal-tag">{v.cor}</span>}
                         {v.tamanho && <span className="portal-tag">Tam: {v.tamanho}</span>}
                         <span className="portal-tag">{v.quantidade} un.</span>
-                        <span className="portal-tag">{v.forma_pagamento || 'Pix'}</span>
+                        <span className="portal-tag">
+                          {v.forma_pagamento || 'Pix'}
+                          {v.forma_pagamento === 'Cartão' && v.parcelas_cartao ? ` ${v.parcelas_cartao}x` : ''}
+                        </span>
+                        {Number(v.valor_taxa_cartao || 0) > 0 && (
+                          <span className="portal-tag" style={{ color: 'var(--danger, #B85F4A)' }}>
+                            Taxa cartão: {formatarMoeda(v.valor_taxa_cartao)}
+                          </span>
+                        )}
                         <span className="portal-tag">{formatarData(v.data_venda)}</span>
                         {v.data_recebimento && (
                           vendaAguardandoRecebimento(v) ? (
