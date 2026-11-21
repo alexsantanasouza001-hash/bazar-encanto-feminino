@@ -238,24 +238,28 @@ export function validarLinhasVenda(linhasVenda = [], saldoDisponivel = 0) {
   return { valido: true, erro: null }
 }
 
-/**
- * Custo unitário usado no ACERTO com a revendedora: snapshot custo_unitario do item da remessa
- * (custo real, sem frete). Se o item não tiver custo gravado, usa o valor de repasse da venda.
- * MESMA regra do Portal da Revendedora (portalHelpers.custoRealUnitarioVenda) — os dois precisam
- * fechar centavo a centavo.
- */
 /** Taxa da maquininha gravada na venda (venda no cartão). Calculada no banco por trigger. */
 export function valorTaxaCartaoVenda(venda) {
   return Math.max(0, Number(venda?.valor_taxa_cartao || 0))
 }
 
+/**
+ * Custo unitário usado no ACERTO com a revendedora = VALOR DE REPASSE (custo + frete rateado).
+ * Regra desde 21/11/2026 (antes era o custo real sem frete): o lucro dividido é
+ * venda - comissão - repasse - taxa do cartão, e o Bazar recebe repasse + sua parte do lucro.
+ * Ordem: repasse gravado na venda → preço de repasse do item da remessa → custo do item.
+ * MESMA regra do Portal da Revendedora (portalHelpers.custoRealUnitarioVenda) — os dois precisam
+ * fechar centavo a centavo. (Nome da função mantido por compatibilidade.)
+ */
 export function obterCustoRealUnitarioVenda(venda, remessas = []) {
+  if (venda?.valor_repasse_unitario != null && Number(venda.valor_repasse_unitario) > 0) {
+    return Number(venda.valor_repasse_unitario)
+  }
   const remessa = (Array.isArray(remessas) ? remessas : []).find((r) => Number(r.id) === Number(venda?.remessa_id))
   const item = remessa?.itens?.find((i) => Number(i.id) === Number(venda?.remessa_item_id))
-  if (item && item.custo_unitario != null && Number(item.custo_unitario) > 0) {
-    return Number(item.custo_unitario)
-  }
-  return Number(venda?.valor_repasse_unitario || 0)
+  if (item && Number(item.preco_venda_sugerido) > 0) return Number(item.preco_venda_sugerido)
+  if (item && Number(item.custo_unitario) > 0) return Number(item.custo_unitario)
+  return 0
 }
 
 export function consolidarResumoRevendedora(revendedora, remessas = [], vendas = [], pagamentos = []) {
@@ -291,7 +295,7 @@ export function consolidarResumoRevendedora(revendedora, remessas = [], vendas =
   for (const venda of vendasRev) {
     const totalVenda = Number(venda.total_venda != null ? venda.total_venda : venda.valor_total_bruto || 0)
     const comissao = Number(venda.valor_comissao || 0)
-    // Acerto com divisão de lucro usa o CUSTO REAL da peça (snapshot da remessa), sem frete.
+    // Acerto com divisão de lucro usa o VALOR DE REPASSE da peça (custo + frete).
     const custo = Number(venda.quantidade || 1) * obterCustoRealUnitarioVenda(venda, remessasRev)
 
     totalVendidoBruto += totalVenda
@@ -882,10 +886,10 @@ export function detalharVendaFinanceiraAdmin(venda, revendedora, remessas = [], 
   const freteOperacional = Number((freteUnitario * quantidade).toFixed(2))
 
   const custoReal = Number((custoUnitario * quantidade).toFixed(2))
-  // Desde 04/11/2026 o acerto com a revendedora (Resultado Consolidado) usa o CUSTO REAL
-  // da mercadoria, sem frete: Devido ao Bazar = Custo Real + % do Bazar sobre
-  // (Venda - Comissão - Custo Real). O valor de repasse fica só como referência
-  // (custoRepasse / valorRepasseUnitario). O frete continua apenas na Divisão Econômica Real (interna).
+  // Desde 21/11/2026 o acerto com a revendedora (Resultado Consolidado) usa o VALOR DE REPASSE
+  // (custo + frete): Devido ao Bazar = Repasse + % do Bazar sobre
+  // (Venda - Comissão - Repasse - Taxa do Cartão). A Divisão Econômica Real (interna) continua
+  // mostrando custo real e frete separados.
   const custoRepasse = Number((valorRepasseUnitario * quantidade).toFixed(2))
   const custoAcerto = Number((obterCustoRealUnitarioVenda(venda, remessas) * quantidade).toFixed(2))
 
@@ -956,7 +960,7 @@ export function detalharVendaFinanceiraAdmin(venda, revendedora, remessas = [], 
     parteBazarLucroComercial,
     totalEconomicoRevendedora: totalEconomicoRevendedoraComercial,
     totalEconomicoRevendedoraComercial,
-    valorDevidoAoBazar: Number((custoReal + parteBazarLucroReal).toFixed(2)),
+    valorDevidoAoBazar: valorDevidoAoBazar,
     valorDevidoAoBazarComercial: valorDevidoAoBazar,
 
     // Divisão Econômica Real (Custo Real)
