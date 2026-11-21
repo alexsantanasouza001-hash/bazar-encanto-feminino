@@ -336,6 +336,15 @@ export default function ViewMeusAcertos({
             </div>
           )}
 
+          {consolidacao.prejuizoBazar < 0 && (
+            <div className="portal-resumo-card">
+              <span className="portal-resumo-card-titulo">Vendas abaixo do repasse (prejuízo do Bazar)</span>
+              <span className="portal-resumo-card-valor">
+                {formatarMoeda(consolidacao.prejuizoBazar)}
+              </span>
+            </div>
+          )}
+
           <div className="portal-resumo-card lucro">
             <span className="portal-resumo-card-titulo">Lucro Líquido</span>
             <span className="portal-resumo-card-valor">
