@@ -625,7 +625,7 @@ export default function ViewRegistrarVenda({ revendedora, remessas, onVendaSuces
               {previaAcerto?.usaDivisao && (
                 <>
                   <div className="portal-preview-row">
-                    <span>Repasse da Peça (custo + frete):</span>
+                    <span>Repasse da Peça (com frete):</span>
                     <span>- {formatarMoeda(previaAcerto.custo)}</span>
                   </div>
                   <div className="portal-preview-row">
