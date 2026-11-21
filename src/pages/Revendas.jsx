@@ -2009,6 +2009,12 @@ function Revendas() {
                       <span>(-) Comissão da Revendedora:</span>
                       <span>{formatarMoeda(painelFinanceiro.divisaoEconomicaReal.comissao)}</span>
                     </div>
+                    {painelFinanceiro.divisaoEconomicaReal.taxaCartao > 0 && (
+                      <div className="resultado-linha-item">
+                        <span>(-) Taxa do Cartão (maquininha):</span>
+                        <span>{formatarMoeda(painelFinanceiro.divisaoEconomicaReal.taxaCartao)}</span>
+                      </div>
+                    )}
                     <div className="resultado-linha-item">
                       <span>(-) Participação da Revendedora ({painelFinanceiro.divisaoEconomicaReal.percRevendedora}% do Consolidado):</span>
                       <span style={{ color: '#92400e', fontWeight: 600 }}>{formatarMoeda(painelFinanceiro.divisaoEconomicaReal.parteRevendedora)}</span>
@@ -2064,6 +2070,12 @@ function Revendas() {
                       <span>(-) Comissão Total:</span>
                       <span>{formatarMoeda(painelFinanceiro.resultadoConsolidado.totalComissao)}</span>
                     </div>
+                    {painelFinanceiro.resultadoConsolidado.totalTaxaCartao > 0 && (
+                      <div className="resultado-linha-item">
+                        <span>(-) Taxa do Cartão (maquininha):</span>
+                        <span>{formatarMoeda(painelFinanceiro.resultadoConsolidado.totalTaxaCartao)}</span>
+                      </div>
+                    )}
                     <div className="resultado-linha-item" style={{ background: '#faf6ef', padding: '8px 10px', borderRadius: '6px' }}>
                       <strong>(=) Lucro Líquido para Divisão:</strong>
                       <strong style={{ color: painelFinanceiro.resultadoConsolidado.lucroLiquido >= 0 ? '#166534' : '#b91c1c' }}>
