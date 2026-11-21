@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import {
   formatarMoeda,
   formatarData,
@@ -326,6 +326,15 @@ export default function ViewMeusAcertos({
               {formatarMoeda(consolidacao.custoTotal)}
             </span>
           </div>
+
+          {consolidacao.taxaCartaoTotal > 0 && (
+            <div className="portal-resumo-card">
+              <span className="portal-resumo-card-titulo">Taxa do Cartão</span>
+              <span className="portal-resumo-card-valor">
+                {formatarMoeda(consolidacao.taxaCartaoTotal)}
+              </span>
+            </div>
+          )}
 
           <div className="portal-resumo-card lucro">
             <span className="portal-resumo-card-titulo">Lucro Líquido</span>
