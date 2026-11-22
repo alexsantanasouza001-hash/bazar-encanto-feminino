@@ -3145,6 +3145,23 @@ export async function definirDataRecebimentoVenda({ vendaId, dataRecebimento = n
   }
 }
 
+export async function definirReferenciaPagamentoRevenda({ pagamentoId, referenteAte = null }) {
+  try {
+    const { data, error } = await supabase.rpc('definir_referencia_pagamento_revenda', {
+      p_pagamento_id: Number(pagamentoId),
+      p_referente_ate: referenteAte || null
+    })
+    if (error) {
+      console.error('Erro na RPC definir_referencia_pagamento_revenda:', error)
+      return { sucesso: false, mensagem: error.message || 'Erro ao salvar o período do pagamento.' }
+    }
+    return data
+  } catch (erro) {
+    console.error('Erro inesperado ao salvar período do pagamento:', erro)
+    return { sucesso: false, mensagem: erro.message || 'Erro inesperado ao salvar o período do pagamento.' }
+  }
+}
+
 export async function definirParcelasCartaoVenda({ vendaId, parcelas = null }) {
   try {
     const { data, error } = await supabase.rpc('definir_parcelas_cartao_venda', {
