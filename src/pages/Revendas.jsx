@@ -19,6 +19,7 @@ import {
   recusarVendaRevendedoraAdmin,
   carregarPagamentosAguardandoConfirmacao,
   confirmarPagamentoRevendedoraAdmin,
+  definirReferenciaPagamentoRevenda,
   recusarPagamentoRevendedoraAdmin,
   consultarAcessoRevendedora,
   criarAcessoRevendedora,
@@ -405,7 +406,7 @@ function Revendas() {
   const [pagamentosAguardando, setPagamentosAguardando] = useState([])
   const [modalConfirmarPagamentoAberto, setModalConfirmarPagamentoAberto] = useState(false)
   const [pagamentoEmConfirmacao, setPagamentoEmConfirmacao] = useState(null)
-  const [formConfirmarPag, setFormConfirmarPag] = useState({ valorConfirmado: '', observacao: '' })
+  const [formConfirmarPag, setFormConfirmarPag] = useState({ valorConfirmado: '', observacao: '', referenteAte: '' })
   const [modalRecusarPagamentoAberto, setModalRecusarPagamentoAberto] = useState(false)
   const [pagamentoEmRecusa, setPagamentoEmRecusa] = useState(null)
   const [motivoRecusaPagamento, setMotivoRecusaPagamento] = useState('')
@@ -472,6 +473,7 @@ function Revendas() {
     valor: '',
     formaPagamento: 'Pix',
     dataPagamento: obterDataLocalHoje(),
+    referenteAte: '',
     observacao: ''
   })
 
@@ -813,7 +815,8 @@ function Revendas() {
     setPagamentoEmConfirmacao(pagamento)
     setFormConfirmarPag({
       valorConfirmado: pagamento.valor_informado != null ? pagamento.valor_informado : pagamento.valor,
-      observacao: pagamento.observacao || ''
+      observacao: pagamento.observacao || '',
+      referenteAte: pagamento.referente_ate ? String(pagamento.referente_ate).slice(0, 10) : ''
     })
     setModalConfirmarPagamentoAberto(true)
   }
@@ -835,6 +838,11 @@ function Revendas() {
         valorConfirmado: val,
         observacao: formConfirmarPag.observacao
       })
+
+      if (res?.sucesso && formConfirmarPag.referenteAte) {
+        const resRef = await definirReferenciaPagamentoRevenda({ pagamentoId: pagamentoEmConfirmacao.id, referenteAte: formConfirmarPag.referenteAte })
+        if (!resRef?.sucesso) alert(`Pagamento confirmado, mas o período de referência não foi salvo: ${resRef?.mensagem || 'erro'}`)
+      }
 
       if (res?.sucesso) {
         const idConfirmado = pagamentoEmConfirmacao.id
@@ -1401,6 +1409,7 @@ function Revendas() {
       valor: '',
       formaPagamento: 'Pix',
       dataPagamento: obterDataLocalHoje(),
+      referenteAte: '',
       observacao: ''
     })
     setModalPagamentoAberta(true)
@@ -1425,6 +1434,11 @@ function Revendas() {
       dataPagamento: formPagamento.dataPagamento,
       observacao: formPagamento.observacao
     })
+
+    if (res.sucesso && formPagamento.referenteAte && res.pagamento_id) {
+      const resRef = await definirReferenciaPagamentoRevenda({ pagamentoId: res.pagamento_id, referenteAte: formPagamento.referenteAte })
+      if (!resRef?.sucesso) alert(`Pagamento registrado, mas o período de referência não foi salvo: ${resRef?.mensagem || 'erro'}`)
+    }
 
     if (res.sucesso) {
       setModalPagamentoAberta(false)
@@ -3691,6 +3705,18 @@ function Revendas() {
               </div>
 
               <div className="form-campo full">
+                <label>Referente às vendas até (opcional)</label>
+                <input
+                  type="date"
+                  value={formPagamento.referenteAte}
+                  onChange={(e) => setFormPagamento({ ...formPagamento, referenteAte: e.target.value })}
+                />
+                <small style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  Último dia das vendas que este pagamento quita (ex.: 31/10 para a 2ª quinzena de outubro). Assim ele entra no período certo do filtro.
+                </small>
+              </div>
+
+              <div className="form-campo full">
                 <label>Observação / Comprovante</label>
                 <input
                   type="text"
@@ -3991,6 +4017,18 @@ function Revendas() {
                 />
                 <small style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                   Caso tenha havido diferença de centavos ou valor, corrija antes de confirmar.
+                </small>
+              </div>
+
+              <div className="form-campo full">
+                <label>Referente às vendas até (opcional)</label>
+                <input
+                  type="date"
+                  value={formConfirmarPag.referenteAte}
+                  onChange={(e) => setFormConfirmarPag({ ...formConfirmarPag, referenteAte: e.target.value })}
+                />
+                <small style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  Último dia das vendas que este pagamento quita. Ex.: pago em 09/11 referente à quinzena até 31/10.
                 </small>
               </div>
 
