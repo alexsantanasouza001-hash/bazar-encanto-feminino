@@ -238,6 +238,14 @@ export function validarLinhasVenda(linhasVenda = [], saldoDisponivel = 0) {
   return { valido: true, erro: null }
 }
 
+/**
+ * Data usada para encaixar o pagamento num período: "referente_ate" (último dia das vendas que ele quita);
+ * sem ela, a data do pagamento. Ex.: PIX pago em 09/11 referente à 2ª quinzena de outubro → 2026-10-31.
+ */
+export function dataReferenciaPagamento(p) {
+  return String(p?.referente_ate || p?.data_pagamento || p?.criado_em || '').slice(0, 10)
+}
+
 /** Taxa da maquininha gravada na venda (venda no cartão). Calculada no banco por trigger. */
 export function valorTaxaCartaoVenda(venda) {
   return Math.max(0, Number(venda?.valor_taxa_cartao || 0))
@@ -291,8 +299,6 @@ export function consolidarResumoRevendedora(revendedora, remessas = [], vendas =
   let totalDevidoLoja = 0
   let custoTotal = 0
   let totalTaxaCartao = 0
-  let lucroPositivo = 0
-  let prejuizoBazar = 0
 
   for (const venda of vendasRev) {
     const totalVenda = Number(venda.total_venda != null ? venda.total_venda : venda.valor_total_bruto || 0)
@@ -305,10 +311,6 @@ export function consolidarResumoRevendedora(revendedora, remessas = [], vendas =
     custoTotal += custo
     totalTaxaCartao += valorTaxaCartaoVenda(venda)
     totalDevidoLoja += Number(venda.valor_loja || 0)
-    // Lucro venda a venda: abaixo do repasse, a comissão é mantida e o prejuízo fica com o Bazar.
-    const lucroVenda = Number((totalVenda - Number(custo.toFixed(2)) - comissao - valorTaxaCartaoVenda(venda)).toFixed(2))
-    if (lucroVenda >= 0) lucroPositivo += lucroVenda
-    else prejuizoBazar += lucroVenda
   }
 
   // Se a revendedora tem divisão de lucro ativa, o valor devido ao Bazar é:
@@ -317,12 +319,12 @@ export function consolidarResumoRevendedora(revendedora, remessas = [], vendas =
     const percRev = Number(revendedora.percentual_lucro_revendedora ?? 40.00)
     const percBazar = Number((100 - percRev).toFixed(2))
     void percBazar
-    // A taxa do cartão sai do lucro antes da divisão. Só o lucro das vendas com lucro é dividido;
-    // o prejuízo das vendas abaixo do repasse fica com o Bazar (mesma regra do Portal).
-    const lucroLiquido = Number(lucroPositivo.toFixed(2))
+    // Regra 22/11/2026: a comissão sai sempre; o LUCRO LÍQUIDO do período (vendas - repasse - comissão
+    // - taxa do cartão, somando as vendas com lucro e as abaixo do repasse) é dividido no percentual.
+    const lucroLiquido = Number((totalVendidoBruto - custoTotal - totalComissao - totalTaxaCartao).toFixed(2))
     const parteLucroRevendedora = Number(((lucroLiquido * percRev) / 100).toFixed(2))
     const parteLucroBazar = Number((lucroLiquido - parteLucroRevendedora).toFixed(2))
-    totalDevidoLoja = Number((custoTotal + parteLucroBazar + Number(prejuizoBazar.toFixed(2))).toFixed(2))
+    totalDevidoLoja = Number((custoTotal + parteLucroBazar).toFixed(2))
   }
 
   const pagamentosRev = Array.isArray(pagamentos)
@@ -829,7 +831,8 @@ export function calcularDivisaoLucro(baseLucro, percentualRevendedora) {
   const percRev = Math.max(0, Math.min(100, Number(percentualRevendedora || 0)))
   const percBazar = Math.max(0, 100 - percRev)
 
-  if (base <= 0 || percRev <= 0) {
+  // Lucro negativo (vendas abaixo do repasse) também é dividido no mesmo percentual (regra 22/11/2026).
+  if (base === 0 || percRev <= 0) {
     return {
       base,
       percRevendedora: percRev,
@@ -1124,8 +1127,6 @@ export function calcularPainelFinanceiroAdmin({
         taxaCartao: 0,
         custoReal: 0,
         freteOperacional: 0,
-        lucroPositivo: 0,
-        prejuizoBazar: 0,
         percRevendedora: v.percRevendedora
       })
     }
@@ -1136,18 +1137,15 @@ export function calcularPainelFinanceiroAdmin({
     g.taxaCartao += v.taxaCartao
     g.custoReal += v.custoReal
     g.freteOperacional += v.freteOperacional
-    // Venda abaixo do repasse: comissão mantida, prejuízo fica com o Bazar (não reduz a parte
-    // da revendedora nas outras vendas).
-    if (v.lucroComercial >= 0) g.lucroPositivo += v.lucroComercial
-    else g.prejuizoBazar += v.lucroComercial
   }
 
   for (const g of gruposPorRevendedora.values()) {
-    const divisaoRev = calcularDivisaoLucro(Number(g.lucroPositivo.toFixed(2)), g.percRevendedora)
-    const prejuizoRev = Number(g.prejuizoBazar.toFixed(2))
+    // Lucro líquido do período (vendas com lucro + vendas abaixo do repasse) dividido no percentual.
+    const lucroComercialRev = Number((g.vendaLiquida - g.custoAcerto - g.comissao - g.taxaCartao).toFixed(2))
+    const divisaoRev = calcularDivisaoLucro(lucroComercialRev, g.percRevendedora)
     totalParteRevendedoraLucro += divisaoRev.parteRevendedora
-    totalParteBazarLucro += divisaoRev.parteBazar + prejuizoRev
-    totalDevidoBazar += Number((g.custoAcerto + divisaoRev.parteBazar + prejuizoRev).toFixed(2))
+    totalParteBazarLucro += divisaoRev.parteBazar
+    totalDevidoBazar += Number((g.custoAcerto + divisaoRev.parteBazar).toFixed(2))
 
     const lucroOperacionalRealRev = Number((g.vendaLiquida - g.custoReal - g.freteOperacional - g.comissao - g.taxaCartao).toFixed(2))
     const parteBazarLucroRealRev = Number((lucroOperacionalRealRev - divisaoRev.parteRevendedora).toFixed(2))
@@ -1229,21 +1227,21 @@ export function calcularPainelFinanceiroAdmin({
   // para nunca divergir do Portal da Revendedora por causa de fuso horário).
   if (filtroPeriodo === 'mes_atual') {
     pagamentosFiltrados = pagamentosFiltrados.filter((p) =>
-      String(p.data_pagamento || p.criado_em || '').slice(0, 10).startsWith(anoMesAtualStr)
+      dataReferenciaPagamento(p).startsWith(anoMesAtualStr)
     )
   } else if (filtroPeriodo === 'mes_anterior') {
     pagamentosFiltrados = pagamentosFiltrados.filter((p) =>
-      String(p.data_pagamento || p.criado_em || '').slice(0, 10).startsWith(anoMesAnteriorStr)
+      dataReferenciaPagamento(p).startsWith(anoMesAnteriorStr)
     )
   } else if (filtroPeriodo === 'personalizado') {
     if (dataInicioCustom) {
       pagamentosFiltrados = pagamentosFiltrados.filter(
-        (p) => String(p.data_pagamento || p.criado_em || '').slice(0, 10) >= dataInicioCustom
+        (p) => dataReferenciaPagamento(p) >= dataInicioCustom
       )
     }
     if (dataFimCustom) {
       pagamentosFiltrados = pagamentosFiltrados.filter(
-        (p) => String(p.data_pagamento || p.criado_em || '').slice(0, 10) <= dataFimCustom
+        (p) => dataReferenciaPagamento(p) <= dataFimCustom
       )
     }
   }
