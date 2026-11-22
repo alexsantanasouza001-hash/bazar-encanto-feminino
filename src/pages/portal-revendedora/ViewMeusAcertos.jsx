@@ -3,8 +3,7 @@ import {
   formatarMoeda,
   formatarData,
   calcularConsolidacaoFinanceira,
-  filtrarVendasConsolidacao
-} from './portalHelpers'
+  filtrarVendasConsolidacao, dataReferenciaPagamento } from './portalHelpers'
 import { informarPagamentoPortal, carregarConfiguracaoPix } from '../../storage'
 import { obterDataLocalHoje } from '../../lib/dataLocal.js'
 
@@ -92,8 +91,9 @@ export default function ViewMeusAcertos({
       }
 
       // Filtro por período
-      if (periodo && periodo !== 'todos' && p.data_pagamento) {
-        const dataStr = p.data_pagamento.slice(0, 10)
+      if (periodo && periodo !== 'todos' && (p.referente_ate || p.data_pagamento)) {
+        // Pagamento entra no período das vendas que ele quita (referente_ate), não no dia em que foi pago.
+        const dataStr = dataReferenciaPagamento(p)
         if (periodo === 'este_mes') {
           const hoje = new Date()
           const anoMesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
