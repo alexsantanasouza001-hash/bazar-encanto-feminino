@@ -623,29 +623,27 @@ test('Aba Acertos: Paridade exata com Resumo (R$ 447,92) e cálculo de Saldo Pen
   // Consolidação em Acertos
   const consolidacaoAcertos = calcularConsolidacaoFinanceira(vendasFiltradas, revendedora)
 
-  // 4 & 5: Resumo e Acertos iguais. A venda 1 (145 abaixo do repasse 150) dá prejuízo de R$ 5,00,
-  // que fica com o Bazar (regra 21/11/2026); só o lucro das vendas 2 e 3 é dividido: 24,10 + 119,10 = 143,20.
+  // 4 & 5: Se Resumo = R$ 447,92, Acertos = R$ 447,92
   assert.equal(consolidacaoAcertos.totalVendas, 543.00)
   assert.equal(consolidacaoAcertos.custoTotal, 365.00)
   assert.equal(consolidacaoAcertos.comissaoTotal, 39.80)
-  assert.equal(consolidacaoAcertos.lucroLiquido, 143.20)
-  assert.equal(consolidacaoAcertos.prejuizoBazar, -5.00)
-  assert.equal(consolidacaoAcertos.parteLucroRevendedora, 57.28)
-  assert.equal(consolidacaoAcertos.parteLucroBazar, 85.92)
-  assert.equal(consolidacaoAcertos.totalRevendedora, 97.08)
-  assert.equal(consolidacaoAcertos.valorDevidoBazar, 445.92) // 365 + 85,92 - 5
+  assert.equal(consolidacaoAcertos.lucroLiquido, 138.20)
+  assert.equal(consolidacaoAcertos.parteLucroRevendedora, 55.28)
+  assert.equal(consolidacaoAcertos.parteLucroBazar, 82.92)
+  assert.equal(consolidacaoAcertos.totalRevendedora, 95.08)
+  assert.equal(consolidacaoAcertos.valorDevidoBazar, 447.92)
 
-  // Também no calcularResumoDashboard, o valorBazar e saldoRepassar devem ser exatamente R$ 445,92
+  // Também no calcularResumoDashboard, o valorBazar e saldoRepassar devem ser exatamente R$ 447,92
   const resumoDash = calcularResumoDashboard([], vendasReais, [], revendedora)
-  assert.equal(resumoDash.valorBazar, 445.92)
-  assert.equal(resumoDash.saldoRepassar, 445.92)
+  assert.equal(resumoDash.valorBazar, 447.92)
+  assert.equal(resumoDash.saldoRepassar, 447.92)
 
   // 15 & 16: Saldo Pendente com pagamentos
   const pagamentosParciais = [{ id: 1, valor: 100.00 }]
   const valorJaPago = pagamentosParciais.reduce((acc, p) => acc + p.valor, 0)
   const saldoPendente = Math.max(0, Number((consolidacaoAcertos.valorDevidoBazar - valorJaPago).toFixed(2)))
   assert.equal(valorJaPago, 100.00)
-  assert.equal(saldoPendente, 345.92) // 445.92 - 100.00
+  assert.equal(saldoPendente, 347.92) // 447.92 - 100.00
 })
 
 test('Filtros da Aba Acertos: Período, Remessa e Filtros Combinados', () => {
@@ -818,7 +816,7 @@ test('Nova Metodologia: Fluxo de Pagamento, Pagamento Parcial, Confirmação e S
     percentual_lucro_revendedora: 40.00
   }
 
-  // Vendas confirmadas totalizam R$ 445,92 devido ao Bazar (venda 1 abaixo do repasse: prejuízo de R$ 5 do Bazar)
+  // Vendas confirmadas totalizam R$ 447,92 devido ao Bazar
   const vendas = [
     { id: 1, remessa_id: 5, quantidade: 1, total_venda: 145.00, valor_repasse_unitario: 150.00, valor_comissao: 0.00, status: 'CONFIRMADA' },
     { id: 2, remessa_id: 5, quantidade: 1, total_venda: 99.00, valor_repasse_unitario: 65.00, valor_comissao: 9.90, status: 'CONFIRMADA' },
@@ -826,7 +824,7 @@ test('Nova Metodologia: Fluxo de Pagamento, Pagamento Parcial, Confirmação e S
   ]
 
   const consolidacao = calcularConsolidacaoFinanceira(vendas, revendedora)
-  assert.equal(consolidacao.valorDevidoBazar, 445.92)
+  assert.equal(consolidacao.valorDevidoBazar, 447.92)
 
   // 12 & 13: Revendedora informa pagamento de R$ 300,00 -> AGUARDANDO_CONFIRMACAO
   const pagamentos = [
@@ -848,7 +846,7 @@ test('Nova Metodologia: Fluxo de Pagamento, Pagamento Parcial, Confirmação e S
   assert.equal(valorConfirmadoAntes, 0.00)
 
   const saldoOficialAntes = Math.max(0, Number((consolidacao.valorDevidoBazar - valorConfirmadoAntes).toFixed(2)))
-  assert.equal(saldoOficialAntes, 445.92)
+  assert.equal(saldoOficialAntes, 447.92)
 
   // 16 & 17: Admin confirma o pagamento de R$ 300,00
   pagamentos[0].status = 'CONFIRMADO'
@@ -862,14 +860,14 @@ test('Nova Metodologia: Fluxo de Pagamento, Pagamento Parcial, Confirmação e S
   assert.equal(valorConfirmadoDepois, 300.00)
 
   const saldoOficialDepois = Math.max(0, Number((consolidacao.valorDevidoBazar - valorConfirmadoDepois).toFixed(2)))
-  assert.equal(saldoOficialDepois, 145.92)
+  assert.equal(saldoOficialDepois, 147.92)
 
   // 21: Pagamento recusado não reduz saldo
   const pagamentoRecusado = {
     id: 502,
     revendedora_id: 1,
     remessa_id: 5,
-    valor: 145.92,
+    valor: 147.92,
     status: 'RECUSADO',
     motivo_recusa: 'PIX não localizado no extrato'
   }
@@ -935,25 +933,28 @@ test('simularAcertoVenda: prévia da Regata Patch 3x (venda 99, comissão 9,90, 
   assert.equal(Number((r.devidoBazar + r.totalRevendedora + r.taxa).toFixed(2)), 99)
 })
 
-test('Venda abaixo do repasse: comissão mantida e prejuízo fica com o Bazar (venda 99, comissão 9,90, repasse 95,78)', async () => {
-  const { simularAcertoVenda } = await import('./portalHelpers.js')
+
+test('Regra 22/11/2026: venda abaixo do repasse mantém a comissão e o lucro do período é dividido 40/60', async () => {
+  const { simularAcertoVenda, dataReferenciaPagamento } = await import('./portalHelpers.js')
   const rev = { usa_divisao_lucro: true, percentual_lucro_revendedora: 40 }
+  // Venda sozinha abaixo do repasse: lucro -6,68 → revendedora -2,67, bazar -4,01; comissão 9,90 mantida
   const r = simularAcertoVenda({ totalVenda: 99, comissao: 9.9, custoTotal: 95.78, taxaCartao: 0, revendedora: rev })
-  assert.equal(r.lucro, 0)
-  assert.equal(r.prejuizoBazar, -6.68)
-  assert.equal(r.devidoBazar, 89.1)
-  assert.equal(r.totalRevendedora, 9.9)
-  // Consolidação: a venda com prejuízo não reduz a parte da revendedora na venda com lucro
+  assert.equal(r.lucro, -6.68)
+  assert.equal(r.parteRevendedora, -2.67)
+  assert.equal(r.devidoBazar, 91.77)
+  assert.equal(r.totalRevendedora, 7.23)
+  assert.equal(Number((r.devidoBazar + r.totalRevendedora).toFixed(2)), 99)
+  // No período, a venda abaixo do repasse entra no lucro líquido que é dividido
   const remessas = [{ id: 1, itens: [{ id: 10, preco_venda_sugerido: 95.78 }, { id: 11, preco_venda_sugerido: 50 }] }]
   const vendas = [
     { id: 1, status: 'CONFIRMADA', remessa_id: 1, remessa_item_id: 10, quantidade: 1, total_venda: 99, valor_comissao: 9.9 },
     { id: 2, status: 'CONFIRMADA', remessa_id: 1, remessa_item_id: 11, quantidade: 1, total_venda: 100, valor_comissao: 10 }
   ]
   const c = calcularConsolidacaoFinanceira(vendas, rev, remessas)
-  assert.equal(c.lucroLiquido, 40) // só a venda 2: 100 - 50 - 10
-  assert.equal(c.prejuizoBazar, -6.68)
-  assert.equal(c.parteLucroRevendedora, 16)
-  assert.equal(c.totalRevendedora, 35.9) // 9,90 + 10 + 16
-  assert.equal(c.valorDevidoBazar, 163.1) // 89,10 + (50 + 24)
-  assert.equal(Number((c.valorDevidoBazar + c.totalRevendedora).toFixed(2)), 199)
+  assert.equal(c.lucroLiquido, 33.32)
+  assert.equal(c.parteLucroRevendedora, 13.33)
+  assert.equal(c.parteLucroBazar, 19.99)
+  assert.equal(c.valorDevidoBazar, 165.77)
+  assert.equal(c.totalRevendedora, 33.23)
+  assert.equal(dataReferenciaPagamento({ data_pagamento: '2026-11-09T12:00:00+00:00', referente_ate: '2026-10-31' }), '2026-10-31')
 })
