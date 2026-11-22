@@ -1798,7 +1798,7 @@ test('18) Venda CANCELADA ou RECUSADA é excluída dos cálculos', () => {
   assert.equal(painel.totalVendaLiquida, 100.00)
 })
 
-test('19) Lucro negativo / Prejuízo operacional é tratado sem inventar partilha positiva', () => {
+test('19) Lucro negativo (venda abaixo do repasse) é dividido no mesmo percentual; a comissão é mantida', () => {
   const rev = { id: 1, usa_divisao_lucro: true, percentual_lucro_revendedora: 40 }
   const remessas = [{ id: 1, itens: [{ id: 1, custo_unitario: 80.00 }] }]
   // Venda vendida com grande desconto: 60.00 (custo 80 + comissao 6 = 86)
@@ -1813,9 +1813,10 @@ test('19) Lucro negativo / Prejuízo operacional é tratado sem inventar partilh
 
   const res = detalharVendaFinanceiraAdmin(venda, rev, remessas)
   assert.equal(res.lucroOperacao, -26.00) // 60 - 80 - 6 = -26
-  assert.equal(res.parteRevendedoraLucro, 0.00) // Revendedora não recebe participação negativa nem positiva
-  assert.equal(res.totalEconomicoRevendedora, 6.00) // Recebe comissão contratual
-  assert.equal(res.resultadoEconomicoBazar, 54.00) // Custo recuperado (80) + prejuízo (-26) = 54
+  // Regra 22/11/2026: o lucro (aqui negativo) é dividido 40/60; a comissão de 6,00 continua dela.
+  assert.equal(res.parteRevendedoraLucro, -10.40) // 40% de -26
+  assert.equal(res.totalEconomicoRevendedora, -4.40) // 6,00 de comissão - 10,40
+  assert.equal(res.resultadoEconomicoBazar, 64.40) // 80 - 15,60 (60% de -26); 64,40 + (-4,40) = 60
 })
 
 test('20) Conferência matemática fecha perfeitamente: Total Revendedora + Resultado Bazar = Venda Líquida', () => {
@@ -3565,18 +3566,36 @@ test('detalharVendaFinanceiraAdmin e consolidarResumoRevendedora descontam a tax
   assert.equal(r.totalDevidoLoja, 69.79)
 })
 
-test('Admin: venda abaixo do repasse mantém a comissão e o prejuízo fica com o Bazar', async () => {
+
+test('Regra 22/11/2026: lucro líquido do período (inclusive venda abaixo do repasse) dividido 40/60 no admin', async () => {
   const { consolidarResumoRevendedora, calcularPainelFinanceiroAdmin } = await import('./revendasHelpers.js')
   const rev = { id: 1, nome: 'R', usa_divisao_lucro: true, percentual_lucro_revendedora: 40 }
   const remessas = [{ id: 1, revendedora_id: 1, itens: [{ id: 10, custo_unitario: 90, preco_venda_sugerido: 95.78 }, { id: 11, custo_unitario: 50, preco_venda_sugerido: 50 }] }]
   const vendas = [
-    { id: 1, revendedora_id: 1, status: 'CONFIRMADA', remessa_id: 1, remessa_item_id: 10, quantidade: 1, total_venda: 99, valor_comissao: 9.9, data_venda: '2026-11-20' },
-    { id: 2, revendedora_id: 1, status: 'CONFIRMADA', remessa_id: 1, remessa_item_id: 11, quantidade: 1, total_venda: 100, valor_comissao: 10, data_venda: '2026-11-20' }
+    { id: 1, revendedora_id: 1, status: 'CONFIRMADA', remessa_id: 1, remessa_item_id: 10, quantidade: 1, total_venda: 99, valor_comissao: 9.9, data_venda: '2026-11-05' },
+    { id: 2, revendedora_id: 1, status: 'CONFIRMADA', remessa_id: 1, remessa_item_id: 11, quantidade: 1, total_venda: 100, valor_comissao: 10, data_venda: '2026-11-06' }
   ]
-  const r = consolidarResumoRevendedora(rev, remessas, vendas, [])
-  assert.equal(r.totalDevidoLoja, 163.1)
+  // Lucro líquido = 199 - 145,78 - 19,90 = 33,32 → revendedora 13,33 / bazar 19,99
   const painel = calcularPainelFinanceiroAdmin({ vendas, revendedoras: [rev], remessas, filtroRevendedoraId: 1 })
-  assert.equal(painel.resultadoConsolidado.valorDevidoAoBazar, 163.1)
-  assert.equal(painel.resultadoConsolidado.parteRevendedora, 16)
-  assert.equal(painel.resultadoConsolidado.totalEconomicoRevendedora, 35.9)
+  assert.equal(painel.resultadoConsolidado.lucroLiquido, 33.32)
+  assert.equal(painel.resultadoConsolidado.parteRevendedora, 13.33)
+  assert.equal(painel.resultadoConsolidado.parteBazar, 19.99)
+  assert.equal(painel.resultadoConsolidado.valorDevidoAoBazar, 165.77) // 145,78 + 19,99
+  assert.equal(painel.resultadoConsolidado.totalEconomicoRevendedora, 33.23) // 19,90 + 13,33
+  assert.equal(consolidarResumoRevendedora(rev, remessas, vendas, []).totalDevidoLoja, 165.77)
+})
+
+test('Pagamento entra no período das vendas que ele quita (referente_ate), não na data em que foi pago', async () => {
+  const { calcularPainelFinanceiroAdmin, dataReferenciaPagamento } = await import('./revendasHelpers.js')
+  const rev = { id: 1, nome: 'R', usa_divisao_lucro: true, percentual_lucro_revendedora: 40 }
+  const remessas = [{ id: 1, revendedora_id: 1, itens: [{ id: 11, custo_unitario: 50, preco_venda_sugerido: 50 }] }]
+  const vendas = [{ id: 2, revendedora_id: 1, status: 'CONFIRMADA', remessa_id: 1, remessa_item_id: 11, quantidade: 1, total_venda: 100, valor_comissao: 10, data_venda: '2026-11-06' }]
+  const pagamentos = [
+    { id: 5, revendedora_id: 1, valor: 4473.7, status: 'CONFIRMADO', data_pagamento: '2026-11-09T12:00:00+00:00', referente_ate: '2026-10-31' },
+    { id: 7, revendedora_id: 1, valor: 20, status: 'CONFIRMADO', data_pagamento: '2026-11-10T12:00:00+00:00' }
+  ]
+  assert.equal(dataReferenciaPagamento(pagamentos[0]), '2026-10-31')
+  assert.equal(dataReferenciaPagamento(pagamentos[1]), '2026-11-10')
+  const painel = calcularPainelFinanceiroAdmin({ vendas, revendedoras: [rev], remessas, pagamentos, filtroRevendedoraId: 1, filtroPeriodo: 'personalizado', dataInicioCustom: '2026-11-01', dataFimCustom: '2026-11-15' })
+  assert.equal(painel.totalPagoConfirmado, 20) // o PIX de 4.473,70 é da quinzena anterior
 })
